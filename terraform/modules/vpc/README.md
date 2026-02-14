@@ -1,8 +1,16 @@
-# ${module^^} module
+# VPC module
 
-Describe the resources that belong to the ${module} layer. Keep this module focused on a single responsibility (networking, compute, load balancing, cache, database, identity, DNS, or monitoring). Define inputs for every configurable value and outputs for any resource identifiers other modules or environments need.
+This module is currently a scaffold.
 
-## Suggestions
-- Keep resources isolated to reduce blast radius.
-- Tag every resource using the shared `project` and `tags` inputs.
-- Document any required IAM permissions to deploy this module.
+## Purpose
+Own resources for the vpc layer only.
+
+## Inputs
+- `project` (string): project identifier used for naming/tagging.
+- `tags` (map(string)): common resource tags.
+
+## Outputs
+- `vpc_module_status`: scaffold status output.
+
+## Next implementation step
+Replace scaffold placeholders with concrete AWS resources and explicit outputs.

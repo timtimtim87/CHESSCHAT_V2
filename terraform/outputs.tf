@@ -1,5 +1,5 @@
 output "modules_active" {
-  value       = [
+  value = [
     module.vpc.vpc_module_status,
     module.ecs.ecs_module_status,
     module.alb.alb_module_status,

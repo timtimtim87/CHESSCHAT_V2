@@ -1,7 +1,7 @@
 # Root configuration that stitches together the reusable modules.
 locals {
   common_tags = merge({
-    Project = var.project
+    Project     = var.project
     Environment = var.environment
   }, var.tags)
 }

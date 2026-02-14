@@ -1,4 +1,4 @@
-output "${module}_module_status" {
-  value       = "${module} module placeholder"
-  description = "Indicates that the ${module} module has been wired into the configuration."
+output "ecs_module_status" {
+  value       = "ecs module placeholder"
+  description = "Indicates that the ecs module has been wired into the configuration."
 }

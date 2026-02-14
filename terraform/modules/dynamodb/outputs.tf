@@ -1,4 +1,4 @@
-output "${module}_module_status" {
-  value       = "${module} module placeholder"
-  description = "Indicates that the ${module} module has been wired into the configuration."
+output "dynamodb_module_status" {
+  value       = "dynamodb module placeholder"
+  description = "Indicates that the dynamodb module has been wired into the configuration."
 }

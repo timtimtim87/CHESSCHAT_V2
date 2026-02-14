@@ -1,7 +1,6 @@
-project     = "chess-platform"
+project     = "chesschat"
 environment = "dev"
 aws_region  = "us-east-1"
 tags = {
-  Team = "platform"
-  Cost = "experimental"
+  Project = "chesschat"
 }

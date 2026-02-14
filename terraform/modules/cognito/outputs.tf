@@ -1,4 +1,4 @@
-output "${module}_module_status" {
-  value       = "${module} module placeholder"
-  description = "Indicates that the ${module} module has been wired into the configuration."
+output "cognito_module_status" {
+  value       = "cognito module placeholder"
+  description = "Indicates that the cognito module has been wired into the configuration."
 }
