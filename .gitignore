@@ -37,3 +37,12 @@ node_modules/
 # OS generated files
 # keep this section extensible for other OS-specific caches
 
+# Terraform artifacts
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.*
+.terraform.lock.hcl
+*.tfplan
+*.tflock
