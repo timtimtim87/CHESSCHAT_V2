@@ -1,4 +1,15 @@
-# Chess Platform - Architecture & Implementation Guide
+# CHESSCHAT - Architecture & Implementation Guide
+
+## Status and Usage Note (2026-02-15)
+- This document has been normalized for the CHESSCHAT repository and portfolio baseline.
+- For this repository, authoritative project values and active decisions are in:
+  - `DOCS/PORTFOLIO_BUILD_PLAYBOOK.md`
+  - `infra/RESOURCE_REGISTRY.md`
+  - `terraform/backend.tf`
+- Current portfolio baseline:
+  - Project naming uses `chesschat`.
+  - Terraform backend uses S3 `use_lockfile = true`.
+  - NAT strategy is cost-aware: start with single NAT, keep path to per-AZ NAT.
 
 ## Project Overview
 
@@ -77,14 +88,14 @@ The application follows a classic three-tier architecture pattern with complete 
 **Internet Gateway:**
 - Attached to VPC for public subnet internet access
 - Enables inbound HTTPS traffic to ALB
-- Route: 0.0.0.0/0 â†’ IGW in public subnet route tables
+- Route: 0.0.0.0/0 -> IGW in public subnet route tables
 
 **NAT Gateways:**
 - Deploy 2x NAT Gateways (AZ-A and AZ-B) for high availability
 - Located in public subnets with Elastic IPs
 - Provides outbound internet for private app subnets
 - Used for: package downloads, AWS API calls via internet, external integrations
-- Route: 0.0.0.0/0 â†’ NAT Gateway in private app subnet route tables
+- Route: 0.0.0.0/0 -> NAT Gateway in private app subnet route tables
 - Optional: Deploy 3rd in AZ-C for full redundancy
 
 **VPC Endpoints (PrivateLink):**
@@ -208,7 +219,7 @@ The application follows a classic three-tier architecture pattern with complete 
 #### Identity & Access Management
 
 **Amazon Cognito User Pools:**
-- Pool name: chess-platform-users
+- Pool name: chesschat-users
 - Username attributes: Email or username
 - Password policy: Min 12 chars, uppercase, lowercase, numbers, symbols
 - Email verification: Required
@@ -280,7 +291,7 @@ The application follows a classic three-tier architecture pattern with complete 
 #### Frontend Hosting
 
 **Amazon S3:**
-- Bucket name: chess-platform-frontend
+- Bucket name: chesschat-frontend
 - Static website hosting: Enabled (or CloudFront origin)
 - Versioning: Enabled
 - Encryption: SSE-S3
@@ -302,8 +313,8 @@ The application follows a classic three-tier architecture pattern with complete 
 **Amazon Route 53:**
 - Hosted zone: chess.yourdomain.com
 - Name servers: Configured at domain registrar
-- Alias records: chess.yourdomain.com â†’ ALB (A and AAAA)
-- CNAME: www â†’ chess.yourdomain.com
+- Alias records: chess.yourdomain.com -> ALB (A and AAAA)
+- CNAME: www -> chess.yourdomain.com
 - Health check: HTTPS on ALB, 30s interval
 - Query logging: Send to CloudWatch Logs
 - DNSSEC: Enabled with KSK and ZSK
@@ -335,7 +346,7 @@ The application follows a classic three-tier architecture pattern with complete 
 - Games completed per hour
 
 **CloudWatch Logs:**
-- Log groups: /ecs/chess-platform/application
+- Log groups: /ecs/chesschat/application
 - Retention: 30 days
 - Encryption: KMS encrypted
 - Export to S3: Optional for long-term storage
@@ -365,12 +376,12 @@ The application follows a classic three-tier architecture pattern with complete 
 - Forecasting: 3-month projection
 
 **AWS CloudTrail (Security & Audit):**
-- Trail name: chess-platform-trail
+- Trail name: chesschat-trail
 - All regions: Enabled
 - Management events: Read and Write
 - Data events: S3, DynamoDB (optional)
 - Log file validation: Enabled
-- S3 bucket: cloudtrail-logs-chess-platform
+- S3 bucket: cloudtrail-logs-chesschat
 - Encryption: SSE-S3
 - SNS notifications: Optional for real-time alerts
 
@@ -544,7 +555,7 @@ The application follows a classic three-tier architecture pattern with complete 
 - Room stays active with one player
 - Remaining player can wait for reconnection
 - If active game: disconnected player's clock keeps running
-- Disconnected player runs out of time â†’ loses game
+- Disconnected player runs out of time -> loses game
 - Room expires after 60 minutes regardless
 
 **Both Players Leave:**
@@ -757,8 +768,8 @@ Purpose: Query match history for specific users
 ### Session Lifecycle Management
 
 **Room Creation (Both Users Join):**
-1. User A creates room â†’ lobby page with code
-2. User B enters code â†’ both marked ready
+1. User A creates room -> lobby page with code
+2. User B enters code -> both marked ready
 3. Backend creates Chime meeting:
    ```
    meeting = await chime.createMeeting({
@@ -822,7 +833,7 @@ Purpose: Query match history for specific users
 3. Update participant as disconnected in Redis
 4. Notify remaining player via WebSocket
 5. Game clock continues counting down for disconnected player
-6. If disconnected player's time expires â†’ timeout loss
+6. If disconnected player's time expires -> timeout loss
 7. Remaining player can wait indefinitely (up to room expiry)
 8. Disconnected player can rejoin with room code:
    - Validate previous participant
@@ -1074,7 +1085,7 @@ Steps:
 
 **Tag all resources:**
 ```
-Project: chess-platform
+Project: chesschat
 Environment: production
 Tier: presentation | application | data
 Component: alb | fargate | redis | dynamodb | nat | etc.
@@ -1275,8 +1286,8 @@ Configuration:
 **Example Blue/Green Deployment:**
 ```
 Traffic Policy:
-- 90% traffic â†’ ALB-Blue (current version)
-- 10% traffic â†’ ALB-Green (new version)
+- 90% traffic -> ALB-Blue (current version)
+- 10% traffic -> ALB-Green (new version)
 - Gradually shift to 100% Green
 - Rollback instantly if issues detected
 ```
@@ -1425,10 +1436,10 @@ Traffic Policy:
 - AWS Config (compliance tracking)
 
 **Infrastructure as Code:**
-- Terraform (modular design, remote state, workspaces)
+- Terraform (modular design, remote state)
 - Module-based architecture
-- State management with S3 and DynamoDB locking
-- Multi-environment deployments (dev/staging/production)
+- State management with S3 + `use_lockfile`
+- Single portfolio environment (with optional future expansion)
 - Version control for infrastructure
 - GitOps workflow
 - Resource tagging strategy
@@ -1464,7 +1475,7 @@ Traffic Policy:
 ### Interview Talking Points
 
 **Infrastructure as Code with Terraform:**
-Explain modular Terraform design with separate modules for VPC, ECS, ALB, data layer. Discuss remote state management in S3 with DynamoDB locking for team collaboration. Highlight multi-environment strategy (dev/staging/production) using workspaces and variable files. Emphasize reproducibilityâ€”entire infrastructure can be rebuilt from code, eliminating configuration drift.
+Explain modular Terraform design with separate modules for VPC, ECS, ALB, and data services. Discuss remote state management in S3 with `use_lockfile` for safe collaboration. Highlight the single-environment portfolio strategy and how it can evolve into layered stacks later. Emphasize reproducibility: entire infrastructure can be rebuilt from code, minimizing configuration drift.
 
 **Three-Tier VPC Architecture:**
 Explain subnet segregation strategy (public for ALB/NAT, private app for Fargate with no public IPs, private data for Redis with zero internet access). Discuss security groups enforcing least-privilege access, VPC endpoints eliminating NAT costs for AWS services, and how multi-AZ deployment provides HA without sacrificing security.
@@ -1494,7 +1505,7 @@ Emphasize this runs in production with real users, generating actual metrics, co
 Walk through separate roles for ECS Task Execution (pull images, write logs) vs ECS Task Role (application permissions). Explain resource-level permissions on DynamoDB tables, no wildcard actions, VPC endpoint policies restricting service access, and Secrets Manager for credential rotation. Demonstrate least-privilege principle.
 
 **Disaster Recovery:**
-Explain backup strategy: DynamoDB point-in-time recovery, ElastiCache daily snapshots, Terraform state versioning in S3. Discuss RTO/RPO targets and recovery procedures. Emphasize that entire infrastructure is defined in Terraformâ€”can rebuild from scratch in under 30 minutes if entire region fails.
+Explain backup strategy: DynamoDB point-in-time recovery, ElastiCache daily snapshots, Terraform state versioning in S3. Discuss RTO/RPO targets and recovery procedures. Emphasize that entire infrastructure is defined in Terraform-can rebuild from scratch in under 30 minutes if entire region fails.
 
 ---
 
@@ -1503,31 +1514,31 @@ Explain backup strategy: DynamoDB point-in-time recovery, ElastiCache daily snap
 ### Terraform Project Structure
 
 ```
-chess-platform-terraform/
-â”œâ”€â”€ modules/
-â”‚   â”œâ”€â”€ vpc/
-â”‚   â”‚   â”œâ”€â”€ main.tf
-â”‚   â”‚   â”œâ”€â”€ variables.tf
-â”‚   â”‚   â”œâ”€â”€ outputs.tf
-â”‚   â”‚   â””â”€â”€ README.md
-â”‚   â”œâ”€â”€ ecs/
-â”‚   â”‚   â”œâ”€â”€ main.tf
-â”‚   â”‚   â”œâ”€â”€ variables.tf
-â”‚   â”‚   â”œâ”€â”€ outputs.tf
-â”‚   â”‚   â””â”€â”€ README.md
-â”‚   â”œâ”€â”€ alb/
-â”‚   â”œâ”€â”€ elasticache/
-â”‚   â”œâ”€â”€ dynamodb/
-â”‚   â”œâ”€â”€ cognito/
-â”‚   â”œâ”€â”€ route53/
-â”‚   â””â”€â”€ monitoring/
-â”œâ”€â”€ main.tf
-â”œâ”€â”€ variables.tf
-â”œâ”€â”€ outputs.tf
-â”œâ”€â”€ providers.tf
-â”œâ”€â”€ backend.tf
-â”œâ”€â”€ terraform.tfvars
-â””â”€â”€ versions.tf
+chesschat-terraform/
+|-- modules/
+|   |-- vpc/
+|   |   |-- main.tf
+|   |   |-- variables.tf
+|   |   |-- outputs.tf
+|   |   `-- README.md
+|   |-- ecs/
+|   |   |-- main.tf
+|   |   |-- variables.tf
+|   |   |-- outputs.tf
+|   |   `-- README.md
+|   |-- alb/
+|   |-- elasticache/
+|   |-- dynamodb/
+|   |-- cognito/
+|   |-- route53/
+|   `-- monitoring/
+|-- main.tf
+|-- variables.tf
+|-- outputs.tf
+|-- providers.tf
+|-- backend.tf
+|-- terraform.tfvars
+`-- versions.tf
 ```
 
 ### Terraform Module Organization
@@ -1601,25 +1612,26 @@ chess-platform-terraform/
 ### Terraform State Management
 
 **Remote State Backend:**
-- S3 bucket: chess-platform-terraform-state
+- S3 bucket: chesschat-tfstate-723580627470-us-east-1
 - Bucket versioning enabled
 - Bucket encryption (SSE-S3 or KMS)
-- DynamoDB table for state locking: terraform-state-lock
-- State file: terraform.tfstate
+- Locking mode: S3 `use_lockfile = true`
+- Legacy artifact (optional): DynamoDB table `chesschat-tfstate-locks`
+- State file key: dev/terraform.tfstate
 
 **State Configuration:**
 ```
 backend.tf:
 - S3 backend with encryption
-- DynamoDB for locking
-- Key: terraform.tfstate
+- `use_lockfile = true`
+- Key: dev/terraform.tfstate
 ```
 
 ### Terraform Variables
 
 **Required Variables:**
 - aws_region (e.g., us-east-1)
-- project_name (chess-platform)
+- project_name (chesschat)
 - domain_name (chess.yourdomain.com)
 - vpc_cidr (10.0.0.0/16)
 - availability_zones (list of 3 AZs)
@@ -1680,7 +1692,7 @@ backend.tf:
 **All Resources Tagged With:**
 ```
 tags = {
-  Project     = "chess-platform"
+  Project     = "chesschat"
   ManagedBy   = "terraform"
   CostCenter  = "personal"
   Tier        = "presentation" | "application" | "data"
@@ -1796,9 +1808,9 @@ tags = {
 - module.monitoring
 
 **Resource Naming Convention:**
-- chess-platform-{resource-type}-{identifier}
-- Example: chess-platform-alb-main
-- Example: chess-platform-ecs-cluster
+- chesschat-{resource-type}-{identifier}
+- Example: chesschat-alb-main
+- Example: chesschat-ecs-cluster
 
 ### Terraform Plan Checklist
 
@@ -1852,11 +1864,10 @@ tags = {
 1. Clone or create Terraform repository
 2. Configure AWS credentials (AWS CLI or environment variables)
 3. Create S3 bucket for Terraform state (manual or bootstrap script)
-4. Create DynamoDB table for state locking (terraform-state-lock)
-5. Configure backend.tf with S3 bucket details
-6. Create terraform.tfvars with environment-specific values
-7. Store secrets in AWS Secrets Manager
-8. Initialize Terraform: `terraform init`
+4. Configure backend.tf with S3 bucket details and `use_lockfile = true`
+5. Create terraform.tfvars with portfolio values
+6. Store secrets in AWS Secrets Manager
+7. Initialize Terraform: `terraform init`
 
 **Phase 2: Network Infrastructure**
 1. Apply VPC module: Creates VPC, subnets, IGW, NAT Gateways, route tables
@@ -2074,7 +2085,7 @@ terraform apply tfplan
 8. Daily cost > $10
 
 **SNS Topic Configuration:**
-1. Create SNS topic: chess-platform-alerts
+1. Create SNS topic: chesschat-alerts
 2. Subscribe with email address
 3. Confirm subscription
 4. Attach to all critical alarms

@@ -1,7 +1,7 @@
 # Terraform Workspace
 
 ## Layout
-- `backend.tf`: configure remote state (copy to your own bucket/lock table before `init`).
+- `backend.tf`: configure remote state (S3 bucket + `use_lockfile` state locking).
 - `providers.tf` / `versions.tf`: pin providers and Terraform core version.
 - `variables.tf`: define global inputs consumed across modules.
 - `main.tf`: wires all reusable modules together with shared tags.

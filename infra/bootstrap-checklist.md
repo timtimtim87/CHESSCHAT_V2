@@ -11,17 +11,19 @@ Date initialized: 2026-02-14
 - [ ] GuardDuty enabled
 
 ## 1) CLI Authentication
-- [ ] Profile configured: `CHESSCHAT_IAM_USER`
+- [ ] Profile configured: `default` maps to IAM user `CHESSCHAT_IAM_USER`
+- [ ] Optional named profile present: `CHESSCHAT_IAM_USER`
 - [ ] `aws sts get-caller-identity` returns account `723580627470`
-- [ ] Environment variables set: `AWS_PROFILE`, `AWS_REGION`, `AWS_DEFAULT_REGION`
+- [ ] `AWS_PROFILE` is unset (unless intentionally overriding for one command)
+- [ ] Region variables set: `AWS_REGION=us-east-1`, `AWS_DEFAULT_REGION=us-east-1`
 
 ## 2) Terraform Backend
 - [ ] S3 bucket created for Terraform state
 - [ ] S3 bucket: versioning enabled
 - [ ] S3 bucket: encryption enabled
 - [ ] S3 bucket: block public access enabled
-- [ ] DynamoDB table created for state lock (`LockID`)
-- [ ] DynamoDB deletion protection enabled
+- [ ] Backend lock strategy set to `use_lockfile = true` in `terraform/backend.tf`
+- [ ] (Legacy) DynamoDB lock table tracked if retained: `chesschat-tfstate-locks`
 - [ ] `terraform init -reconfigure` succeeds
 
 ## 3) Tracking and Registry

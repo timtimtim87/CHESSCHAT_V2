@@ -1,4 +1,15 @@
-# Chess Platform - Diagram Guide
+# CHESSCHAT - Diagram Guide
+
+## Status and Usage Note (2026-02-15)
+- Use this guide for presentation structure and interview storytelling.
+- This guide is aligned to current CHESSCHAT naming and portfolio architecture choices.
+- For current project decisions and accurate baseline values, reference:
+  - `DOCS/PORTFOLIO_BUILD_PLAYBOOK.md`
+  - `infra/RESOURCE_REGISTRY.md`
+- Current baseline to reflect in diagrams:
+  - Project naming: `chesschat`
+  - Single final environment (portfolio scope)
+  - 3-AZ architecture with cost-aware NAT strategy (start with single NAT, explain per-AZ upgrade path)
 
 ## Purpose
 This guide outlines the recommended diagrams for presenting the chess platform project in your portfolio and during technical interviews. Each diagram serves a specific purpose and targets different audiences.
@@ -41,7 +52,7 @@ Show the AWS services, VPC architecture, network topology, and security boundari
 
 **Network Components:**
 - Internet Gateway (public tier internet access)
-- NAT Gateways x2 (AZ-A and AZ-B with Elastic IPs)
+- NAT Gateway x1 (cost-aware default; upgrade path to per-AZ NAT for higher resilience)
 - VPC Gateway Endpoints (DynamoDB, S3)
 - VPC Interface Endpoints (ECR API, ECR Docker, CloudWatch Logs, Secrets Manager)
 
@@ -103,94 +114,94 @@ Show how data moves through the system during key operations (authentication, ro
 **Flow 1: User Authentication**
 ```
 User Browser
-  â†“ [HTTPS]
-Route 53 â†’ ALB
-  â†“
+  -> [HTTPS]
+Route 53 -> ALB
+  ->
 Fargate Task (Application)
-  â†“
+  ->
 Cognito User Pool
-  â†“ [JWT Token]
+  -> [JWT Token]
 Fargate Task
-  â†“ [WebSocket Upgrade]
+  -> [WebSocket Upgrade]
 Browser (Authenticated WebSocket Connection)
 ```
 
 **Flow 2: Room Creation & Joining**
 ```
 User A: "Create Room"
-  â†“ [WebSocket message]
+  -> [WebSocket message]
 Fargate Task
-  â†“ [Generate random 5-char code]
-  â†“ [SET room:{code}]
+  -> [Generate random 5-char code]
+  -> [SET room:{code}]
 ElastiCache Redis
-  â†“ [Return room code]
+  -> [Return room code]
 User A receives: "K7M2A"
 
 User B: "Join Room with K7M2A"
-  â†“ [WebSocket message]
+  -> [WebSocket message]
 Fargate Task
-  â†“ [GET room:K7M2A, add User B]
+  -> [GET room:K7M2A, add User B]
 ElastiCache Redis
-  â†“ [Both users ready]
+  -> [Both users ready]
 Fargate Task
-  â†“ [CreateMeeting API call]
+  -> [CreateMeeting API call]
 Chime SDK
-  â†“ [Return meeting + attendee tokens]
+  -> [Return meeting + attendee tokens]
 Fargate Task
-  â†“ [Broadcast meeting details via WebSocket]
+  -> [Broadcast meeting details via WebSocket]
 Users A & B (video chat activated)
 ```
 
 **Flow 3: Chess Game Play**
 ```
-User A: Makes chess move (e2 â†’ e4)
-  â†“ [WebSocket: {move: "e2e4"}]
+User A: Makes chess move (e2 -> e4)
+  -> [WebSocket: {move: "e2e4"}]
 Fargate Task
-  â†“ [Validate move with Stockfish engine]
-  â†“ [Update game state in Redis]
+  -> [Validate move with Stockfish engine]
+  -> [Update game state in Redis]
 ElastiCache Redis (active_game.moves[], board_fen, clocks)
-  â†“
+  ->
 Fargate Task
-  â†“ [Broadcast move to both players via WebSocket]
+  -> [Broadcast move to both players via WebSocket]
 User A & User B (boards update in real-time)
 ```
 
 **Flow 4: Game Completion & Persistence**
 ```
 Game End Event (checkmate/resignation/timeout)
-  â†“
+  ->
 Fargate Task
-  â†“ [Calculate game metadata]
-  â†“ [PutItem: game_id, winner, pgn, timestamps]
+  -> [Calculate game metadata]
+  -> [PutItem: game_id, winner, pgn, timestamps]
 DynamoDB Games History Table
-  â†“
+  ->
 Fargate Task
-  â†“ [UpdateItem: user stats (wins/losses)]
+  -> [UpdateItem: user stats (wins/losses)]
 DynamoDB Users Table
-  â†“
+  ->
 Fargate Task
-  â†“ [Clear active_game in Redis]
-  â†“ [Add to room's games_played history]
+  -> [Clear active_game in Redis]
+  -> [Add to room's games_played history]
 ElastiCache Redis
-  â†“
+  ->
 Fargate Task
-  â†“ [Broadcast game_ended event via WebSocket]
+  -> [Broadcast game_ended event via WebSocket]
 Users A & B (see result screen, "New Game" button enabled)
 ```
 
 **Flow 5: Session Lifecycle (60-Minute Room)**
 ```
 Room Created
-  â†“ [SET with TTL 3600 seconds]
+  -> [SET with TTL 3600 seconds]
 ElastiCache Redis
-  â†“ [Background TTL expiration worker]
+  -> [Background TTL expiration worker]
 After 60 minutes:
-  â†“ [DeleteMeeting API call]
+  -> [DeleteMeeting API call]
 Chime SDK (meeting terminated)
-  â†“
+  ->
 Fargate Task
-  â†“ [Close WebSocket connections]
-  â†“ [If game active: save as draw to DynamoDB]
+  -> [Close WebSocket connections]
+  -> [If game active: save as draw to DynamoDB]
 Users A & B (redirected to home page)
 ```
 
@@ -267,10 +278,10 @@ Step 5: Starting First Game
 - User A (White) can make first move
 
 Step 6: Game Play
-- User A moves pawn e2 â†’ e4 (drag & drop)
+- User A moves pawn e2 -> e4 (drag & drop)
 - Move validates, board updates for both players
 - User A's clock pauses, User B's clock starts
-- User B responds with e7 â†’ e5
+- User B responds with e7 -> e5
 - Players continue making moves while video chat continues
 - Move history visible on side panel
 - Captured pieces displayed
@@ -365,8 +376,8 @@ Step 2: 60-Minute Mark
 - Add speech bubbles for user thoughts ("Great! Code is K7M2A")
 - Show system responses in notification boxes
 - Include time annotations ("5 seconds later...", "After 15 moves...")
-- Use checkmarks âœ“ for completed steps
-- Use warning icons âš ï¸ for error states
+- Use checkmarks [x] for completed steps
+- Use warning icons for error states
 
 ### Interview Talking Points
 - "Notice users can play unlimited games without recreating the room - great UX"
@@ -391,7 +402,7 @@ Show understanding of AWS pricing and cost optimization strategies.
 ### Key Elements to Include
 
 **Pie Chart: Monthly Cost Allocation**
-- NAT Gateways: $65 (27%)
+- NAT Gateway: $32 (cost-aware baseline)
 - Fargate (ECS): $26-35 (11-14%)
 - VPC Endpoints: $28 (12%)
 - ElastiCache Redis: $22 (9%)
@@ -400,17 +411,16 @@ Show understanding of AWS pricing and cost optimization strategies.
 - DynamoDB: $5-10 (2-4%)
 - CloudWatch/Logs: $6-18 (3-7%)
 - Route 53/ACM: $1 (0.4%)
-- **Total: $181-245/month**
+- **Total: portfolio baseline depends on workload and service mix**
 
 **Bar Chart: Cost Optimization Opportunities**
 ```
-Current Architecture: $245/month
-  â†“ Remove 1 NAT Gateway (single AZ): -$32
-  â†“ Remove Interface VPC Endpoints: -$28
-  â†“ Single-AZ Redis: -$11
-  â†“ Fargate Spot pricing: -$18
-Optimized Architecture: $156/month
-Savings: $89/month (36%)
+Current Architecture: single NAT baseline
+  -> Upgrade to per-AZ NAT for higher resilience: +$32 to +$64
+  -> Remove Interface VPC Endpoints: -$28
+  -> Single-AZ Redis: -$11
+  -> Fargate Spot pricing: -$18
+Optimized Architecture: choose based on reliability and security requirements
 ```
 
 **Trade-offs Table**
@@ -589,10 +599,10 @@ As you build and iterate on the platform, keep diagrams updated:
 ## Conclusion
 
 This diagram strategy provides:
-- âœ… **Technical credibility** (infrastructure diagram)
-- âœ… **System design depth** (data flow diagram)
-- âœ… **User-centric thinking** (user journey diagram)
-- âœ… **Business acumen** (cost breakdown diagram)
+- [x] **Technical credibility** (infrastructure diagram)
+- [x] **System design depth** (data flow diagram)
+- [x] **User-centric thinking** (user journey diagram)
+- [x] **Business acumen** (cost breakdown diagram)
 
 Together, these diagrams tell a complete story of a production-grade AWS application from multiple perspectives.
 

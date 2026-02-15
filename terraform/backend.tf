@@ -1,5 +1,9 @@
 terraform {
-  # Partial backend configuration. Provide bucket/key/table at init time:
-  # terraform init -reconfigure -backend-config="bucket=..." -backend-config="key=..." -backend-config="region=us-east-1" -backend-config="dynamodb_table=..." -backend-config="encrypt=true"
-  backend "s3" {}
+  backend "s3" {
+    bucket         = "chesschat-tfstate-723580627470-us-east-1"
+    key            = "dev/terraform.tfstate"
+    region         = "us-east-1"
+    use_lockfile   = true
+    encrypt        = true
+  }
 }

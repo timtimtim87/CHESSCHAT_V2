@@ -19,7 +19,7 @@ That state file is the key concept. Without it, Terraform wouldn't know whether 
 
 ---
 
-## Why You Need an S3 Bucket and DynamoDB Table
+## Why You Need Remote State and Locking
 
 Before you can use Terraform for real work, you need somewhere to store that state file. You have two options:
 
@@ -30,13 +30,15 @@ Before you can use Terraform for real work, you need somewhere to store that sta
 
 **The S3 bucket** stores the state file itself. Think of it as a shared hard drive for Terraform's memory.
 
-**The DynamoDB table** provides **state locking**. When you run `terraform apply`, it writes a lock to this table. If someone else (or another terminal) tries to run `apply` at the same time, they'll see "state is locked" and have to wait. This prevents two people from making conflicting changes simultaneously.
+**State locking** prevents concurrent writes. This repo uses S3 backend lockfiles (`use_lockfile = true`) for locking.
 
-> These two resources (the S3 bucket and DynamoDB table) are the only things you create manually — everything else will be managed by Terraform itself.
+> The S3 state bucket is mandatory. A DynamoDB lock table may still exist as a legacy bootstrap artifact but is no longer required by this backend configuration.
 
 ---
 
 ## How Your Project Is Organized
+
+Note: this repo currently has an `environments/dev` example directory, but your active portfolio direction is a single final environment. Keep naming/path conventions consistent while you build (for example, `dev/terraform.tfstate` can remain as a state key namespace without requiring multiple deployed environments).
 
 ```
 terraform/
@@ -63,7 +65,7 @@ terraform/
 
 ### What each file type does
 
-**`backend.tf`** — This is your connection to remote state. It says: "Store my state in S3 bucket X, lock it with DynamoDB table Y." You configured this during `terraform init`.
+**`backend.tf`** — This is your connection to remote state. It says: "Store my state in S3 bucket X and use backend locking." You configured this during `terraform init`.
 
 **`providers.tf`** — Tells Terraform you're working with AWS and sets the region. Terraform supports many providers (Azure, GCP, Cloudflare, etc.) but you only need AWS.
 
@@ -103,20 +105,22 @@ module "vpc" {
 
 You've already completed this:
 - Created an S3 bucket for state storage
-- Created a DynamoDB table for state locking
-- These are the only manually-created resources
+- Configured backend locking with `use_lockfile = true`
+- (Optional legacy) DynamoDB lock table retained from earlier setup
 
 ### Step 1: Initialize Terraform
 
 ```bash
 cd terraform
 
-terraform init \
-  -backend-config="bucket=YOUR-BUCKET-NAME" \
-  -backend-config="key=envs/dev/terraform.tfstate" \
-  -backend-config="region=us-east-1" \
-  -backend-config="dynamodb_table=YOUR-DYNAMODB-TABLE-NAME"
+terraform init -reconfigure
 ```
+
+Current backend values in `terraform/backend.tf`:
+- bucket: `chesschat-tfstate-723580627470-us-east-1`
+- key: `dev/terraform.tfstate`
+- region: `us-east-1`
+- use_lockfile: `true`
 
 **What this does:**
 - Downloads the AWS provider plugin (stored in `.terraform/`, which is gitignored)
@@ -278,9 +282,10 @@ terraform workspace list         # See all workspaces (* marks current)
 
 ## Your Current Status
 
-- **Backend:** S3 bucket + DynamoDB table created (manual setup complete)
+- **Backend:** S3 bucket configured; backend lock mode is `use_lockfile=true`
 - **Modules:** 8 modules exist as placeholders (vpc, ecs, alb, dynamodb, cognito, elasticache, route53, monitoring)
 - **Next action:** Replace module placeholders with real resource definitions, starting with the VPC module (networking is the foundation everything else depends on)
 - **Naming convention:** `chesschat-<env>-<service>-<purpose>` (e.g., `chesschat-dev-vpc-main`)
 - **AWS region:** `us-east-1`
 - **AWS account:** `723580627470`
+- **Expected IAM user ARN:** `arn:aws:iam::723580627470:user/CHESSCHAT_IAM_USER` (via `default` profile)

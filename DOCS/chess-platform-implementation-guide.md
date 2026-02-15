@@ -1,4 +1,16 @@
-# Chess Platform - Technical Implementation Guide
+# CHESSCHAT - Technical Implementation Guide
+
+## Status and Usage Note (2026-02-15)
+- This file is normalized for current CHESSCHAT portfolio implementation.
+- Before executing commands from this guide, cross-check against:
+  - `DOCS/PORTFOLIO_BUILD_PLAYBOOK.md`
+  - `infra/RESOURCE_REGISTRY.md`
+  - `terraform/backend.tf`
+- Important current-state differences:
+  - Active account/project values are tracked in `infra/RESOURCE_REGISTRY.md`.
+  - Terraform backend is already initialized in this repo and uses S3 `use_lockfile = true`.
+  - Current portfolio direction is a single final environment with production-style best practices and explicit cost tradeoffs.
+- Treat command examples here as patterns to adapt, not copy/paste ground truth.
 
 ## Document Purpose
 
@@ -60,14 +72,14 @@ Set up Terraform remote state backend before deploying infrastructure.
 - [ ] AWS credentials configured locally
 - [ ] AWS CLI working (`aws sts get-caller-identity`)
 - [ ] Terraform installed and in PATH
-- [ ] S3 bucket name chosen (globally unique)
-- [ ] DynamoDB table name chosen
+- [ ] S3 state bucket exists: `chesschat-tfstate-723580627470-us-east-1`
+- [ ] Backend key decided: `dev/terraform.tfstate`
 
 ### Implementation Steps
 
 **Step 1: Create S3 Bucket for State**
 ```
-Bucket name: chess-platform-terraform-state-{random-suffix}
+Bucket name: chesschat-tfstate-723580627470-us-east-1
 Region: us-east-1
 Settings:
 - Versioning: Enabled
@@ -89,15 +101,15 @@ Settings:
 **Via AWS CLI:**
 ```bash
 aws s3api create-bucket \
-  --bucket chess-platform-terraform-state-YOUR-SUFFIX \
+  --bucket chesschat-tfstate-723580627470-us-east-1 \
   --region us-east-1
 
 aws s3api put-bucket-versioning \
-  --bucket chess-platform-terraform-state-YOUR-SUFFIX \
+  --bucket chesschat-tfstate-723580627470-us-east-1 \
   --versioning-configuration Status=Enabled
 
 aws s3api put-bucket-encryption \
-  --bucket chess-platform-terraform-state-YOUR-SUFFIX \
+  --bucket chesschat-tfstate-723580627470-us-east-1 \
   --server-side-encryption-configuration '{
     "Rules": [{
       "ApplyServerSideEncryptionByDefault": {
@@ -107,62 +119,37 @@ aws s3api put-bucket-encryption \
   }'
 ```
 
-**Step 2: Create DynamoDB Table for State Locking**
-```
-Table name: terraform-state-lock
-Region: us-east-1
-Partition key: LockID (String)
-Billing mode: On-demand
-Settings:
-- Deletion protection: Enabled
-- Encryption: AWS managed key
-```
+**Step 2: Configure backend.tf**
+Use backend settings already aligned in this repository:
+- bucket: `chesschat-tfstate-723580627470-us-east-1`
+- key: `dev/terraform.tfstate`
+- region: `us-east-1`
+- `use_lockfile = true`
+- `encrypt = true`
 
-**Via AWS Console:**
-1. Navigate to DynamoDB console
-2. Click "Create table"
-3. Table name: terraform-state-lock
-4. Partition key: LockID (String)
-5. No sort key
-6. On-demand capacity mode
-7. Enable deletion protection
-8. Default encryption settings
-9. Create table
-
-**Via AWS CLI:**
+**Step 3: Initialize/Reconfigure Terraform**
 ```bash
-aws dynamodb create-table \
-  --table-name terraform-state-lock \
-  --attribute-definitions AttributeName=LockID,AttributeType=S \
-  --key-schema AttributeName=LockID,KeyType=HASH \
-  --billing-mode PAY_PER_REQUEST \
-  --deletion-protection-enabled \
-  --region us-east-1
+cd terraform
+terraform init -reconfigure
 ```
-
-**Step 3: Configure backend.tf**
-Create backend configuration file with your bucket name.
 
 ### Verification Checklist
 - [ ] S3 bucket exists and accessible
 - [ ] S3 bucket versioning enabled
 - [ ] S3 bucket encryption enabled
 - [ ] S3 bucket blocks public access
-- [ ] DynamoDB table exists
-- [ ] DynamoDB table has LockID partition key
-- [ ] DynamoDB deletion protection enabled
 - [ ] Can write test file to S3 bucket
-- [ ] Can write test item to DynamoDB table
+- [ ] `terraform init -reconfigure` succeeds
 
 ### Common Issues
 **Issue:** Bucket name already taken
 **Fix:** Add random suffix or different naming convention
 
 **Issue:** Access denied when creating resources
-**Fix:** Verify IAM permissions include S3 and DynamoDB full access
+**Fix:** Verify IAM permissions include required S3 state bucket access and STS identity calls
 
-**Issue:** DynamoDB table creation fails
-**Fix:** Check region matches (us-east-1), verify unique table name
+**Issue:** Backend initialization fails on state access
+**Fix:** Verify active IAM identity has `s3:ListBucket/GetObject/PutObject/DeleteObject` on state bucket
 
 ---
 
@@ -183,14 +170,14 @@ Deploy three-tier VPC with public, private app, and private data subnets across 
 **Step 1: Create VPC Module Structure**
 ```
 modules/vpc/
-â”œâ”€â”€ main.tf       (VPC, subnets, route tables)
-â”œâ”€â”€ igw.tf        (Internet Gateway)
-â”œâ”€â”€ nat.tf        (NAT Gateways with EIPs)
-â”œâ”€â”€ endpoints.tf  (VPC endpoints)
-â”œâ”€â”€ security.tf   (Security groups, NACLs)
-â”œâ”€â”€ flow_logs.tf  (VPC Flow Logs)
-â”œâ”€â”€ variables.tf
-â””â”€â”€ outputs.tf
+|-- main.tf       (VPC, subnets, route tables)
+|-- igw.tf        (Internet Gateway)
+|-- nat.tf        (NAT Gateways with EIPs)
+|-- endpoints.tf  (VPC endpoints)
+|-- security.tf   (Security groups, NACLs)
+|-- flow_logs.tf  (VPC Flow Logs)
+|-- variables.tf
+`-- outputs.tf
 ```
 
 **Step 2: Define VPC Resources**
@@ -221,17 +208,17 @@ Private Data Subnets (data tier):
 
 **Step 3: Internet Gateway**
 - Attach to VPC
-- Create route in public subnet route tables: 0.0.0.0/0 â†’ IGW
+- Create route in public subnet route tables: 0.0.0.0/0 -> IGW
 
 **Step 4: NAT Gateways**
 - Create 2 Elastic IPs (one per NAT Gateway)
 - Deploy NAT Gateway in public subnet AZ-A
 - Deploy NAT Gateway in public subnet AZ-B
-- Update private app subnet route tables: 0.0.0.0/0 â†’ NAT Gateway
+- Update private app subnet route tables: 0.0.0.0/0 -> NAT Gateway
 
 Route table associations:
-- AZ-A and AZ-B private app subnets â†’ respective NAT Gateway
-- AZ-C private app subnet â†’ NAT Gateway in AZ-A or AZ-B
+- AZ-A and AZ-B private app subnets -> respective NAT Gateway
+- AZ-C private app subnet -> NAT Gateway in AZ-A or AZ-B
 
 **Step 5: VPC Endpoints**
 
@@ -287,7 +274,7 @@ Private Data Subnet NACLs:
 **Step 8: VPC Flow Logs**
 - Enable on VPC level (captures all subnets)
 - Destination: CloudWatch Logs
-- Log group: /aws/vpc/chess-platform-flow-logs
+- Log group: /aws/vpc/chesschat-flow-logs
 - Retention: 7 days
 - IAM role for Flow Logs
 - Traffic type: ALL (accept + reject)
@@ -317,7 +304,7 @@ terraform apply
 ### Validation Commands
 ```bash
 # List VPCs
-aws ec2 describe-vpcs --filters "Name=tag:Project,Values=chess-platform"
+aws ec2 describe-vpcs --filters "Name=tag:Project,Values=chesschat"
 
 # List subnets
 aws ec2 describe-subnets --filters "Name=vpc-id,Values=vpc-xxxxx"
@@ -368,14 +355,14 @@ Deploy DynamoDB tables for persistent data and ElastiCache Redis for ephemeral s
 **Step 1: Create DynamoDB Module**
 ```
 modules/dynamodb/
-â”œâ”€â”€ main.tf       (Tables, GSIs)
-â”œâ”€â”€ variables.tf
-â””â”€â”€ outputs.tf
+|-- main.tf       (Tables, GSIs)
+|-- variables.tf
+`-- outputs.tf
 ```
 
 **Step 2: Users Table**
 ```
-Table name: chess-platform-users
+Table name: chesschat-users
 Partition key: user_id (String)
 Billing mode: On-demand
 Attributes:
@@ -396,7 +383,7 @@ Settings:
 
 **Step 3: Games History Table**
 ```
-Table name: chess-platform-games
+Table name: chesschat-games
 Partition key: game_id (String)
 Sort key: ended_at (Number) - Unix timestamp
 Billing mode: On-demand
@@ -451,15 +438,15 @@ terraform apply -target=module.dynamodb
 **Step 1: Create ElastiCache Module**
 ```
 modules/elasticache/
-â”œâ”€â”€ main.tf       (Cluster, subnet group, parameter group)
-â”œâ”€â”€ security.tf   (Security group)
-â”œâ”€â”€ variables.tf
-â””â”€â”€ outputs.tf
+|-- main.tf       (Cluster, subnet group, parameter group)
+|-- security.tf   (Security group)
+|-- variables.tf
+`-- outputs.tf
 ```
 
 **Step 2: Redis Subnet Group**
 ```
-Name: chess-platform-redis-subnet-group
+Name: chesschat-redis-subnet-group
 Subnets: All 3 private data subnets
 - 10.0.21.0/24 (us-east-1a)
 - 10.0.22.0/24 (us-east-1b)
@@ -469,7 +456,7 @@ Subnets: All 3 private data subnets
 **Step 3: Redis Parameter Group**
 ```
 Family: redis7
-Name: chess-platform-redis-params
+Name: chesschat-redis-params
 Parameters:
 - maxmemory-policy: allkeys-lru
 - timeout: 300
@@ -477,7 +464,7 @@ Parameters:
 
 **Step 4: Redis Replication Group**
 ```
-Replication group ID: chess-platform-redis
+Replication group ID: chesschat-redis
 Description: Redis cluster for chess platform
 Engine: redis
 Engine version: 7.0
@@ -485,9 +472,9 @@ Node type: cache.t4g.micro
 Number of cache clusters: 2 (primary + replica)
 Multi-AZ: Enabled
 Automatic failover: Enabled
-Subnet group: chess-platform-redis-subnet-group
+Subnet group: chesschat-redis-subnet-group
 Security group: Redis security group (from VPC module)
-Parameter group: chess-platform-redis-params
+Parameter group: chesschat-redis-params
 Auth token: Enabled (store in Secrets Manager)
 Encryption at rest: Enabled
 Encryption in transit: Enabled
@@ -499,7 +486,7 @@ Maintenance window: sun:04:00-sun:05:00 UTC
 **Step 5: Store Redis AUTH Token**
 Create random AUTH token and store in Secrets Manager:
 ```
-Secret name: chess-platform/redis/auth-token
+Secret name: chesschat/redis/auth-token
 Secret type: Other
 Value: {auto-generated 32-char token}
 Encryption: AWS managed key
@@ -536,23 +523,23 @@ Note: ElastiCache creation takes 10-15 minutes
 ### Validation Commands
 ```bash
 # Describe DynamoDB tables
-aws dynamodb describe-table --table-name chess-platform-users
-aws dynamodb describe-table --table-name chess-platform-games
+aws dynamodb describe-table --table-name chesschat-users
+aws dynamodb describe-table --table-name chesschat-games
 
 # List GSIs
-aws dynamodb describe-table --table-name chess-platform-users \
+aws dynamodb describe-table --table-name chesschat-users \
   --query 'Table.GlobalSecondaryIndexes[*].IndexName'
 
 # Check point-in-time recovery
-aws dynamodb describe-continuous-backups --table-name chess-platform-users
+aws dynamodb describe-continuous-backups --table-name chesschat-users
 
 # Describe Redis cluster
 aws elasticache describe-replication-groups \
-  --replication-group-id chess-platform-redis
+  --replication-group-id chesschat-redis
 
 # Get Redis endpoint
 aws elasticache describe-replication-groups \
-  --replication-group-id chess-platform-redis \
+  --replication-group-id chesschat-redis \
   --query 'ReplicationGroups[0].NodeGroups[0].PrimaryEndpoint'
 
 # Check Redis security group
@@ -595,14 +582,14 @@ Set up user authentication with Cognito and create IAM roles for ECS tasks.
 **Step 1: Create Cognito Module**
 ```
 modules/cognito/
-â”œâ”€â”€ main.tf       (User pool, app client, identity providers)
-â”œâ”€â”€ variables.tf
-â””â”€â”€ outputs.tf
+|-- main.tf       (User pool, app client, identity providers)
+|-- variables.tf
+`-- outputs.tf
 ```
 
 **Step 2: User Pool**
 ```
-Pool name: chess-platform-users
+Pool name: chesschat-users
 Alias attributes: Email, Preferred Username
 Auto-verified attributes: Email
 Username attributes: Email (can sign in with email)
@@ -620,14 +607,14 @@ Tags: Project, ManagedBy
 
 **Step 3: User Pool Domain**
 ```
-Domain prefix: chess-platform-{random-suffix}
-(e.g., chess-platform-a7k2m)
-Full domain: chess-platform-a7k2m.auth.us-east-1.amazoncognito.com
+Domain prefix: chesschat-{random-suffix}
+(e.g., chesschat-a7k2m)
+Full domain: chesschat-a7k2m.auth.us-east-1.amazoncognito.com
 ```
 
 **Step 4: App Client**
 ```
-App client name: chess-platform-web
+App client name: chesschat-web
 Generate client secret: Yes
 Authentication flows:
 - ALLOW_USER_PASSWORD_AUTH
@@ -656,8 +643,8 @@ Client ID: {from Google Cloud Console}
 Client secret: {from Google Cloud Console}
 Authorize scopes: profile email openid
 Attribute mapping:
-- email â†’ email
-- name â†’ name
+- email -> email
+- name -> name
 ```
 
 Facebook:
@@ -667,8 +654,8 @@ App ID: {from Facebook Developers}
 App secret: {from Facebook Developers}
 Authorize scopes: public_profile email
 Attribute mapping:
-- email â†’ email
-- name â†’ name
+- email -> email
+- name -> name
 ```
 
 **Step 6: Apply Cognito Module**
@@ -695,7 +682,7 @@ terraform apply -target=module.cognito
 
 **Step 1: ECS Task Execution Role**
 ```
-Role name: chess-platform-ecs-task-execution-role
+Role name: chesschat-ecs-task-execution-role
 Trust policy: ecs-tasks.amazonaws.com
 Managed policies:
 - AmazonECSTaskExecutionRolePolicy (AWS managed)
@@ -709,7 +696,7 @@ Inline policy for Secrets Manager:
       "secretsmanager:GetSecretValue"
     ],
     "Resource": [
-      "arn:aws:secretsmanager:us-east-1:*:secret:chess-platform/*"
+      "arn:aws:secretsmanager:us-east-1:*:secret:chesschat/*"
     ]
   }]
 }
@@ -717,7 +704,7 @@ Inline policy for Secrets Manager:
 
 **Step 2: ECS Task Role**
 ```
-Role name: chess-platform-ecs-task-role
+Role name: chesschat-ecs-task-role
 Trust policy: ecs-tasks.amazonaws.com
 
 Inline policy - DynamoDB:
@@ -733,10 +720,10 @@ Inline policy - DynamoDB:
       "dynamodb:Scan"
     ],
     "Resource": [
-      "arn:aws:dynamodb:us-east-1:*:table/chess-platform-users",
-      "arn:aws:dynamodb:us-east-1:*:table/chess-platform-users/index/*",
-      "arn:aws:dynamodb:us-east-1:*:table/chess-platform-games",
-      "arn:aws:dynamodb:us-east-1:*:table/chess-platform-games/index/*"
+      "arn:aws:dynamodb:us-east-1:*:table/chesschat-users",
+      "arn:aws:dynamodb:us-east-1:*:table/chesschat-users/index/*",
+      "arn:aws:dynamodb:us-east-1:*:table/chesschat-games",
+      "arn:aws:dynamodb:us-east-1:*:table/chesschat-games/index/*"
     ]
   }]
 }
@@ -808,13 +795,13 @@ aws cognito-idp describe-user-pool-client \
   --client-id xxxxx
 
 # List IAM roles
-aws iam list-roles | grep chess-platform
+aws iam list-roles | grep chesschat
 
 # Get role policy
-aws iam get-role --role-name chess-platform-ecs-task-role
+aws iam get-role --role-name chesschat-ecs-task-role
 
 # List attached policies
-aws iam list-attached-role-policies --role-name chess-platform-ecs-task-execution-role
+aws iam list-attached-role-policies --role-name chesschat-ecs-task-execution-role
 ```
 
 ### Common Issues
@@ -854,14 +841,14 @@ Set up container registry and ECS cluster with Fargate tasks.
 **Step 1: Create ECR Module**
 ```
 modules/ecr/
-â”œâ”€â”€ main.tf       (Repository, lifecycle policy)
-â”œâ”€â”€ variables.tf
-â””â”€â”€ outputs.tf
+|-- main.tf       (Repository, lifecycle policy)
+|-- variables.tf
+`-- outputs.tf
 ```
 
 **Step 2: ECR Repository**
 ```
-Repository name: chess-platform
+Repository name: chesschat
 Image tag mutability: Mutable (allows overwriting tags like 'latest')
 Scan on push: Enabled
 Encryption: AES256
@@ -897,14 +884,14 @@ aws ecr get-login-password --region us-east-1 | \
   {account-id}.dkr.ecr.us-east-1.amazonaws.com
 
 # Build image
-docker build -t chess-platform:latest .
+docker build -t chesschat:latest .
 
 # Tag for ECR
-docker tag chess-platform:latest \
-  {account-id}.dkr.ecr.us-east-1.amazonaws.com/chess-platform:latest
+docker tag chesschat:latest \
+  {account-id}.dkr.ecr.us-east-1.amazonaws.com/chesschat:latest
 
 # Push to ECR
-docker push {account-id}.dkr.ecr.us-east-1.amazonaws.com/chess-platform:latest
+docker push {account-id}.dkr.ecr.us-east-1.amazonaws.com/chesschat:latest
 ```
 
 ### Verification Checklist - ECR
@@ -923,17 +910,17 @@ docker push {account-id}.dkr.ecr.us-east-1.amazonaws.com/chess-platform:latest
 **Step 1: Create ECS Module**
 ```
 modules/ecs/
-â”œâ”€â”€ main.tf          (Cluster, service)
-â”œâ”€â”€ task_definition.tf
-â”œâ”€â”€ autoscaling.tf
-â”œâ”€â”€ cloudwatch.tf
-â”œâ”€â”€ variables.tf
-â””â”€â”€ outputs.tf
+|-- main.tf          (Cluster, service)
+|-- task_definition.tf
+|-- autoscaling.tf
+|-- cloudwatch.tf
+|-- variables.tf
+`-- outputs.tf
 ```
 
 **Step 2: ECS Cluster**
 ```
-Cluster name: chess-platform-cluster
+Cluster name: chesschat-cluster
 Capacity providers: FARGATE, FARGATE_SPOT
 Default capacity provider strategy: FARGATE (100%)
 Container Insights: Enabled
@@ -942,25 +929,25 @@ Tags: Project, ManagedBy
 
 **Step 3: CloudWatch Log Group**
 ```
-Log group name: /ecs/chess-platform/application
+Log group name: /ecs/chesschat/application
 Retention: 30 days
 Encryption: Default (CloudWatch managed)
 ```
 
 **Step 4: Task Definition**
 ```
-Family: chess-platform-task
+Family: chesschat-task
 Network mode: awsvpc (required for Fargate)
 Requires compatibilities: FARGATE
 CPU: 256 (.25 vCPU)
 Memory: 512 MB
-Task execution role: chess-platform-ecs-task-execution-role
-Task role: chess-platform-ecs-task-role
+Task execution role: chesschat-ecs-task-execution-role
+Task role: chesschat-ecs-task-role
 
 Container definition:
 {
   "name": "chess-app",
-  "image": "{account}.dkr.ecr.us-east-1.amazonaws.com/chess-platform:latest",
+  "image": "{account}.dkr.ecr.us-east-1.amazonaws.com/chesschat:latest",
   "cpu": 256,
   "memory": 512,
   "essential": true,
@@ -972,17 +959,17 @@ Container definition:
     {"name": "NODE_ENV", "value": "production"},
     {"name": "AWS_REGION", "value": "us-east-1"},
     {"name": "REDIS_ENDPOINT", "value": "{from terraform output}"},
-    {"name": "DYNAMODB_USERS_TABLE", "value": "chess-platform-users"},
-    {"name": "DYNAMODB_GAMES_TABLE", "value": "chess-platform-games"}
+    {"name": "DYNAMODB_USERS_TABLE", "value": "chesschat-users"},
+    {"name": "DYNAMODB_GAMES_TABLE", "value": "chesschat-games"}
   ],
   "secrets": [{
     "name": "REDIS_AUTH_TOKEN",
-    "valueFrom": "arn:aws:secretsmanager:us-east-1:*:secret:chess-platform/redis/auth-token"
+    "valueFrom": "arn:aws:secretsmanager:us-east-1:*:secret:chesschat/redis/auth-token"
   }],
   "logConfiguration": {
     "logDriver": "awslogs",
     "options": {
-      "awslogs-group": "/ecs/chess-platform/application",
+      "awslogs-group": "/ecs/chesschat/application",
       "awslogs-region": "us-east-1",
       "awslogs-stream-prefix": "ecs"
     }
@@ -999,9 +986,9 @@ Container definition:
 
 **Step 5: ECS Service**
 ```
-Service name: chess-platform-service
-Cluster: chess-platform-cluster
-Task definition: chess-platform-task:latest
+Service name: chesschat-service
+Cluster: chesschat-cluster
+Task definition: chesschat-task:latest
 Launch type: FARGATE
 Platform version: LATEST
 Desired count: 2
@@ -1060,30 +1047,30 @@ Note: Initial apply will fail to start tasks until ALB is created (Phase 5)
 ### Validation Commands
 ```bash
 # List ECR images
-aws ecr list-images --repository-name chess-platform
+aws ecr list-images --repository-name chesschat
 
 # Describe image
-aws ecr describe-images --repository-name chess-platform
+aws ecr describe-images --repository-name chesschat
 
 # List ECS clusters
 aws ecs list-clusters
 
 # Describe cluster
-aws ecs describe-clusters --clusters chess-platform-cluster
+aws ecs describe-clusters --clusters chesschat-cluster
 
 # List services
-aws ecs list-services --cluster chess-platform-cluster
+aws ecs list-services --cluster chesschat-cluster
 
 # Describe service
 aws ecs describe-services \
-  --cluster chess-platform-cluster \
-  --services chess-platform-service
+  --cluster chesschat-cluster \
+  --services chesschat-service
 
 # List tasks
-aws ecs list-tasks --cluster chess-platform-cluster
+aws ecs list-tasks --cluster chesschat-cluster
 
 # Get task logs
-aws logs tail /ecs/chess-platform/application --follow
+aws logs tail /ecs/chesschat/application --follow
 ```
 
 ### Common Issues
@@ -1154,14 +1141,14 @@ Certificate status changes from "Pending validation" to "Issued" (5-30 minutes)
 **Step 1: Create ALB Module**
 ```
 modules/alb/
-â”œâ”€â”€ main.tf          (ALB, listeners, target groups)
-â”œâ”€â”€ variables.tf
-â””â”€â”€ outputs.tf
+|-- main.tf          (ALB, listeners, target groups)
+|-- variables.tf
+`-- outputs.tf
 ```
 
 **Step 2: Application Load Balancer**
 ```
-Name: chess-platform-alb
+Name: chesschat-alb
 Scheme: internet-facing
 IP address type: ipv4
 Subnets: All 3 public subnets (AZ-A, AZ-B, AZ-C)
@@ -1176,11 +1163,11 @@ Attributes:
 
 **Step 3: Target Group**
 ```
-Name: chess-platform-tg
+Name: chesschat-tg
 Target type: ip (for Fargate)
 Protocol: HTTP
 Port: 80
-VPC: chess-platform VPC
+VPC: chesschat VPC
 Health check:
 - Protocol: HTTP
 - Path: /health
@@ -1204,7 +1191,7 @@ SSL certificate: ACM certificate ARN
 SSL policy: ELBSecurityPolicy-TLS-1-2-2017-01
 Default action:
 - Type: forward
-- Target group: chess-platform-tg
+- Target group: chesschat-tg
 ```
 
 **Step 5: HTTP Listener (Redirect)**
@@ -1222,7 +1209,7 @@ Default action:
 Add load balancer configuration to ECS service:
 ```
 Load balancers:
-- Target group ARN: chess-platform-tg
+- Target group ARN: chesschat-tg
 - Container name: chess-app
 - Container port: 80
 Health check grace period: 60 seconds
@@ -1258,10 +1245,10 @@ terraform apply -target=module.ecs
 **Step 1: Create Route 53 Module**
 ```
 modules/route53/
-â”œâ”€â”€ main.tf          (Hosted zone, records, health checks)
-â”œâ”€â”€ dnssec.tf
-â”œâ”€â”€ variables.tf
-â””â”€â”€ outputs.tf
+|-- main.tf          (Hosted zone, records, health checks)
+|-- dnssec.tf
+|-- variables.tf
+`-- outputs.tf
 ```
 
 **Step 2: Hosted Zone**
@@ -1313,7 +1300,7 @@ TTL: 300
 
 **Step 7: Health Check**
 ```
-Name: chess-platform-alb-health
+Name: chesschat-alb-health
 Type: HTTPS
 Resource path: /health
 Domain: chess.yourdomain.com
@@ -1365,7 +1352,7 @@ aws acm list-certificates --region us-east-1
 
 # Describe ALB
 aws elbv2 describe-load-balancers \
-  --names chess-platform-alb
+  --names chesschat-alb
 
 # Check target health
 aws elbv2 describe-target-health \
@@ -1373,7 +1360,7 @@ aws elbv2 describe-target-health \
 
 # Get ALB DNS name
 aws elbv2 describe-load-balancers \
-  --names chess-platform-alb \
+  --names chesschat-alb \
   --query 'LoadBalancers[0].DNSName'
 
 # List Route 53 hosted zones
@@ -1428,17 +1415,17 @@ Set up CloudWatch dashboards, alarms, and budget alerts for operational visibili
 **Step 1: Create Monitoring Module**
 ```
 modules/monitoring/
-â”œâ”€â”€ main.tf          (Dashboards, alarms)
-â”œâ”€â”€ budgets.tf
-â”œâ”€â”€ sns.tf
-â”œâ”€â”€ variables.tf
-â””â”€â”€ outputs.tf
+|-- main.tf          (Dashboards, alarms)
+|-- budgets.tf
+|-- sns.tf
+|-- variables.tf
+`-- outputs.tf
 ```
 
 **Step 2: SNS Topic for Alerts**
 ```
-Topic name: chess-platform-alerts
-Display name: Chess Platform Alerts
+Topic name: chesschat-alerts
+Display name: CHESSCHAT Alerts
 Subscriptions:
 - Protocol: email
 - Endpoint: your-email@example.com
@@ -1448,7 +1435,7 @@ Create and confirm subscription via email
 
 **Step 3: CloudWatch Dashboard**
 ```
-Dashboard name: chess-platform-overview
+Dashboard name: chesschat-overview
 
 Widgets:
 1. ECS Service Metrics (line graph):
@@ -1603,7 +1590,7 @@ Widgets:
 
 **Step 5: AWS Budgets**
 ```
-Budget name: chess-platform-monthly
+Budget name: chesschat-monthly
 Budget type: Cost budget
 Period: Monthly
 Budgeted amount: $250
@@ -1656,7 +1643,7 @@ aws sns list-subscriptions
 aws cloudwatch list-dashboards
 
 # Get dashboard
-aws cloudwatch get-dashboard --dashboard-name chess-platform-overview
+aws cloudwatch get-dashboard --dashboard-name chesschat-overview
 
 # List alarms
 aws cloudwatch describe-alarms
@@ -1743,13 +1730,13 @@ curl http://localhost/health
 **Step 3: Build Production Image**
 ```bash
 # Build optimized image
-docker build -t chess-platform:production .
+docker build -t chesschat:production .
 
 # Test production image locally
 docker run -p 80:80 \
   -e NODE_ENV=production \
   -e REDIS_ENDPOINT=your-redis-endpoint \
-  chess-platform:production
+  chesschat:production
 
 # Verify no errors in logs
 docker logs {container-id}
@@ -1763,15 +1750,15 @@ aws ecr get-login-password --region us-east-1 | \
   {account}.dkr.ecr.us-east-1.amazonaws.com
 
 # Tag image
-docker tag chess-platform:production \
-  {account}.dkr.ecr.us-east-1.amazonaws.com/chess-platform:v1.0.0
+docker tag chesschat:production \
+  {account}.dkr.ecr.us-east-1.amazonaws.com/chesschat:v1.0.0
 
-docker tag chess-platform:production \
-  {account}.dkr.ecr.us-east-1.amazonaws.com/chess-platform:latest
+docker tag chesschat:production \
+  {account}.dkr.ecr.us-east-1.amazonaws.com/chesschat:latest
 
 # Push both tags
-docker push {account}.dkr.ecr.us-east-1.amazonaws.com/chess-platform:v1.0.0
-docker push {account}.dkr.ecr.us-east-1.amazonaws.com/chess-platform:latest
+docker push {account}.dkr.ecr.us-east-1.amazonaws.com/chesschat:v1.0.0
+docker push {account}.dkr.ecr.us-east-1.amazonaws.com/chesschat:latest
 ```
 
 **Step 5: Update ECS Task Definition**
@@ -1785,8 +1772,8 @@ terraform apply -target=module.ecs
 
 # Or force new deployment
 aws ecs update-service \
-  --cluster chess-platform-cluster \
-  --service chess-platform-service \
+  --cluster chesschat-cluster \
+  --service chesschat-service \
   --force-new-deployment
 ```
 
@@ -1794,17 +1781,17 @@ aws ecs update-service \
 ```bash
 # Watch service events
 aws ecs describe-services \
-  --cluster chess-platform-cluster \
-  --services chess-platform-service \
+  --cluster chesschat-cluster \
+  --services chesschat-service \
   --query 'services[0].events[0:5]'
 
 # Watch task status
 watch aws ecs list-tasks \
-  --cluster chess-platform-cluster \
-  --service-name chess-platform-service
+  --cluster chesschat-cluster \
+  --service-name chesschat-service
 
 # Check task logs
-aws logs tail /ecs/chess-platform/application --follow
+aws logs tail /ecs/chesschat/application --follow
 ```
 
 **Step 8: Verify Deployment**
@@ -1878,8 +1865,8 @@ Wait for:
 - [ ] Can play 5+ sequential games
 
 **Disconnection Tests:**
-- [ ] Close browser â†’ can rejoin with room code
-- [ ] Network disconnect â†’ can reconnect
+- [ ] Close browser -> can rejoin with room code
+- [ ] Network disconnect -> can reconnect
 - [ ] Opponent sees "disconnected" status
 - [ ] Timer continues for disconnected player
 - [ ] Disconnected player loses on time
@@ -1990,8 +1977,8 @@ Manual snapshot before major changes:
 ```
 ```bash
 aws elasticache create-snapshot \
-  --replication-group-id chess-platform-redis \
-  --snapshot-name chess-platform-manual-$(date +%Y%m%d)
+  --replication-group-id chesschat-redis \
+  --snapshot-name chesschat-manual-$(date +%Y%m%d)
 ```
 
 **DynamoDB Backups:**
@@ -2001,11 +1988,11 @@ Manual backup before major changes:
 ```
 ```bash
 aws dynamodb create-backup \
-  --table-name chess-platform-users \
+  --table-name chesschat-users \
   --backup-name users-manual-$(date +%Y%m%d)
 
 aws dynamodb create-backup \
-  --table-name chess-platform-games \
+  --table-name chesschat-games \
   --backup-name games-manual-$(date +%Y%m%d)
 ```
 
@@ -2013,7 +2000,7 @@ aws dynamodb create-backup \
 ```bash
 # S3 versioning handles this automatically
 # Manual download for safety:
-aws s3 cp s3://chess-platform-terraform-state/terraform.tfstate \
+aws s3 cp s3://chesschat-tfstate-723580627470-us-east-1/dev/terraform.tfstate \
   ./backups/terraform-state-$(date +%Y%m%d).tfstate
 ```
 
@@ -2021,16 +2008,16 @@ aws s3 cp s3://chess-platform-terraform-state/terraform.tfstate \
 
 **Scenario 1: ECS Tasks Not Starting**
 ```
-1. Check CloudWatch logs: /ecs/chess-platform/application
+1. Check CloudWatch logs: /ecs/chesschat/application
 2. Common causes:
-   - Image pull errors â†’ verify ECR permissions
-   - Health check failures â†’ verify /health endpoint
-   - Resource limits â†’ check task CPU/memory
+   - Image pull errors -> verify ECR permissions
+   - Health check failures -> verify /health endpoint
+   - Resource limits -> check task CPU/memory
 3. Rollback if needed:
    aws ecs update-service \
-     --cluster chess-platform-cluster \
-     --service chess-platform-service \
-     --task-definition chess-platform-task:{previous-revision}
+     --cluster chesschat-cluster \
+     --service chesschat-service \
+     --task-definition chesschat-task:{previous-revision}
 ```
 
 **Scenario 2: ALB Targets Unhealthy**
@@ -2042,7 +2029,7 @@ aws s3 cp s3://chess-platform-terraform-state/terraform.tfstate \
    - Security group blocking traffic
    - Health check path wrong
    - Application not listening on port 80
-3. Verify security group allows ALB â†’ Fargate on port 80
+3. Verify security group allows ALB -> Fargate on port 80
 ```
 
 **Scenario 3: Database Issues**
@@ -2052,8 +2039,8 @@ DynamoDB:
 2. If throttled, switch to provisioned capacity temporarily
 3. Restore from point-in-time if data corruption:
    aws dynamodb restore-table-to-point-in-time \
-     --source-table-name chess-platform-users \
-     --target-table-name chess-platform-users-restored \
+     --source-table-name chesschat-users \
+     --target-table-name chesschat-users-restored \
      --restore-date-time 2025-02-01T10:00:00Z
 
 ElastiCache:
@@ -2061,8 +2048,8 @@ ElastiCache:
 2. If node failure, automatic failover to replica
 3. Restore from snapshot if needed:
    aws elasticache create-replication-group \
-     --replication-group-id chess-platform-redis-restored \
-     --snapshot-name chess-platform-manual-20250201
+     --replication-group-id chesschat-redis-restored \
+     --snapshot-name chesschat-manual-20250201
 ```
 
 **Scenario 4: Complete Region Failure**
@@ -2072,8 +2059,8 @@ ElastiCache:
 3. Redis recovery: Restore from latest snapshot
 4. Application deployment: Push latest image to ECR, deploy
 5. DNS update: May need to change region in Route 53
-Estimated RTO: 30-45 minutes
-Estimated RPO: < 24 hours (DynamoDB), < 24 hours (ElastiCache)
+Estimated RTO: 2 hours
+Estimated RPO: 15 minutes (persistent game/session data)
 ```
 
 **Scenario 5: Cost Overrun**
@@ -2142,15 +2129,15 @@ Diagnostic steps:
 ```bash
 # Revert to previous task definition
 aws ecs update-service \
-  --cluster chess-platform-cluster \
-  --service chess-platform-service \
-  --task-definition chess-platform-task:{previous-revision} \
+  --cluster chesschat-cluster \
+  --service chesschat-service \
+  --task-definition chesschat-task:{previous-revision} \
   --force-new-deployment
 
 # Monitor rollback
 aws ecs describe-services \
-  --cluster chess-platform-cluster \
-  --services chess-platform-service
+  --cluster chesschat-cluster \
+  --services chesschat-service
 ```
 
 **Infrastructure Rollback:**
@@ -2162,7 +2149,7 @@ terraform apply
 
 # Or restore from previous state
 terraform state pull > current-state.tfstate
-aws s3 cp s3://chess-platform-terraform-state/terraform.tfstate \
+aws s3 cp s3://chesschat-tfstate-723580627470-us-east-1/dev/terraform.tfstate \
   ./previous-state.tfstate
 # Manually restore state if needed
 ```
@@ -2255,83 +2242,83 @@ terraform state list
 aws ecs list-clusters
 
 # Describe service
-aws ecs describe-services --cluster chess-platform-cluster --services chess-platform-service
+aws ecs describe-services --cluster chesschat-cluster --services chesschat-service
 
 # List tasks
-aws ecs list-tasks --cluster chess-platform-cluster
+aws ecs list-tasks --cluster chesschat-cluster
 
 # Get task details
-aws ecs describe-tasks --cluster chess-platform-cluster --tasks {task-id}
+aws ecs describe-tasks --cluster chesschat-cluster --tasks {task-id}
 
 # Update service (force deployment)
-aws ecs update-service --cluster chess-platform-cluster --service chess-platform-service --force-new-deployment
+aws ecs update-service --cluster chesschat-cluster --service chesschat-service --force-new-deployment
 
 # Scale service
-aws ecs update-service --cluster chess-platform-cluster --service chess-platform-service --desired-count 4
+aws ecs update-service --cluster chesschat-cluster --service chesschat-service --desired-count 4
 ```
 
 ### AWS CLI - Logs
 ```bash
 # Tail logs
-aws logs tail /ecs/chess-platform/application --follow
+aws logs tail /ecs/chesschat/application --follow
 
 # Get log events
-aws logs get-log-events --log-group-name /ecs/chess-platform/application --log-stream-name {stream}
+aws logs get-log-events --log-group-name /ecs/chesschat/application --log-stream-name {stream}
 
 # Search logs
-aws logs filter-log-events --log-group-name /ecs/chess-platform/application --filter-pattern "ERROR"
+aws logs filter-log-events --log-group-name /ecs/chesschat/application --filter-pattern "ERROR"
 ```
 
 ### AWS CLI - ALB
 ```bash
 # Describe load balancer
-aws elbv2 describe-load-balancers --names chess-platform-alb
+aws elbv2 describe-load-balancers --names chesschat-alb
 
 # Check target health
 aws elbv2 describe-target-health --target-group-arn {arn}
 
 # Get ALB DNS
-aws elbv2 describe-load-balancers --names chess-platform-alb --query 'LoadBalancers[0].DNSName'
+aws elbv2 describe-load-balancers --names chesschat-alb --query 'LoadBalancers[0].DNSName'
 ```
 
 ### AWS CLI - DynamoDB
 ```bash
 # Scan table
-aws dynamodb scan --table-name chess-platform-users --max-items 10
+aws dynamodb scan --table-name chesschat-users --max-items 10
 
 # Get item
-aws dynamodb get-item --table-name chess-platform-users --key '{"user_id":{"S":"user123"}}'
+aws dynamodb get-item --table-name chesschat-users --key '{"user_id":{"S":"user123"}}'
 
 # Query by GSI
-aws dynamodb query --table-name chess-platform-users --index-name username-index --key-condition-expression "username = :u" --expression-attribute-values '{":u":{"S":"testuser"}}'
+aws dynamodb query --table-name chesschat-users --index-name username-index --key-condition-expression "username = :u" --expression-attribute-values '{":u":{"S":"testuser"}}'
 ```
 
 ### AWS CLI - ElastiCache
 ```bash
 # Describe cluster
-aws elasticache describe-replication-groups --replication-group-id chess-platform-redis
+aws elasticache describe-replication-groups --replication-group-id chesschat-redis
 
 # Get endpoint
-aws elasticache describe-replication-groups --replication-group-id chess-platform-redis --query 'ReplicationGroups[0].NodeGroups[0].PrimaryEndpoint'
+aws elasticache describe-replication-groups --replication-group-id chesschat-redis --query 'ReplicationGroups[0].NodeGroups[0].PrimaryEndpoint'
 
 # List snapshots
-aws elasticache describe-snapshots --replication-group-id chess-platform-redis
+aws elasticache describe-snapshots --replication-group-id chesschat-redis
 ```
 
 ### Docker
 ```bash
 # Build
-docker build -t chess-platform:latest .
+docker build -t chesschat:latest .
 
 # Run locally
-docker run -p 80:80 chess-platform:latest
+docker run -p 80:80 chesschat:latest
 
 # ECR login
 aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin {account}.dkr.ecr.us-east-1.amazonaws.com
 
 # Push to ECR
-docker tag chess-platform:latest {account}.dkr.ecr.us-east-1.amazonaws.com/chess-platform:latest
-docker push {account}.dkr.ecr.us-east-1.amazonaws.com/chess-platform:latest
+docker tag chesschat:latest {account}.dkr.ecr.us-east-1.amazonaws.com/chesschat:latest
+docker push {account}.dkr.ecr.us-east-1.amazonaws.com/chesschat:latest
 ```
 
 ---
