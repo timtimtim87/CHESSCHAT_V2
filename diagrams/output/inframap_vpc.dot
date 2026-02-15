@@ -1,0 +1,8 @@
+strict digraph G {
+	"module.vpc.aws_nat_gateway.this"->"module.vpc.aws_eip.nat";
+	"module.vpc.aws_nat_gateway.this"->"module.vpc.aws_internet_gateway.this";
+	"module.vpc.aws_eip.nat" [ height=1.15, image="/Users/tim/Library/Caches/inframap/assets/aws/Compute/Amazon-EC2_Elastic-IP-Address_light-bg.png", imagepos=tc, labelloc=b, shape=plaintext ];
+	"module.vpc.aws_internet_gateway.this" [ height=1.15, image="/Users/tim/Library/Caches/inframap/assets/aws/Networking_and_Content_Delivery/Amazon-VPC_Internet-Gateway_light-bg.png", imagepos=tc, labelloc=b, shape=plaintext ];
+	"module.vpc.aws_nat_gateway.this" [ height=1.15, image="/Users/tim/Library/Caches/inframap/assets/aws/Networking_and_Content_Delivery/Amazon-VPC_NAT-Gateway_light-bg.png", imagepos=tc, labelloc=b, shape=plaintext ];
+
+}

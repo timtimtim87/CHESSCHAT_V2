@@ -1,0 +1,103 @@
+digraph chesschat_vpc_aws_icons {
+  graph [rankdir=TB, fontname="Helvetica", fontsize=11, bgcolor="white", label="CHESSCHAT VPC (Graphviz + AWS Icons)", labelloc=t, labeljust=l, pad=0.2, nodesep=0.35, ranksep=0.7, splines=ortho];
+  node [shape=box, style="rounded,filled", fillcolor="#F7F9FB", color="#6B7280", fontname="Helvetica", fontsize=10];
+  edge [color="#6B7280", arrowsize=0.7, penwidth=1.1, fontname="Helvetica", fontsize=9];
+
+  users [label="Internet Users", shape=box, fillcolor="#EEF2FF", color="#4F46E5"];
+
+  subgraph cluster_region {
+    label="AWS us-east-1";
+    color="#D1D5DB";
+    style="rounded";
+
+    vpc [label="VPC\nchesschat-dev-vpc-main\n10.20.0.0/16", shape=folder, fillcolor="#ECFEFF", color="#0891B2"];
+
+    igw [shape=none, margin=0, label=<<table border="0" cellborder="0" cellspacing="0"><tr><td><img src="/Users/tim/CODE_PROJECTS/CHESSCHAT_V2/diagrams/assets/aws/Amazon-VPC_Internet-Gateway_light-bg.png"/></td></tr><tr><td>IGW<br/>igw-08c762aa9e0f534b1</td></tr></table>>];
+    nat [shape=none, margin=0, label=<<table border="0" cellborder="0" cellspacing="0"><tr><td><img src="/Users/tim/CODE_PROJECTS/CHESSCHAT_V2/diagrams/assets/aws/Amazon-VPC_NAT-Gateway_light-bg.png"/></td></tr><tr><td>NAT Gateway<br/>nat-0dee142da7453a5f9</td></tr></table>>];
+
+    subgraph cluster_public {
+      label="Public Subnets";
+      color="#BFDBFE";
+      style="rounded";
+      pub_a [label="us-east-1a\n10.20.0.0/20", fillcolor="#EFF6FF", color="#3B82F6"];
+      pub_b [label="us-east-1b\n10.20.16.0/20", fillcolor="#EFF6FF", color="#3B82F6"];
+      pub_c [label="us-east-1c\n10.20.32.0/20", fillcolor="#EFF6FF", color="#3B82F6"];
+    }
+
+    subgraph cluster_app {
+      label="Private App Subnets";
+      color="#A7F3D0";
+      style="rounded";
+      app_a [label="us-east-1a\n10.20.48.0/20", fillcolor="#ECFDF5", color="#10B981"];
+      app_b [label="us-east-1b\n10.20.64.0/20", fillcolor="#ECFDF5", color="#10B981"];
+      app_c [label="us-east-1c\n10.20.80.0/20", fillcolor="#ECFDF5", color="#10B981"];
+    }
+
+    subgraph cluster_data {
+      label="Private Data Subnets";
+      color="#FDE68A";
+      style="rounded";
+      data_a [label="us-east-1a\n10.20.96.0/20", fillcolor="#FFFBEB", color="#D97706"];
+      data_b [label="us-east-1b\n10.20.112.0/20", fillcolor="#FFFBEB", color="#D97706"];
+      data_c [label="us-east-1c\n10.20.128.0/20", fillcolor="#FFFBEB", color="#D97706"];
+    }
+
+    rt_public [label="Route Table\npublic\nrtb-0769e0346dce66198", fillcolor="#F3F4F6"];
+    rt_app_a [label="RT app-1a\nrtb-05c2a8d8ef55f8e44", fillcolor="#F3F4F6"];
+    rt_app_b [label="RT app-1b\nrtb-0344e2f09e6880252", fillcolor="#F3F4F6"];
+    rt_app_c [label="RT app-1c\nrtb-0ee6b3f73ec07e73d", fillcolor="#F3F4F6"];
+    rt_data_a [label="RT data-1a\nrtb-0ca39cb2160302101", fillcolor="#F3F4F6"];
+    rt_data_b [label="RT data-1b\nrtb-091d2f66825ec5f4f", fillcolor="#F3F4F6"];
+    rt_data_c [label="RT data-1c\nrtb-01ba84fa231b06cc2", fillcolor="#F3F4F6"];
+
+    endpoints [label="VPC Endpoints\nS3/DynamoDB + ECR API/DKR + Logs + Secrets\n(vpce-083e6..., vpce-02779..., vpce-0f33..., vpce-000b..., vpce-0c03..., vpce-0541...)", fillcolor="#F8FAFC", color="#475569"];
+    flowlogs [label="VPC Flow Logs\nfl-05f30eba368dcc3fd", fillcolor="#F8FAFC", color="#475569"];
+    cwlogs [label="CloudWatch Log Group\n/aws/vpc/chesschat-dev-vpc/flow-logs", fillcolor="#F8FAFC", color="#475569"];
+  }
+
+  users -> igw;
+  igw -> pub_a;
+
+  vpc -> pub_a;
+  vpc -> pub_b;
+  vpc -> pub_c;
+  vpc -> app_a;
+  vpc -> app_b;
+  vpc -> app_c;
+  vpc -> data_a;
+  vpc -> data_b;
+  vpc -> data_c;
+
+  pub_a -> rt_public;
+  pub_b -> rt_public;
+  pub_c -> rt_public;
+  rt_public -> igw [label="0.0.0.0/0"];
+
+  pub_a -> nat;
+
+  app_a -> rt_app_a;
+  app_b -> rt_app_b;
+  app_c -> rt_app_c;
+
+  data_a -> rt_data_a;
+  data_b -> rt_data_b;
+  data_c -> rt_data_c;
+
+  rt_app_a -> nat [label="0.0.0.0/0"];
+  rt_app_b -> nat [label="0.0.0.0/0"];
+  rt_app_c -> nat [label="0.0.0.0/0"];
+
+  rt_data_a -> nat [label="0.0.0.0/0"];
+  rt_data_b -> nat [label="0.0.0.0/0"];
+  rt_data_c -> nat [label="0.0.0.0/0"];
+
+  app_a -> endpoints;
+  app_b -> endpoints;
+  app_c -> endpoints;
+  data_a -> endpoints;
+  data_b -> endpoints;
+  data_c -> endpoints;
+
+  vpc -> flowlogs;
+  flowlogs -> cwlogs;
+}

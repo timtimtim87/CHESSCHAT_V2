@@ -17,6 +17,7 @@ yarn-error.log*
 node_modules/
 /.pnp
 .pnp.js
+/diagrams/.venv/
 
 # Build output
 /dist

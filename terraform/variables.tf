@@ -32,7 +32,7 @@ variable "az_count" {
 
   validation {
     condition     = var.az_count >= 2 && var.az_count <= 3
-    error_message = "az_count must be 2 or 3 for the portfolio multi-AZ baseline."
+    error_message = "Az_count must be 2 or 3 for the portfolio multi-AZ baseline."
   }
 }
 
@@ -43,7 +43,7 @@ variable "nat_gateway_mode" {
 
   validation {
     condition     = contains(["single", "per_az"], var.nat_gateway_mode)
-    error_message = "nat_gateway_mode must be either single or per_az."
+    error_message = "Nat_gateway_mode must be either single or per_az."
   }
 }
 
