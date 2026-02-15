@@ -18,3 +18,43 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "vpc_cidr" {
+  description = "CIDR block for the CHESSCHAT VPC."
+  type        = string
+  default     = "10.20.0.0/16"
+}
+
+variable "az_count" {
+  description = "Number of Availability Zones to use for subnet tiers."
+  type        = number
+  default     = 3
+
+  validation {
+    condition     = var.az_count >= 2 && var.az_count <= 3
+    error_message = "az_count must be 2 or 3 for the portfolio multi-AZ baseline."
+  }
+}
+
+variable "nat_gateway_mode" {
+  description = "NAT gateway strategy: single (cost optimized) or per_az (higher availability)."
+  type        = string
+  default     = "single"
+
+  validation {
+    condition     = contains(["single", "per_az"], var.nat_gateway_mode)
+    error_message = "nat_gateway_mode must be either single or per_az."
+  }
+}
+
+variable "enable_vpc_endpoints" {
+  description = "Whether to create VPC endpoints for AWS services used by private workloads."
+  type        = bool
+  default     = true
+}
+
+variable "enable_flow_logs" {
+  description = "Whether to enable VPC Flow Logs to CloudWatch Logs."
+  type        = bool
+  default     = true
+}

@@ -79,6 +79,18 @@ Purpose: keep one practical, interview-ready plan for building CHESSCHAT as an A
 - Phase G: Hardening
   - WAF, stricter IAM, backup/recovery validation, runbooks, architecture docs
 
+## 5.1) Implementation Snapshot (2026-02-15)
+- Completed:
+  - Terraform backend bootstrap (S3 remote state + lockfile mode)
+  - Phase A baseline applied in AWS:
+    - VPC + 3 public / 3 private-app / 3 private-data subnets
+    - IGW + route tables + route associations
+    - NAT gateway mode implemented (`single` active in dev)
+    - VPC endpoints (S3, DynamoDB, ECR API/DKR, Logs, Secrets Manager)
+    - VPC Flow Logs to CloudWatch Logs
+- Next immediate move:
+  - Begin Phase B data layer with DynamoDB tables (PITR + TTL + GSIs) and ElastiCache subnet group/security groups wired to `private_data` subnets.
+
 ## 6) GitHub Actions Learning Guide
 Goal: implement CI/CD in small, understandable steps.
 

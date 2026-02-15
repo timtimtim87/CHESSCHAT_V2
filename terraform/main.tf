@@ -7,9 +7,15 @@ locals {
 }
 
 module "vpc" {
-  source  = "./modules/vpc"
-  project = var.project
-  tags    = local.common_tags
+  source               = "./modules/vpc"
+  project              = var.project
+  environment          = var.environment
+  vpc_cidr             = var.vpc_cidr
+  az_count             = var.az_count
+  nat_gateway_mode     = var.nat_gateway_mode
+  enable_vpc_endpoints = var.enable_vpc_endpoints
+  enable_flow_logs     = var.enable_flow_logs
+  tags                 = local.common_tags
 }
 
 module "ecs" {
