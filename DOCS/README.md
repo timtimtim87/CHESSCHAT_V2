@@ -7,6 +7,8 @@ Use this page to know which docs are authoritative for active implementation.
   - Current architecture goals, tradeoffs, roadmap, and collaboration style.
 - `../infra/RESOURCE_REGISTRY.md`
   - Actual account IDs, backend resources, ARNs, and current state.
+- `ADRS/`
+  - Canonical location for Architecture Decision Records (ADRs).
 - `terraform-guide.md`
   - Current Terraform workflow for this repository/backend configuration.
 
