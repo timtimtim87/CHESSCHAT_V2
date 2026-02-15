@@ -137,6 +137,9 @@ Goal: implement CI/CD in small, understandable steps.
   - alarm triage
   - degraded dependency handling
 - Cost summary and optimization choices.
+- Diagram tooling decision (2026-02-15):
+  - Use SaaS-native diagramming (for example, Miro/Brainboard) for polished presentation quality.
+  - Keep repo free of code-first diagram generators and generated diagram artifacts.
 
 ## 8) How Tim Likes to Work (Collaboration Notes)
 - Explain recommendations and tradeoffs clearly.
