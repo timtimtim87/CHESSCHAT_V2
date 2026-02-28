@@ -116,13 +116,26 @@ Purpose: keep one practical, interview-ready plan for building CHESSCHAT as an A
   - ECS IAM roles provisioned for Phase 5 task definitions:
     - Task execution role `arn:aws:iam::723580627470:role/chesschat-dev-ecs-task-execution-role`
     - Task role `arn:aws:iam::723580627470:role/chesschat-dev-ecs-task-role`
-- Next immediate move:
+- Completed in Terraform code (2026-02-28, not applied yet):
   - Phase 5 compute skeleton:
-    - ECR repositories + first minimal container image
-    - ECS cluster/task definition/service wired with new IAM role ARNs
-    - ECS security group wired into `redis_allowed_security_group_ids`
-  - Then Phase 6 edge path:
-    - ACM + ALB + Route53 with HTTPS + HTTP redirect
+    - Split ECS into `ecs` (identity) and `ecs_compute` (runtime) to prevent Redis SG dependency cycles
+    - ECR repository, ECS cluster, ECS task definition, ECS service, and ECS task SG
+    - Optional ECS<->ALB integration wiring without circular dependencies
+    - Redis SG allow-list auto-wired to ECS service SG output
+  - Phase 6 edge module implementation:
+    - ALB security group, ALB, target group, HTTP listener (redirect)
+    - ACM certificate request + DNS validation records + certificate validation
+    - HTTPS listener creation gated on ACM DNS validation inputs
+  - Phase 7 DNS prep:
+    - Route53 module supports existing zone ID, zone lookup, or new hosted zone creation
+    - App alias record wiring to ALB outputs
+    - Root-level Cognito callback/logout URL derivation from app domain (toggle-controlled)
+- Next immediate move:
+  - Apply sequence (when ready):
+    - Push bootstrap image to ECR (`bootstrap` tag) before ECS service apply
+    - Apply compute and validate ECS tasks reach steady state
+    - Enable/apply edge (`enable_edge=true`) once domain + zone are set
+    - Enable/apply DNS + Cognito domain callbacks (`enable_dns=true`, `use_app_domain_for_cognito_urls=true`)
 
 ## 6) GitHub Actions Learning Guide
 Goal: implement CI/CD in small, understandable steps.

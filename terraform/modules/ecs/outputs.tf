@@ -1,6 +1,6 @@
 output "ecs_module_status" {
-  value       = "ecs module active"
-  description = "Indicates that the ecs module has concrete identity resources configured."
+  value       = "ecs identity module active"
+  description = "Indicates that the ecs identity module has concrete IAM resources configured."
 }
 
 output "task_execution_role_name" {

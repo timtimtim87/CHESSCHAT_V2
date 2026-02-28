@@ -1,16 +1,22 @@
 # ROUTE53 module
 
-This module is currently a scaffold.
-
 ## Purpose
-Own resources for the route53 layer only.
+Own public DNS resources for CHESSCHAT application endpoints.
 
-## Inputs
-- `project` (string): project identifier used for naming/tagging.
-- `tags` (map(string)): common resource tags.
+## Resources
+- `aws_route53_zone.this` (optional)
+- `aws_route53_record.app_alias` (optional)
 
-## Outputs
-- `route53_module_status`: scaffold status output.
+## Key Inputs
+- `enabled` (bool)
+- `create_hosted_zone` (bool)
+- `root_domain_name` (string)
+- `route53_zone_id` (string)
+- `app_subdomain` (string)
+- `alb_dns_name` (string)
+- `alb_zone_id` (string)
 
-## Next implementation step
-Replace scaffold placeholders with concrete AWS resources and explicit outputs.
+## Notes
+- Use `create_hosted_zone=true` when CHESSCHAT should own the zone in this AWS account.
+- Use `route53_zone_id` when reusing an existing zone.
+- App alias record creation is gated until ALB DNS and zone IDs are provided.

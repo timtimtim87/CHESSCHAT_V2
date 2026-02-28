@@ -1,7 +1,7 @@
-# ECS module
+# ECS Identity module
 
 ## Purpose
-Own ECS identity resources required before task/service deployment.
+Own ECS IAM identity resources required before task/service deployment.
 
 ## Resources
 - `aws_iam_role.task_execution`
@@ -21,8 +21,6 @@ Own ECS identity resources required before task/service deployment.
 - `project` (string)
 - `environment` (string)
 - `dynamodb_table_arns` (list(string))
-- `redis_auth_secret_arn` (string)
-- `redis_replication_group_arn` (string)
 - `ecr_repository_arns` (list(string), optional)
 - `tags` (map(string))
 
@@ -36,3 +34,5 @@ Own ECS identity resources required before task/service deployment.
 ## Notes
 - Some AWS APIs require wildcard resources (`ecr:GetAuthorizationToken`, Chime create calls, `cloudwatch:PutMetricData`).
 - Wildcards are restricted only to those API limitations; data-access permissions are scoped to concrete ARNs.
+- Redis permissions are scoped by deterministic naming conventions (`${project}/${environment}/redis/auth-token*` and replication group `${project}-${environment}`), avoiding cross-module dependency cycles.
+- ECS compute resources (ECR/cluster/task/service/SG) are intentionally implemented in `modules/ecs_compute` to avoid dependency cycles with ElastiCache SG allow-listing.

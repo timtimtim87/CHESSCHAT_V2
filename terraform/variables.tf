@@ -116,3 +116,105 @@ variable "ecr_repository_arns" {
   type        = list(string)
   default     = []
 }
+
+variable "enable_ecs_compute" {
+  description = "Whether to create ECR, ECS cluster, task definition, and ECS service resources."
+  type        = bool
+  default     = true
+}
+
+variable "ecr_repository_name" {
+  description = "Optional explicit ECR repository name for the ECS app image."
+  type        = string
+  default     = null
+}
+
+variable "ecs_image_tag" {
+  description = "Container image tag used in the ECS task definition."
+  type        = string
+  default     = "bootstrap"
+}
+
+variable "ecs_container_name" {
+  description = "Primary container name in the ECS task definition."
+  type        = string
+  default     = "app"
+}
+
+variable "ecs_container_port" {
+  description = "Container port exposed by the ECS task."
+  type        = number
+  default     = 8080
+}
+
+variable "ecs_task_cpu" {
+  description = "Fargate task CPU units."
+  type        = number
+  default     = 256
+}
+
+variable "ecs_task_memory" {
+  description = "Fargate task memory in MiB."
+  type        = number
+  default     = 512
+}
+
+variable "ecs_service_desired_count" {
+  description = "Desired number of running ECS tasks."
+  type        = number
+  default     = 1
+}
+
+variable "ecs_log_retention_days" {
+  description = "CloudWatch log retention period for ECS task logs."
+  type        = number
+  default     = 30
+}
+
+variable "enable_edge" {
+  description = "Whether to create ACM and ALB resources for HTTPS ingress."
+  type        = bool
+  default     = false
+}
+
+variable "enable_dns" {
+  description = "Whether to create Route53 records for the application domain."
+  type        = bool
+  default     = false
+}
+
+variable "create_route53_zone" {
+  description = "Whether to create a new public Route53 hosted zone."
+  type        = bool
+  default     = false
+}
+
+variable "route53_zone_id" {
+  description = "Optional existing Route53 hosted zone ID. If null, lookup/create behavior is used."
+  type        = string
+  default     = null
+}
+
+variable "root_domain_name" {
+  description = "Root public DNS domain (for example, chesschat.example.com)."
+  type        = string
+  default     = null
+}
+
+variable "app_subdomain" {
+  description = "Subdomain label for the frontend/app endpoint."
+  type        = string
+  default     = "app"
+}
+
+variable "alb_health_check_path" {
+  description = "HTTP health check path used by the ALB target group."
+  type        = string
+  default     = "/healthz"
+}
+
+variable "use_app_domain_for_cognito_urls" {
+  description = "Whether to derive Cognito callback/logout URLs from app_subdomain + root_domain_name."
+  type        = bool
+  default     = false
+}

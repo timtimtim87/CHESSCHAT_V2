@@ -3,13 +3,15 @@ data "aws_region" "current" {}
 data "aws_caller_identity" "current" {}
 
 locals {
-  module_name                = "ecs"
-  task_execution_role_name   = "${var.project}-${var.environment}-ecs-task-execution-role"
-  task_role_name             = "${var.project}-${var.environment}-ecs-task-role"
-  logs_group_arn_prefix      = "arn:aws:logs:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/ecs/${var.project}-${var.environment}*"
-  ecr_pull_resources         = length(var.ecr_repository_arns) > 0 ? var.ecr_repository_arns : ["*"]
-  dynamodb_index_arns        = [for arn in var.dynamodb_table_arns : "${arn}/index/*"]
-  dynamodb_all_resource_arns = concat(var.dynamodb_table_arns, local.dynamodb_index_arns)
+  module_name                 = "ecs"
+  task_execution_role_name    = "${var.project}-${var.environment}-ecs-task-execution-role"
+  task_role_name              = "${var.project}-${var.environment}-ecs-task-role"
+  logs_group_arn_prefix       = "arn:aws:logs:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/ecs/${var.project}-${var.environment}*"
+  ecr_pull_resources          = length(var.ecr_repository_arns) > 0 ? var.ecr_repository_arns : ["*"]
+  dynamodb_index_arns         = [for arn in var.dynamodb_table_arns : "${arn}/index/*"]
+  dynamodb_all_resource_arns  = concat(var.dynamodb_table_arns, local.dynamodb_index_arns)
+  redis_auth_secret_arn       = "arn:aws:secretsmanager:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:secret:${var.project}/${var.environment}/redis/auth-token*"
+  redis_replication_group_arn = "arn:aws:elasticache:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:replicationgroup:${var.project}-${var.environment}"
 }
 
 resource "aws_iam_role" "task_execution" {
@@ -72,7 +74,7 @@ resource "aws_iam_role_policy" "task_execution" {
           "secretsmanager:DescribeSecret",
           "secretsmanager:GetSecretValue"
         ]
-        Resource = [var.redis_auth_secret_arn]
+        Resource = [local.redis_auth_secret_arn]
       }
     ]
   })
@@ -127,7 +129,7 @@ resource "aws_iam_role_policy" "task" {
           "secretsmanager:DescribeSecret",
           "secretsmanager:GetSecretValue"
         ]
-        Resource = [var.redis_auth_secret_arn]
+        Resource = [local.redis_auth_secret_arn]
       },
       {
         Sid    = "DescribeRedisReplicationGroup"
@@ -135,7 +137,7 @@ resource "aws_iam_role_policy" "task" {
         Action = [
           "elasticache:DescribeReplicationGroups"
         ]
-        Resource = [var.redis_replication_group_arn]
+        Resource = [local.redis_replication_group_arn]
       },
       {
         Sid    = "CreateChimeMeetings"

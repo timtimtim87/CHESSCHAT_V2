@@ -1,9 +1,22 @@
 # Root configuration that stitches together the reusable modules.
+moved {
+  from = module.ecs
+  to   = module.ecs_identity
+}
+
 locals {
   common_tags = merge({
     Project     = var.project
     Environment = var.environment
   }, var.tags)
+
+  app_domain_name = var.root_domain_name == null ? null : "${var.app_subdomain}.${var.root_domain_name}"
+  cognito_callback_urls_effective = var.use_app_domain_for_cognito_urls && local.app_domain_name != null ? [
+    "https://${local.app_domain_name}/auth/callback"
+  ] : var.cognito_callback_urls
+  cognito_logout_urls_effective = var.use_app_domain_for_cognito_urls && local.app_domain_name != null ? [
+    "https://${local.app_domain_name}/logout"
+  ] : var.cognito_logout_urls
 }
 
 module "vpc" {
@@ -18,33 +31,66 @@ module "vpc" {
   tags                 = local.common_tags
 }
 
-module "ecs" {
-  source                      = "./modules/ecs"
-  project                     = var.project
-  environment                 = var.environment
-  dynamodb_table_arns         = [module.dynamodb.users_table_arn, module.dynamodb.games_table_arn]
-  redis_auth_secret_arn       = module.elasticache.redis_auth_secret_arn
-  redis_replication_group_arn = module.elasticache.redis_replication_group_arn
-  ecr_repository_arns         = var.ecr_repository_arns
-  tags                        = local.common_tags
+module "ecs_identity" {
+  source              = "./modules/ecs"
+  project             = var.project
+  environment         = var.environment
+  dynamodb_table_arns = [module.dynamodb.users_table_arn, module.dynamodb.games_table_arn]
+  ecr_repository_arns = var.ecr_repository_arns
+  tags                = local.common_tags
 }
 
 module "alb" {
-  source  = "./modules/alb"
-  project = var.project
-  tags    = local.common_tags
+  source            = "./modules/alb"
+  project           = var.project
+  environment       = var.environment
+  enabled           = var.enable_edge
+  vpc_id            = module.vpc.vpc_id
+  public_subnet_ids = module.vpc.public_subnet_ids
+  target_port       = var.ecs_container_port
+  app_subdomain     = var.app_subdomain
+  root_domain_name  = var.root_domain_name
+  route53_zone_id   = var.route53_zone_id
+  health_check_path = var.alb_health_check_path
+  tags              = local.common_tags
+}
+
+module "ecs_compute" {
+  source                 = "./modules/ecs_compute"
+  project                = var.project
+  environment            = var.environment
+  enabled                = var.enable_ecs_compute
+  vpc_id                 = module.vpc.vpc_id
+  private_subnet_ids     = module.vpc.private_app_subnet_ids
+  execution_role_arn     = module.ecs_identity.task_execution_role_arn
+  task_role_arn          = module.ecs_identity.task_role_arn
+  ecr_repository_name    = var.ecr_repository_name
+  image_tag              = var.ecs_image_tag
+  container_name         = var.ecs_container_name
+  container_port         = var.ecs_container_port
+  task_cpu               = var.ecs_task_cpu
+  task_memory            = var.ecs_task_memory
+  desired_count          = var.ecs_service_desired_count
+  enable_alb_integration = var.enable_edge
+  alb_target_group_arn   = module.alb.target_group_arn
+  alb_security_group_id  = module.alb.alb_security_group_id
+  log_retention_days     = var.ecs_log_retention_days
+  tags                   = local.common_tags
 }
 
 module "elasticache" {
-  source                     = "./modules/elasticache"
-  project                    = var.project
-  environment                = var.environment
-  vpc_id                     = module.vpc.vpc_id
-  private_data_subnet_ids    = module.vpc.private_data_subnet_ids
-  allowed_security_group_ids = var.redis_allowed_security_group_ids
-  node_type                  = var.redis_node_type
-  num_cache_clusters         = var.redis_num_cache_clusters
-  tags                       = local.common_tags
+  source                  = "./modules/elasticache"
+  project                 = var.project
+  environment             = var.environment
+  vpc_id                  = module.vpc.vpc_id
+  private_data_subnet_ids = module.vpc.private_data_subnet_ids
+  allowed_security_group_ids = concat(
+    var.redis_allowed_security_group_ids,
+    module.ecs_compute.service_security_group_id == null ? [] : [module.ecs_compute.service_security_group_id]
+  )
+  node_type          = var.redis_node_type
+  num_cache_clusters = var.redis_num_cache_clusters
+  tags               = local.common_tags
 }
 
 module "dynamodb" {
@@ -61,15 +107,23 @@ module "cognito" {
   project               = var.project
   environment           = var.environment
   cognito_domain_prefix = var.cognito_domain_prefix
-  callback_urls         = var.cognito_callback_urls
-  logout_urls           = var.cognito_logout_urls
+  callback_urls         = local.cognito_callback_urls_effective
+  logout_urls           = local.cognito_logout_urls_effective
   tags                  = local.common_tags
 }
 
 module "route53" {
-  source  = "./modules/route53"
-  project = var.project
-  tags    = local.common_tags
+  source             = "./modules/route53"
+  project            = var.project
+  environment        = var.environment
+  enabled            = var.enable_dns
+  create_hosted_zone = var.create_route53_zone
+  root_domain_name   = var.root_domain_name
+  route53_zone_id    = var.route53_zone_id
+  app_subdomain      = var.app_subdomain
+  alb_dns_name       = module.alb.alb_dns_name
+  alb_zone_id        = module.alb.alb_zone_id
+  tags               = local.common_tags
 }
 
 module "monitoring" {

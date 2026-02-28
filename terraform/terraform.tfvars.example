@@ -13,3 +13,29 @@ enable_flow_logs     = true
 tags = {
   Project = "chesschat"
 }
+
+# Phase 5 compute
+enable_ecs_compute      = true
+ecr_repository_name     = "chesschat-dev-app"
+ecs_image_tag           = "bootstrap"
+ecs_container_name      = "app"
+ecs_container_port      = 8080
+ecs_task_cpu            = 256
+ecs_task_memory         = 512
+ecs_service_desired_count = 1
+ecs_log_retention_days  = 30
+
+# Redis allow-list can include manual SG IDs; ECS SG is auto-wired from ecs_compute.
+redis_allowed_security_group_ids = []
+
+# Phase 6 edge
+enable_edge          = false
+alb_health_check_path = "/healthz"
+
+# Phase 7 DNS + Cognito domain callbacks
+enable_dns                     = false
+create_route53_zone           = false
+route53_zone_id               = null
+root_domain_name              = null
+app_subdomain                 = "app"
+use_app_domain_for_cognito_urls = false

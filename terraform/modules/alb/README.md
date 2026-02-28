@@ -1,16 +1,26 @@
 # ALB module
 
-This module is currently a scaffold.
-
 ## Purpose
-Own resources for the alb layer only.
+Own the edge ingress resources for CHESSCHAT HTTPS entry.
 
-## Inputs
-- `project` (string): project identifier used for naming/tagging.
-- `tags` (map(string)): common resource tags.
+## Resources
+- `aws_lb.this`
+- `aws_lb_target_group.app`
+- `aws_lb_listener.http`
+- `aws_acm_certificate.app`
+- `aws_route53_record.cert_validation` (optional)
+- `aws_acm_certificate_validation.app` (optional)
+- `aws_lb_listener.https` (optional)
 
-## Outputs
-- `alb_module_status`: scaffold status output.
+## Key Inputs
+- `enabled` (bool)
+- `vpc_id` (string)
+- `public_subnet_ids` (list(string))
+- `target_port` (number)
+- `root_domain_name` (string)
+- `app_subdomain` (string)
+- `route53_zone_id` (string)
 
-## Next implementation step
-Replace scaffold placeholders with concrete AWS resources and explicit outputs.
+## Notes
+- HTTPS listener is created only when `route53_zone_id` is provided and ACM DNS validation can complete.
+- ECS-side ingress and ECS service target group attachment are managed in `ecs_compute` to avoid ALB/ECS dependency cycles.

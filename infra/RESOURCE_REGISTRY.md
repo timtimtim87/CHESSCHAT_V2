@@ -14,6 +14,12 @@ Purpose: single source of truth for human-readable names, IDs, and ARNs as infra
 ## Status
 - Last updated: 2026-02-28
 - Provisioning state: bootstrap backend configured; Phase A network foundation, Phase B data layer, and Phase 4 identity/IAM foundation applied in `us-east-1`
+- Terraform code status (not applied yet):
+  - `ecs` module now serves as ECS identity-only IAM foundation.
+  - New `ecs_compute` module implemented (ECR, ECS cluster/task/service, ECS service SG).
+  - `alb` module implemented (ACM + ALB + listener + target group + DNS validation wiring).
+  - `route53` module implemented (zone lookup/create options + app alias record).
+  - Redis SG allow-list now auto-wires ECS service SG output when compute is enabled.
 
 ## Naming Convention
 - Pattern: `chesschat-<env>-<service>-<purpose>`
