@@ -88,8 +88,41 @@ Purpose: keep one practical, interview-ready plan for building CHESSCHAT as an A
     - NAT gateway mode implemented (`single` active in dev)
     - VPC endpoints (S3, DynamoDB, ECR API/DKR, Logs, Secrets Manager)
     - VPC Flow Logs to CloudWatch Logs
+- Completed in Terraform code (2026-02-28, not applied yet):
+  - Phase B1 DynamoDB module implementation:
+    - Users table with `username-index`
+    - Games table with `white-player-index` and `black-player-index`
+    - PITR + deletion protection + SSE defaults
+  - Phase B2 ElastiCache module implementation:
+    - Redis replication group (default 1 primary + 1 replica)
+    - Multi-AZ/failover-ready settings
+    - Private data subnet group + dedicated Redis security group
+    - Redis auth token generated and stored in Secrets Manager
+    - Parameter group baseline (`allkeys-lru`, `timeout=300`)
+- Completed in AWS (2026-02-28):
+  - DynamoDB tables provisioned in `dev`:
+    - `chesschat-dev-users`
+    - `chesschat-dev-games`
+  - ElastiCache Redis provisioned in `dev`:
+    - Replication group `chesschat-dev` (`1 primary + 1 replica`)
+    - Primary endpoint `master.chesschat-dev.zu5wgj.use1.cache.amazonaws.com`
+    - Reader endpoint `replica.chesschat-dev.zu5wgj.use1.cache.amazonaws.com`
+    - Auth token secret `chesschat/dev/redis/auth-token`
+- Completed in AWS (2026-02-28, Phase 4):
+  - Cognito user pool and app client provisioned:
+    - User pool `us-east-1_AWq14lBGV` (`chesschat-dev-user-pool`)
+    - App client `5numi4223d3jnebrlfqboseu42`
+    - Hosted UI domain `chesschat-dev-6c96bb.auth.us-east-1.amazoncognito.com`
+  - ECS IAM roles provisioned for Phase 5 task definitions:
+    - Task execution role `arn:aws:iam::723580627470:role/chesschat-dev-ecs-task-execution-role`
+    - Task role `arn:aws:iam::723580627470:role/chesschat-dev-ecs-task-role`
 - Next immediate move:
-  - Begin Phase B data layer with DynamoDB tables (PITR + TTL + GSIs) and ElastiCache subnet group/security groups wired to `private_data` subnets.
+  - Phase 5 compute skeleton:
+    - ECR repositories + first minimal container image
+    - ECS cluster/task definition/service wired with new IAM role ARNs
+    - ECS security group wired into `redis_allowed_security_group_ids`
+  - Then Phase 6 edge path:
+    - ACM + ALB + Route53 with HTTPS + HTTP redirect
 
 ## 6) GitHub Actions Learning Guide
 Goal: implement CI/CD in small, understandable steps.

@@ -1,16 +1,34 @@
 # COGNITO module
 
-This module is currently a scaffold.
-
 ## Purpose
-Own resources for the cognito layer only.
+Own resources for Cognito authentication and hosted login.
 
-## Inputs
-- `project` (string): project identifier used for naming/tagging.
-- `tags` (map(string)): common resource tags.
+## Resources
+- `aws_cognito_user_pool.this`
+  - Email sign-in enabled
+  - Email auto-verification
+  - Password policy (min length 12, mixed complexity)
+- `aws_cognito_user_pool_client.app`
+  - OAuth 2.0 Authorization Code Grant
+  - Scopes: `openid`, `email`, `profile`
+  - Access/ID tokens: 1 hour
+  - Refresh token: 30 days
+- `aws_cognito_user_pool_domain.this`
+  - Hosted UI domain prefix (generated unless explicitly set)
+
+## Key Inputs
+- `project` (string)
+- `environment` (string)
+- `cognito_domain_prefix` (string, optional)
+- `callback_urls` (list(string))
+- `logout_urls` (list(string))
+- `supported_identity_providers` (list(string), default `["COGNITO"]`)
+- `tags` (map(string))
 
 ## Outputs
-- `cognito_module_status`: scaffold status output.
-
-## Next implementation step
-Replace scaffold placeholders with concrete AWS resources and explicit outputs.
+- `cognito_module_status`
+- `user_pool_id`
+- `user_pool_arn`
+- `app_client_id`
+- `domain_prefix`
+- `hosted_ui_base_url`

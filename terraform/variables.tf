@@ -58,3 +58,61 @@ variable "enable_flow_logs" {
   type        = bool
   default     = true
 }
+
+variable "dynamodb_users_table_name" {
+  description = "Optional explicit DynamoDB users table name override."
+  type        = string
+  default     = null
+}
+
+variable "dynamodb_games_table_name" {
+  description = "Optional explicit DynamoDB games table name override."
+  type        = string
+  default     = null
+}
+
+variable "redis_allowed_security_group_ids" {
+  description = "Security groups allowed to access Redis on 6379 (for example, ECS service SGs)."
+  type        = list(string)
+  default     = []
+}
+
+variable "redis_node_type" {
+  description = "ElastiCache node type."
+  type        = string
+  default     = "cache.t4g.micro"
+}
+
+variable "redis_num_cache_clusters" {
+  description = "Number of cache nodes in the Redis replication group."
+  type        = number
+  default     = 2
+}
+
+variable "cognito_domain_prefix" {
+  description = "Optional explicit Cognito hosted UI domain prefix."
+  type        = string
+  default     = null
+}
+
+variable "cognito_callback_urls" {
+  description = "OAuth callback URLs for Cognito app client."
+  type        = list(string)
+  default = [
+    "https://app.chesschat.example.com/auth/callback"
+  ]
+}
+
+variable "cognito_logout_urls" {
+  description = "OAuth logout URLs for Cognito app client."
+  type        = list(string)
+  default = [
+    "https://app.chesschat.example.com/logout"
+  ]
+}
+
+variable "ecr_repository_arns" {
+  description = "ECR repository ARNs for ECS task execution role image pull access."
+  type        = list(string)
+  default     = []
+}

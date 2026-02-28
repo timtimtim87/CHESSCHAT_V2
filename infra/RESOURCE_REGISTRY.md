@@ -12,8 +12,8 @@ Purpose: single source of truth for human-readable names, IDs, and ARNs as infra
 - AWS CLI named profile retained: `CHESSCHAT_IAM_USER` (mirrors `default`)
 
 ## Status
-- Last updated: 2026-02-15
-- Provisioning state: bootstrap backend configured; Phase A network foundation applied in `us-east-1`
+- Last updated: 2026-02-28
+- Provisioning state: bootstrap backend configured; Phase A network foundation, Phase B data layer, and Phase 4 identity/IAM foundation applied in `us-east-1`
 
 ## Naming Convention
 - Pattern: `chesschat-<env>-<service>-<purpose>`
@@ -58,6 +58,18 @@ Purpose: single source of truth for human-readable names, IDs, and ARNs as infra
 | observability | cloudwatch_logs | vpc_flow_log_group | `/aws/vpc/chesschat-dev-vpc/flow-logs` | `arn:aws:logs:us-east-1:723580627470:log-group:/aws/vpc/chesschat-dev-vpc/flow-logs` | us-east-1 | Terraform `module.vpc.aws_cloudwatch_log_group.vpc_flow_logs[0]` | Project=chesschat, Environment=dev | 2026-02-15 | 30-day retention |
 | observability | ec2_flow_logs | vpc_flow_log | `fl-05f30eba368dcc3fd` | `arn:aws:ec2:us-east-1:723580627470:vpc-flow-log/fl-05f30eba368dcc3fd` | us-east-1 | Terraform `module.vpc.aws_flow_log.vpc[0]` | Project=chesschat, Environment=dev | 2026-02-15 | Traffic type `ALL`; destination CloudWatch Logs |
 | security | iam_role | flow_logs_delivery_role | `chesschat-dev-vpc-flow-logs-role` | `arn:aws:iam::723580627470:role/chesschat-dev-vpc-flow-logs-role` | us-east-1 | Terraform `module.vpc.aws_iam_role.flow_logs[0]` | Project=chesschat, Environment=dev | 2026-02-15 | Trust principal `vpc-flow-logs.amazonaws.com` |
+| data | dynamodb | users_table | `chesschat-dev-users` | `arn:aws:dynamodb:us-east-1:723580627470:table/chesschat-dev-users` | us-east-1 | Terraform `module.dynamodb.aws_dynamodb_table.users` | Project=chesschat, Environment=dev | 2026-02-28 | PK `user_id`; GSI `username-index`; PITR + deletion protection enabled |
+| data | dynamodb | games_table | `chesschat-dev-games` | `arn:aws:dynamodb:us-east-1:723580627470:table/chesschat-dev-games` | us-east-1 | Terraform `module.dynamodb.aws_dynamodb_table.games` | Project=chesschat, Environment=dev | 2026-02-28 | PK `game_id`; SK `ended_at`; GSIs `white-player-index`, `black-player-index` |
+| data | elasticache | redis_replication_group | `chesschat-dev` | `arn:aws:elasticache:us-east-1:723580627470:replicationgroup:chesschat-dev` | us-east-1 | Terraform `module.elasticache.aws_elasticache_replication_group.redis` | Project=chesschat, Environment=dev | 2026-02-28 | Redis 7.0; `cache.t4g.micro`; 1 primary + 1 replica; Multi-AZ + automatic failover |
+| data | elasticache | redis_subnet_group | `chesschat-dev-redis-subnets` | `arn:aws:elasticache:us-east-1:723580627470:subnetgroup:chesschat-dev-redis-subnets` | us-east-1 | Terraform `module.elasticache.aws_elasticache_subnet_group.redis` | Project=chesschat, Environment=dev | 2026-02-28 | Subnets: `subnet-0164ae112b9b50d6d`, `subnet-040d7023361518399`, `subnet-073e191f7e2029039` |
+| data | elasticache | redis_parameter_group | `chesschat-dev-redis-params` | `arn:aws:elasticache:us-east-1:723580627470:parametergroup:chesschat-dev-redis-params` | us-east-1 | Terraform `module.elasticache.aws_elasticache_parameter_group.redis` | Project=chesschat | 2026-02-28 | Family `redis7`; `maxmemory-policy=allkeys-lru`; `timeout=300` |
+| data | ec2_security_group | redis_security_group | `sg-0ffc201a5034c25ee` | n/a | us-east-1 | Terraform `module.elasticache.aws_security_group.redis` | Project=chesschat, Environment=dev | 2026-02-28 | Name `chesschat-dev-redis-sg`; inbound rules currently empty until ECS SG allow-list is set |
+| security | secretsmanager | redis_auth_token_secret | `chesschat/dev/redis/auth-token` | `arn:aws:secretsmanager:us-east-1:723580627470:secret:chesschat/dev/redis/auth-token-CgNYBy` | us-east-1 | Terraform `module.elasticache.aws_secretsmanager_secret.redis_auth_token` | Project=chesschat, Environment=dev | 2026-02-28 | Stores Redis AUTH token for ElastiCache replication group |
+| identity | cognito-idp | user_pool | `us-east-1_AWq14lBGV` | `arn:aws:cognito-idp:us-east-1:723580627470:userpool/us-east-1_AWq14lBGV` | us-east-1 | Terraform `module.cognito.aws_cognito_user_pool.this` | Project=chesschat, Environment=dev | 2026-02-28 | User pool name `chesschat-dev-user-pool`; email sign-in and auto-verification enabled |
+| identity | cognito-idp | app_client | `5numi4223d3jnebrlfqboseu42` | n/a | us-east-1 | Terraform `module.cognito.aws_cognito_user_pool_client.app` | Project=chesschat, Environment=dev | 2026-02-28 | Client name `chesschat-dev-app-client`; OAuth code grant; access tokens 1h, refresh tokens 30d |
+| identity | cognito-idp | hosted_ui_domain | `chesschat-dev-6c96bb` | n/a | us-east-1 | Terraform `module.cognito.aws_cognito_user_pool_domain.this` | Project=chesschat, Environment=dev | 2026-02-28 | Hosted UI URL `https://chesschat-dev-6c96bb.auth.us-east-1.amazoncognito.com` |
+| security | iam_role | ecs_task_execution_role | `chesschat-dev-ecs-task-execution-role` | `arn:aws:iam::723580627470:role/chesschat-dev-ecs-task-execution-role` | us-east-1 | Terraform `module.ecs.aws_iam_role.task_execution` | Project=chesschat, Environment=dev | 2026-02-28 | Used by ECS control plane for image pull, logs, and secrets retrieval at task startup |
+| security | iam_role | ecs_task_role | `chesschat-dev-ecs-task-role` | `arn:aws:iam::723580627470:role/chesschat-dev-ecs-task-role` | us-east-1 | Terraform `module.ecs.aws_iam_role.task` | Project=chesschat, Environment=dev | 2026-02-28 | Used by running app containers for DynamoDB, Redis metadata, Chime SDK, and CloudWatch metrics |
 
 ## Auth Baseline
 - Keep only these AWS CLI profiles: `default`, `CHESSCHAT_IAM_USER`.
