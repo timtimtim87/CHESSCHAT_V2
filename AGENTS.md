@@ -29,3 +29,11 @@ This file defines project-specific operating guidance for AI agents working in t
 - When major decisions are made, update:
   - `DOCS/PORTFOLIO_BUILD_PLAYBOOK.md` (strategy-level decisions)
   - `infra/RESOURCE_REGISTRY.md` (concrete IDs/ARNs/state)
+  - `portfolio diary/` (day-by-day build log with what was built, how it was built, and decision/thought process)
+
+## Portfolio Diary Rule
+- Keep daily notes under `portfolio diary/` using one file per day: `YYYY-MM-DD.md`.
+- Every substantial session should append or create that day's file with:
+  - What changed (infra, code, docs)
+  - How it was done (commands, Terraform actions, validation checks)
+  - Why decisions were made (tradeoffs, risks, interview-ready rationale)
