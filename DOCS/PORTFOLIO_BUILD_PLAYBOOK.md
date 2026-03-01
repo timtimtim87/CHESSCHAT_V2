@@ -143,13 +143,29 @@ Purpose: keep one practical, interview-ready plan for building CHESSCHAT as an A
   - Bootstrap image published:
     - `723580627470.dkr.ecr.us-east-1.amazonaws.com/chesschat-dev-app:bootstrap`
     - Digest `sha256:63a782e53312c3febefcb99bc32339bc1be00ea0774ed8f4bf660138991d705a`
+- Completed in AWS (2026-03-01, Phase 6/7 edge + DNS):
+  - Domain inputs wired to existing hosted zone:
+    - `root_domain_name = "chess-chat.com"`
+    - `route53_zone_id = "Z03927582T9WNB6PUN708"`
+  - Edge resources provisioned:
+    - ALB `chesschat-dev-alb` (`internet-facing`, `active`)
+    - Target group `chesschat-dev-app-tg`
+    - Listeners: HTTP 80 redirect and HTTPS 443 forward
+    - ACM certificate for `app.chess-chat.com` issued via DNS validation
+  - DNS + app integration:
+    - Route53 alias `app.chess-chat.com` -> ALB
+    - ECS service attached to ALB target group
+    - Cognito callback/logout URLs switched to `https://app.chess-chat.com/...`
+  - Terraform reliability fix during deployment:
+    - Removed apply-time unknown values from `count` expressions in `ecs_compute` and `route53`
+    - Added explicit `route53.enable_app_alias` boolean gate to keep plans deterministic
 - Next immediate move:
-  - Phase 6 edge apply:
-    - Set `root_domain_name` and `route53_zone_id` (or set `create_route53_zone=true`)
-    - Enable/apply edge (`enable_edge=true`) for ACM + ALB + HTTPS redirect
-  - Phase 7 DNS + Cognito callbacks:
-    - Enable/apply DNS (`enable_dns=true`) for app alias record
-    - Enable callback derivation (`use_app_domain_for_cognito_urls=true`) and apply Cognito URL update
+  - Phase E observability implementation:
+    - Implement `modules/monitoring` with CloudWatch alarms, dashboard, SNS notifications
+    - Add ALB + ECS + Redis + DynamoDB baseline alarm set and runbook links
+  - Phase F app validation:
+    - Deploy real app image (replace bootstrap)
+    - Validate `https://app.chess-chat.com` end-to-end with `/healthz` and auth callback path
 
 ## 6) GitHub Actions Learning Guide
 Goal: implement CI/CD in small, understandable steps.

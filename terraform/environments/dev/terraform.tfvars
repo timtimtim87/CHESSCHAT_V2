@@ -27,15 +27,15 @@ ecs_task_memory           = 512
 ecs_service_desired_count = 1
 ecs_log_retention_days    = 30
 
-# Keep edge and DNS off until domain details are ready.
-enable_edge         = false
-enable_dns          = false
+# Enable edge and DNS now that domain + hosted zone are ready.
+enable_edge         = true
+enable_dns          = true
 create_route53_zone = false
-route53_zone_id     = null
-root_domain_name    = null
+route53_zone_id     = "Z03927582T9WNB6PUN708"
+root_domain_name    = "chess-chat.com"
 app_subdomain       = "app"
 
-# Placeholder callback/logout URLs until Route53 + ALB are live.
+# Derive callback/logout URLs from app_subdomain + root_domain_name.
 cognito_callback_urls           = ["https://app.chesschat.example.com/auth/callback"]
 cognito_logout_urls             = ["https://app.chesschat.example.com/logout"]
-use_app_domain_for_cognito_urls = false
+use_app_domain_for_cognito_urls = true

@@ -14,6 +14,12 @@ variable "enabled" {
   default     = false
 }
 
+variable "enable_app_alias" {
+  description = "Whether to create the app alias record."
+  type        = bool
+  default     = false
+}
+
 variable "create_hosted_zone" {
   description = "Whether to create a new public hosted zone."
   type        = bool

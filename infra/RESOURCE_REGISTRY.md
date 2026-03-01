@@ -13,13 +13,16 @@ Purpose: single source of truth for human-readable names, IDs, and ARNs as infra
 
 ## Status
 - Last updated: 2026-03-01
-- Provisioning state: bootstrap backend configured; Phase A network, Phase B data, Phase 4 identity/IAM, and Phase 5 compute foundation applied in `us-east-1`
+- Provisioning state: bootstrap backend configured; Phase A network, Phase B data, Phase 4 identity/IAM, Phase 5 compute, and Phase 6/7 edge + DNS applied in `us-east-1`
 - Terraform code status:
   - `ecs` module now serves as ECS identity-only IAM foundation.
   - New `ecs_compute` module implemented (ECR, ECS cluster/task/service, ECS service SG).
   - `alb` module implemented (ACM + ALB + listener + target group + DNS validation wiring).
   - `route53` module implemented (zone lookup/create options + app alias record).
   - Redis SG allow-list now auto-wires ECS service SG output when compute is enabled.
+  - Count-expression dependency fix applied for deterministic planning:
+    - `ecs_compute`: ALB ingress and service load balancer gating now uses known booleans.
+    - `route53`: alias creation now uses explicit `enable_app_alias` boolean input.
 
 ## Naming Convention
 - Pattern: `chesschat-<env>-<service>-<purpose>`
@@ -81,6 +84,13 @@ Purpose: single source of truth for human-readable names, IDs, and ARNs as infra
 | compute | ecs | service | `chesschat-dev-ecs-service` | `arn:aws:ecs:us-east-1:723580627470:service/chesschat-dev-ecs-cluster/chesschat-dev-ecs-service` | us-east-1 | Terraform `module.ecs_compute.aws_ecs_service.app[0]` | Project=chesschat, Environment=dev | 2026-03-01 | Service active in private app subnets; desired=1 |
 | compute | ecs | task_definition | `chesschat-dev-task:1` | `arn:aws:ecs:us-east-1:723580627470:task-definition/chesschat-dev-task:1` | us-east-1 | Terraform `module.ecs_compute.aws_ecs_task_definition.app[0]` | Project=chesschat, Environment=dev | 2026-03-01 | Runtime platform `LINUX/X86_64`; image tag `bootstrap` |
 | compute | ec2_security_group | ecs_service_sg | `sg-0c22505653f5a2167` | n/a | us-east-1 | Terraform `module.ecs_compute.aws_security_group.service[0]` | Project=chesschat, Environment=dev | 2026-03-01 | Name `chesschat-dev-ecs-service-sg`; egress all; ingress managed by edge integration when enabled |
+| edge | acm | app_certificate | `app.chess-chat.com` | `arn:aws:acm:us-east-1:723580627470:certificate/929a5de0-68d5-42ad-8f1a-1c2ca6593eda` | us-east-1 | Terraform `module.alb.aws_acm_certificate.app[0]` | Project=chesschat, Environment=dev | 2026-03-01 | DNS-validated; status `ISSUED`; type `AMAZON_ISSUED` |
+| edge | alb | app_load_balancer | `chesschat-dev-alb` | `arn:aws:elasticloadbalancing:us-east-1:723580627470:loadbalancer/app/chesschat-dev-alb/3f386d7f443ecbd1` | us-east-1 | Terraform `module.alb.aws_lb.this[0]` | Project=chesschat, Environment=dev | 2026-03-01 | DNS `chesschat-dev-alb-251000663.us-east-1.elb.amazonaws.com`; internet-facing; state `active` |
+| edge | alb | app_target_group | `chesschat-dev-app-tg` | `arn:aws:elasticloadbalancing:us-east-1:723580627470:targetgroup/chesschat-dev-app-tg/ab03b244c7e6560f` | us-east-1 | Terraform `module.alb.aws_lb_target_group.app[0]` | Project=chesschat, Environment=dev | 2026-03-01 | Health path `/healthz`; target type `ip`; port `8080` |
+| edge | alb | listener_http | `chesschat-dev-alb:80` | `arn:aws:elasticloadbalancing:us-east-1:723580627470:listener/app/chesschat-dev-alb/3f386d7f443ecbd1/2fd7462833179147` | us-east-1 | Terraform `module.alb.aws_lb_listener.http[0]` | Project=chesschat, Environment=dev | 2026-03-01 | HTTP listener redirects to HTTPS 443 |
+| edge | alb | listener_https | `chesschat-dev-alb:443` | `arn:aws:elasticloadbalancing:us-east-1:723580627470:listener/app/chesschat-dev-alb/3f386d7f443ecbd1/db9a0769cf9be166` | us-east-1 | Terraform `module.alb.aws_lb_listener.https[0]` | Project=chesschat, Environment=dev | 2026-03-01 | HTTPS listener uses ACM cert for `app.chess-chat.com` |
+| edge | ec2_security_group | alb_security_group | `sg-0d04ffe829ce755f0` | n/a | us-east-1 | Terraform `module.alb.aws_security_group.alb[0]` | Project=chesschat, Environment=dev | 2026-03-01 | Ingress `80/443` from internet; egress all |
+| dns | route53 | app_alias_record | `app.chess-chat.com` | n/a | us-east-1 | Terraform `module.route53.aws_route53_record.app_alias[0]` | Project=chesschat, Environment=dev | 2026-03-01 | Type `A` alias to ALB in hosted zone `Z03927582T9WNB6PUN708` |
 
 ## Auth Baseline
 - Keep only these AWS CLI profiles: `default`, `CHESSCHAT_IAM_USER`.

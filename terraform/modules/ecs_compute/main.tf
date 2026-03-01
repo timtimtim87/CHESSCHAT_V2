@@ -76,7 +76,7 @@ resource "aws_vpc_security_group_egress_rule" "service_all" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "service_from_alb" {
-  count = var.enabled && var.enable_alb_integration && var.alb_security_group_id != null ? 1 : 0
+  count = var.enabled && var.enable_alb_integration ? 1 : 0
 
   security_group_id            = aws_security_group.service[0].id
   referenced_security_group_id = var.alb_security_group_id
@@ -150,7 +150,7 @@ resource "aws_ecs_service" "app" {
   enable_execute_command             = true
 
   dynamic "load_balancer" {
-    for_each = var.enable_alb_integration && var.alb_target_group_arn != null ? [1] : []
+    for_each = var.enable_alb_integration ? [1] : []
 
     content {
       target_group_arn = var.alb_target_group_arn

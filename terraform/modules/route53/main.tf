@@ -4,7 +4,7 @@ locals {
   lookup_zone       = var.enabled && !var.create_hosted_zone && var.route53_zone_id == null && var.root_domain_name != null
   app_fqdn          = var.root_domain_name == null ? null : "${var.app_subdomain}.${var.root_domain_name}"
   effective_zone_id = var.enabled ? coalesce(var.route53_zone_id, try(aws_route53_zone.this[0].zone_id, null), try(data.aws_route53_zone.existing[0].zone_id, null)) : null
-  create_app_alias  = var.enabled && local.effective_zone_id != null && var.alb_dns_name != null && var.alb_zone_id != null && local.app_fqdn != null
+  create_app_alias  = var.enabled && var.enable_app_alias && local.app_fqdn != null
 }
 
 resource "aws_route53_zone" "this" {

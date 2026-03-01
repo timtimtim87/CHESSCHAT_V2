@@ -116,6 +116,7 @@ module "route53" {
   project            = var.project
   environment        = var.environment
   enabled            = var.enable_dns
+  enable_app_alias   = var.enable_edge
   create_hosted_zone = var.create_route53_zone
   root_domain_name   = var.root_domain_name
   route53_zone_id    = var.route53_zone_id
