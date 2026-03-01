@@ -24,6 +24,8 @@ Own resources for the Redis-based live session cache layer.
 - `vpc_id` (string)
 - `private_data_subnet_ids` (list(string))
 - `allowed_security_group_ids` (list(string), default `[]`)
+- `ecs_service_security_group_id` (string, default `null`)
+- `enable_ecs_service_ingress` (bool, default `false`)
 - `node_type` (string, default `cache.t4g.micro`)
 - `engine_version` (string, default `7.0`)
 - `num_cache_clusters` (number, default `2`)

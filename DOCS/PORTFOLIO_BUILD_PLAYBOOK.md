@@ -130,12 +130,26 @@ Purpose: keep one practical, interview-ready plan for building CHESSCHAT as an A
     - Route53 module supports existing zone ID, zone lookup, or new hosted zone creation
     - App alias record wiring to ALB outputs
     - Root-level Cognito callback/logout URL derivation from app domain (toggle-controlled)
+- Completed in AWS (2026-03-01, Phase 5 compute):
+  - ECR repository provisioned:
+    - `chesschat-dev-app` (`arn:aws:ecr:us-east-1:723580627470:repository/chesschat-dev-app`)
+  - ECS runtime provisioned:
+    - Cluster `chesschat-dev-ecs-cluster`
+    - Task definition `chesschat-dev-task:1`
+    - Service `chesschat-dev-ecs-service` (desired=1, running=1)
+    - ECS service security group `sg-0c22505653f5a2167`
+  - Redis ingress wired to ECS:
+    - Redis SG now allows inbound `tcp/6379` from ECS service SG
+  - Bootstrap image published:
+    - `723580627470.dkr.ecr.us-east-1.amazonaws.com/chesschat-dev-app:bootstrap`
+    - Digest `sha256:63a782e53312c3febefcb99bc32339bc1be00ea0774ed8f4bf660138991d705a`
 - Next immediate move:
-  - Apply sequence (when ready):
-    - Push bootstrap image to ECR (`bootstrap` tag) before ECS service apply
-    - Apply compute and validate ECS tasks reach steady state
-    - Enable/apply edge (`enable_edge=true`) once domain + zone are set
-    - Enable/apply DNS + Cognito domain callbacks (`enable_dns=true`, `use_app_domain_for_cognito_urls=true`)
+  - Phase 6 edge apply:
+    - Set `root_domain_name` and `route53_zone_id` (or set `create_route53_zone=true`)
+    - Enable/apply edge (`enable_edge=true`) for ACM + ALB + HTTPS redirect
+  - Phase 7 DNS + Cognito callbacks:
+    - Enable/apply DNS (`enable_dns=true`) for app alias record
+    - Enable callback derivation (`use_app_domain_for_cognito_urls=true`) and apply Cognito URL update
 
 ## 6) GitHub Actions Learning Guide
 Goal: implement CI/CD in small, understandable steps.

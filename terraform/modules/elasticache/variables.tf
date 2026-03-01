@@ -24,6 +24,18 @@ variable "allowed_security_group_ids" {
   default     = []
 }
 
+variable "ecs_service_security_group_id" {
+  description = "Optional ECS service security group ID to allow Redis access."
+  type        = string
+  default     = null
+}
+
+variable "enable_ecs_service_ingress" {
+  description = "Whether to create a Redis ingress rule for the ECS service security group."
+  type        = bool
+  default     = false
+}
+
 variable "node_type" {
   description = "ElastiCache node type."
   type        = string

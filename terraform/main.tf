@@ -79,18 +79,17 @@ module "ecs_compute" {
 }
 
 module "elasticache" {
-  source                  = "./modules/elasticache"
-  project                 = var.project
-  environment             = var.environment
-  vpc_id                  = module.vpc.vpc_id
-  private_data_subnet_ids = module.vpc.private_data_subnet_ids
-  allowed_security_group_ids = concat(
-    var.redis_allowed_security_group_ids,
-    module.ecs_compute.service_security_group_id == null ? [] : [module.ecs_compute.service_security_group_id]
-  )
-  node_type          = var.redis_node_type
-  num_cache_clusters = var.redis_num_cache_clusters
-  tags               = local.common_tags
+  source                        = "./modules/elasticache"
+  project                       = var.project
+  environment                   = var.environment
+  vpc_id                        = module.vpc.vpc_id
+  private_data_subnet_ids       = module.vpc.private_data_subnet_ids
+  allowed_security_group_ids    = var.redis_allowed_security_group_ids
+  ecs_service_security_group_id = module.ecs_compute.service_security_group_id
+  enable_ecs_service_ingress    = var.enable_ecs_compute
+  node_type                     = var.redis_node_type
+  num_cache_clusters            = var.redis_num_cache_clusters
+  tags                          = local.common_tags
 }
 
 module "dynamodb" {

@@ -46,6 +46,17 @@ resource "aws_vpc_security_group_ingress_rule" "from_app" {
   description                  = "Redis access from approved application security group."
 }
 
+resource "aws_vpc_security_group_ingress_rule" "from_ecs_service" {
+  count = var.enable_ecs_service_ingress ? 1 : 0
+
+  security_group_id            = aws_security_group.redis.id
+  referenced_security_group_id = var.ecs_service_security_group_id
+  from_port                    = var.port
+  to_port                      = var.port
+  ip_protocol                  = "tcp"
+  description                  = "Redis access from ECS service security group."
+}
+
 resource "aws_elasticache_subnet_group" "redis" {
   name       = local.subnet_group_name
   subnet_ids = var.private_data_subnet_ids
