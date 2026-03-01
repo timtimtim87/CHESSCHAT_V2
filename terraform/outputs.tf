@@ -127,3 +127,23 @@ output "route53_app_fqdn" {
   value       = module.route53.app_fqdn
   description = "Fully qualified DNS name of the app alias record."
 }
+
+output "monitoring_sns_topic_arn" {
+  value       = module.monitoring.sns_topic_arn
+  description = "SNS topic ARN used for monitoring and budget notifications."
+}
+
+output "monitoring_dashboard_name" {
+  value       = module.monitoring.dashboard_name
+  description = "CloudWatch dashboard name for operational visibility."
+}
+
+output "monitoring_alarm_names" {
+  value       = module.monitoring.alarm_names
+  description = "List of baseline CloudWatch alarm names."
+}
+
+output "monitoring_budget_name" {
+  value       = module.monitoring.budget_name
+  description = "Name of the monthly AWS budget."
+}

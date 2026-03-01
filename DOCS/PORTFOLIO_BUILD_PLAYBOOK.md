@@ -159,13 +159,43 @@ Purpose: keep one practical, interview-ready plan for building CHESSCHAT as an A
   - Terraform reliability fix during deployment:
     - Removed apply-time unknown values from `count` expressions in `ecs_compute` and `route53`
     - Added explicit `route53.enable_app_alias` boolean gate to keep plans deterministic
+- Completed in AWS (2026-03-01, Phase E observability + operations):
+  - Monitoring resources provisioned:
+    - SNS topic `chesschat-dev-alerts` (`arn:aws:sns:us-east-1:723580627470:chesschat-dev-alerts`)
+    - CloudWatch dashboard `chesschat-dev-operations-dashboard`
+    - Baseline alarms:
+      - `chesschat-dev-ecs-cpu-high`
+      - `chesschat-dev-ecs-memory-high`
+      - `chesschat-dev-alb-5xx-high`
+      - `chesschat-dev-alb-unhealthy-targets`
+      - `chesschat-dev-redis-engine-cpu-high`
+      - `chesschat-dev-ddb-users-throttles`
+      - `chesschat-dev-ddb-games-throttles`
+  - Budget resources provisioned:
+    - Budget `chesschat-dev-monthly-cost` (`$250/month`)
+    - Notification thresholds at `80%`, `90%`, and `100%` routed to SNS topic
+  - Terraform verification:
+    - `terraform apply` completed with `10 added, 0 changed, 0 destroyed`
+    - Post-apply `terraform plan` returned `No changes`
+- Monitoring hardening update (2026-03-01):
+  - Smoke-test finding:
+    - ECS scale-to-zero removed target registration and ALB target metrics showed missing datapoints.
+    - Alarm logic initially stayed green due a dimension mismatch (`loadbalancer/app/...` instead of `app/...`) and missing-data behavior.
+  - Fixes applied:
+    - Corrected ALB CloudWatch metric dimension mapping to `app/<alb-name>/<alb-id>`.
+    - Updated `alb_unhealthy_targets` alarm to `treat_missing_data = "breaching"`.
+    - Added `alb_healthy_hosts_low` alarm (`HealthyHostCount < 1`, missing data treated as breaching).
+    - Confirmed SNS email subscription ARN exists for alert routing.
+  - Validation outcome:
+    - Scale-to-zero test produced ALARM state for availability alarms.
+    - Restore-to-one test returned alarms to OK and ECS steady state.
 - Next immediate move:
-  - Phase E observability implementation:
-    - Implement `modules/monitoring` with CloudWatch alarms, dashboard, SNS notifications
-    - Add ALB + ECS + Redis + DynamoDB baseline alarm set and runbook links
   - Phase F app validation:
     - Deploy real app image (replace bootstrap)
     - Validate `https://app.chess-chat.com` end-to-end with `/healthz` and auth callback path
+  - Phase F.1 observability validation runbook:
+    - Confirm SNS email subscriptions via inbox confirmation links
+    - Run alarm smoke tests (CPU/memory, ALB 5xx/unhealthy targets, DynamoDB throttles)
 
 ## 6) GitHub Actions Learning Guide
 Goal: implement CI/CD in small, understandable steps.

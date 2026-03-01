@@ -127,7 +127,28 @@ module "route53" {
 }
 
 module "monitoring" {
-  source  = "./modules/monitoring"
-  project = var.project
-  tags    = local.common_tags
+  source                           = "./modules/monitoring"
+  project                          = var.project
+  environment                      = var.environment
+  aws_region                       = var.aws_region
+  enabled                          = var.enable_monitoring
+  ecs_cluster_name                 = module.ecs_compute.cluster_name
+  ecs_service_name                 = module.ecs_compute.service_name
+  alb_arn_suffix                   = module.alb.alb_arn == null ? null : replace(join(":", slice(split(":", module.alb.alb_arn), 5, length(split(":", module.alb.alb_arn)))), "loadbalancer/", "")
+  target_group_arn_suffix          = module.alb.target_group_arn == null ? null : join(":", slice(split(":", module.alb.target_group_arn), 5, length(split(":", module.alb.target_group_arn))))
+  redis_replication_group_id       = module.elasticache.redis_replication_group_id
+  dynamodb_users_table_name        = module.dynamodb.users_table_name
+  dynamodb_games_table_name        = module.dynamodb.games_table_name
+  alarm_email_endpoints            = var.monitoring_alarm_email_endpoints
+  alarm_period_seconds             = var.monitoring_alarm_period_seconds
+  alarm_evaluation_periods         = var.monitoring_alarm_evaluation_periods
+  alarm_datapoints_to_alarm        = var.monitoring_alarm_datapoints_to_alarm
+  ecs_cpu_utilization_threshold    = var.monitoring_ecs_cpu_utilization_threshold
+  ecs_memory_utilization_threshold = var.monitoring_ecs_memory_utilization_threshold
+  alb_5xx_count_threshold          = var.monitoring_alb_5xx_count_threshold
+  alb_min_healthy_hosts_threshold  = var.monitoring_alb_min_healthy_hosts_threshold
+  redis_engine_cpu_threshold       = var.monitoring_redis_engine_cpu_threshold
+  monthly_budget_limit_usd         = var.monitoring_monthly_budget_limit_usd
+  budget_alert_thresholds          = var.monitoring_budget_alert_thresholds
+  tags                             = local.common_tags
 }

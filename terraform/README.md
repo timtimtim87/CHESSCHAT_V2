@@ -7,8 +7,7 @@
 - `main.tf`: wires all reusable modules together with shared tags.
 - `outputs.tf`: expose simple signals confirming each module is included.
 - `modules/*`: single-responsibility modules (vpc, networking, compute, data, identity, DNS, monitoring).
-  - Implemented: `modules/vpc`, `modules/dynamodb`, `modules/elasticache`, `modules/cognito`, `modules/ecs` (identity), `modules/ecs_compute`, `modules/alb`, `modules/route53`
-  - Remaining placeholder module: `modules/monitoring`
+  - Implemented: `modules/vpc`, `modules/dynamodb`, `modules/elasticache`, `modules/cognito`, `modules/ecs` (identity), `modules/ecs_compute`, `modules/alb`, `modules/route53`, `modules/monitoring`
 - `terraform.tfvars.example`: start point for environment-specific values.
 - `environments/`: consume the shared modules with `-var-file` or a dedicated workspace for each environment.
 

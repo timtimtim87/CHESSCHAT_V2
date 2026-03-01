@@ -13,12 +13,13 @@ Purpose: single source of truth for human-readable names, IDs, and ARNs as infra
 
 ## Status
 - Last updated: 2026-03-01
-- Provisioning state: bootstrap backend configured; Phase A network, Phase B data, Phase 4 identity/IAM, Phase 5 compute, and Phase 6/7 edge + DNS applied in `us-east-1`
+- Provisioning state: bootstrap backend configured; Phase A network, Phase B data, Phase 4 identity/IAM, Phase 5 compute, Phase 6/7 edge + DNS, and Phase E observability/operations applied in `us-east-1`
 - Terraform code status:
   - `ecs` module now serves as ECS identity-only IAM foundation.
   - New `ecs_compute` module implemented (ECR, ECS cluster/task/service, ECS service SG).
   - `alb` module implemented (ACM + ALB + listener + target group + DNS validation wiring).
   - `route53` module implemented (zone lookup/create options + app alias record).
+  - `monitoring` module implemented (SNS alert topic, CloudWatch alarms/dashboard, AWS budget alerts).
   - Redis SG allow-list now auto-wires ECS service SG output when compute is enabled.
   - Count-expression dependency fix applied for deterministic planning:
     - `ecs_compute`: ALB ingress and service load balancer gating now uses known booleans.
@@ -91,6 +92,18 @@ Purpose: single source of truth for human-readable names, IDs, and ARNs as infra
 | edge | alb | listener_https | `chesschat-dev-alb:443` | `arn:aws:elasticloadbalancing:us-east-1:723580627470:listener/app/chesschat-dev-alb/3f386d7f443ecbd1/db9a0769cf9be166` | us-east-1 | Terraform `module.alb.aws_lb_listener.https[0]` | Project=chesschat, Environment=dev | 2026-03-01 | HTTPS listener uses ACM cert for `app.chess-chat.com` |
 | edge | ec2_security_group | alb_security_group | `sg-0d04ffe829ce755f0` | n/a | us-east-1 | Terraform `module.alb.aws_security_group.alb[0]` | Project=chesschat, Environment=dev | 2026-03-01 | Ingress `80/443` from internet; egress all |
 | dns | route53 | app_alias_record | `app.chess-chat.com` | n/a | us-east-1 | Terraform `module.route53.aws_route53_record.app_alias[0]` | Project=chesschat, Environment=dev | 2026-03-01 | Type `A` alias to ALB in hosted zone `Z03927582T9WNB6PUN708` |
+| observability | sns | monitoring_alerts_topic | `chesschat-dev-alerts` | `arn:aws:sns:us-east-1:723580627470:chesschat-dev-alerts` | us-east-1 | Terraform `module.monitoring.aws_sns_topic.alerts[0]` | Project=chesschat, Environment=dev | 2026-03-01 | Alert fan-out topic for CloudWatch alarms and AWS Budgets notifications |
+| observability | sns_subscription | monitoring_alerts_email_subscription | `tim.antibes+CHESSCHAT_V2@gmail.com` | `arn:aws:sns:us-east-1:723580627470:chesschat-dev-alerts:e641a3ad-5bd3-4797-ac6d-832c6c6afac7` | us-east-1 | Terraform `module.monitoring.aws_sns_topic_subscription.email["tim.antibes+CHESSCHAT_V2@gmail.com"]` | Project=chesschat, Environment=dev | 2026-03-01 | Email subscription confirmed for alert topic |
+| observability | cloudwatch_dashboard | operations_dashboard | `chesschat-dev-operations-dashboard` | `arn:aws:cloudwatch::723580627470:dashboard/chesschat-dev-operations-dashboard` | us-east-1 | Terraform `module.monitoring.aws_cloudwatch_dashboard.operations[0]` | Project=chesschat, Environment=dev | 2026-03-01 | Dashboard widgets for ECS, ALB, Redis, DynamoDB |
+| observability | cloudwatch_alarm | ecs_cpu_high_alarm | `chesschat-dev-ecs-cpu-high` | `arn:aws:cloudwatch:us-east-1:723580627470:alarm:chesschat-dev-ecs-cpu-high` | us-east-1 | Terraform `module.monitoring.aws_cloudwatch_metric_alarm.ecs_cpu_high[0]` | Project=chesschat, Environment=dev | 2026-03-01 | Triggers when ECS service CPUUtilization >= 75% |
+| observability | cloudwatch_alarm | ecs_memory_high_alarm | `chesschat-dev-ecs-memory-high` | `arn:aws:cloudwatch:us-east-1:723580627470:alarm:chesschat-dev-ecs-memory-high` | us-east-1 | Terraform `module.monitoring.aws_cloudwatch_metric_alarm.ecs_memory_high[0]` | Project=chesschat, Environment=dev | 2026-03-01 | Triggers when ECS service MemoryUtilization >= 80% |
+| observability | cloudwatch_alarm | alb_5xx_high_alarm | `chesschat-dev-alb-5xx-high` | `arn:aws:cloudwatch:us-east-1:723580627470:alarm:chesschat-dev-alb-5xx-high` | us-east-1 | Terraform `module.monitoring.aws_cloudwatch_metric_alarm.alb_5xx_high[0]` | Project=chesschat, Environment=dev | 2026-03-01 | Triggers when ALB HTTPCode_ELB_5XX_Count >= 5 over period |
+| observability | cloudwatch_alarm | alb_unhealthy_targets_alarm | `chesschat-dev-alb-unhealthy-targets` | `arn:aws:cloudwatch:us-east-1:723580627470:alarm:chesschat-dev-alb-unhealthy-targets` | us-east-1 | Terraform `module.monitoring.aws_cloudwatch_metric_alarm.alb_unhealthy_targets[0]` | Project=chesschat, Environment=dev | 2026-03-01 | Triggers when ALB target group UnHealthyHostCount > 0 |
+| observability | cloudwatch_alarm | alb_healthy_hosts_low_alarm | `chesschat-dev-alb-healthy-hosts-low` | `arn:aws:cloudwatch:us-east-1:723580627470:alarm:chesschat-dev-alb-healthy-hosts-low` | us-east-1 | Terraform `module.monitoring.aws_cloudwatch_metric_alarm.alb_healthy_hosts_low[0]` | Project=chesschat, Environment=dev | 2026-03-01 | Triggers when ALB target group HealthyHostCount < 1 (missing data treated as breaching) |
+| observability | cloudwatch_alarm | redis_engine_cpu_high_alarm | `chesschat-dev-redis-engine-cpu-high` | `arn:aws:cloudwatch:us-east-1:723580627470:alarm:chesschat-dev-redis-engine-cpu-high` | us-east-1 | Terraform `module.monitoring.aws_cloudwatch_metric_alarm.redis_engine_cpu_high[0]` | Project=chesschat, Environment=dev | 2026-03-01 | Triggers when Redis EngineCPUUtilization >= 75% |
+| observability | cloudwatch_alarm | ddb_users_throttles_alarm | `chesschat-dev-ddb-users-throttles` | `arn:aws:cloudwatch:us-east-1:723580627470:alarm:chesschat-dev-ddb-users-throttles` | us-east-1 | Terraform `module.monitoring.aws_cloudwatch_metric_alarm.dynamodb_users_throttles[0]` | Project=chesschat, Environment=dev | 2026-03-01 | Triggers when users table ThrottledRequests > 0 |
+| observability | cloudwatch_alarm | ddb_games_throttles_alarm | `chesschat-dev-ddb-games-throttles` | `arn:aws:cloudwatch:us-east-1:723580627470:alarm:chesschat-dev-ddb-games-throttles` | us-east-1 | Terraform `module.monitoring.aws_cloudwatch_metric_alarm.dynamodb_games_throttles[0]` | Project=chesschat, Environment=dev | 2026-03-01 | Triggers when games table ThrottledRequests > 0 |
+| cost | budgets | monthly_cost_budget | `chesschat-dev-monthly-cost` | n/a | us-east-1 | Terraform `module.monitoring.aws_budgets_budget.monthly_cost[0]` | Project=chesschat | 2026-03-01 | `$250` monthly COST budget with 80/90/100% ACTUAL notifications to SNS |
 
 ## Auth Baseline
 - Keep only these AWS CLI profiles: `default`, `CHESSCHAT_IAM_USER`.

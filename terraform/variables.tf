@@ -218,3 +218,75 @@ variable "use_app_domain_for_cognito_urls" {
   type        = bool
   default     = false
 }
+
+variable "enable_monitoring" {
+  description = "Whether to create CloudWatch/SNS/Budget monitoring resources."
+  type        = bool
+  default     = true
+}
+
+variable "monitoring_alarm_email_endpoints" {
+  description = "Email endpoints subscribed to monitoring SNS notifications."
+  type        = list(string)
+  default     = []
+}
+
+variable "monitoring_alarm_period_seconds" {
+  description = "CloudWatch alarm period in seconds for baseline monitoring alarms."
+  type        = number
+  default     = 300
+}
+
+variable "monitoring_alarm_evaluation_periods" {
+  description = "CloudWatch alarm evaluation periods for threshold-based alarms."
+  type        = number
+  default     = 2
+}
+
+variable "monitoring_alarm_datapoints_to_alarm" {
+  description = "Number of breaching datapoints needed to trigger threshold-based alarms."
+  type        = number
+  default     = 2
+}
+
+variable "monitoring_ecs_cpu_utilization_threshold" {
+  description = "ECS CPU utilization alarm threshold percentage."
+  type        = number
+  default     = 75
+}
+
+variable "monitoring_ecs_memory_utilization_threshold" {
+  description = "ECS memory utilization alarm threshold percentage."
+  type        = number
+  default     = 80
+}
+
+variable "monitoring_alb_5xx_count_threshold" {
+  description = "ALB 5xx count threshold per period."
+  type        = number
+  default     = 5
+}
+
+variable "monitoring_alb_min_healthy_hosts_threshold" {
+  description = "Minimum healthy host count expected for ALB target group."
+  type        = number
+  default     = 1
+}
+
+variable "monitoring_redis_engine_cpu_threshold" {
+  description = "Redis engine CPU utilization threshold percentage."
+  type        = number
+  default     = 75
+}
+
+variable "monitoring_monthly_budget_limit_usd" {
+  description = "Monthly AWS budget threshold in USD."
+  type        = number
+  default     = 250
+}
+
+variable "monitoring_budget_alert_thresholds" {
+  description = "Budget alert thresholds as percentages."
+  type        = list(number)
+  default     = [80, 90, 100]
+}

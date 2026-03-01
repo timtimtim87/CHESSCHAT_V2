@@ -39,3 +39,18 @@ app_subdomain       = "app"
 cognito_callback_urls           = ["https://app.chesschat.example.com/auth/callback"]
 cognito_logout_urls             = ["https://app.chesschat.example.com/logout"]
 use_app_domain_for_cognito_urls = true
+
+enable_monitoring = true
+
+# Add real recipient emails before apply to activate inbox notifications.
+monitoring_alarm_email_endpoints            = ["tim.antibes+CHESSCHAT_V2@gmail.com"]
+monitoring_alarm_period_seconds             = 300
+monitoring_alarm_evaluation_periods         = 2
+monitoring_alarm_datapoints_to_alarm        = 2
+monitoring_ecs_cpu_utilization_threshold    = 75
+monitoring_ecs_memory_utilization_threshold = 80
+monitoring_alb_5xx_count_threshold          = 5
+monitoring_alb_min_healthy_hosts_threshold  = 1
+monitoring_redis_engine_cpu_threshold       = 75
+monitoring_monthly_budget_limit_usd         = 250
+monitoring_budget_alert_thresholds          = [80, 90, 100]
