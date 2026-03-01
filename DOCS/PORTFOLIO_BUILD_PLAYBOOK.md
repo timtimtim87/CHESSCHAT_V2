@@ -196,6 +196,35 @@ Purpose: keep one practical, interview-ready plan for building CHESSCHAT as an A
   - Phase F.1 observability validation runbook:
     - Confirm SNS email subscriptions via inbox confirmation links
     - Run alarm smoke tests (CPU/memory, ALB 5xx/unhealthy targets, DynamoDB throttles)
+- Phase F implementation kickoff (2026-03-01, repository changes):
+  - Added first MVP app layer under `app/`:
+    - Backend (`Node.js + Express + ws`) with `/healthz`, JWT auth middleware, Redis room state, DynamoDB game persistence, and room/game WebSocket events.
+    - Frontend (`React + Vite`) with landing auth, Cognito callback, lobby Start/Join form, and room screen.
+  - Updated Terraform ECS compute wiring for production app runtime:
+    - Added support for container environment variables and container secrets.
+    - Auto-injected Redis auth token secret into ECS task definition from ElastiCache module output.
+    - Added concrete app runtime environment values in `environments/dev/terraform.tfvars`.
+  - Deployment status:
+    - Code complete for MVP slice; Terraform apply and image rollout still pending validation commands.
+- Phase F deployment/debug outcome (2026-03-01):
+  - Real app image rollout attempted and debugged in AWS.
+  - Confirmed startup failure cause on first rollout (`task:2`):
+    - Redis auth failed with `WRONGPASS` because ECS secret injection passed full JSON secret content.
+  - Applied Terraform fix:
+    - ECS secret reference now extracts JSON field from Secrets Manager:
+      - `REDIS_AUTH_TOKEN` -> `<redis-secret-arn>:auth_token::`
+  - Post-fix rollout verification:
+    - ECS running task definition `chesschat-dev-task:3` with app image `v0.1.0`
+    - `/healthz` returns app JSON healthy response
+    - `/api/public-config` returns runtime Cognito config from app
+    - WebSocket ALB/app path sanity-check passed (`open` then expected app auth close `4001` for invalid token)
+  - Two-user live E2E (post-rollout):
+    - Executed scripted two-user flow against production endpoint:
+      - Cognito auth for two users
+      - Shared room join via 5-character code
+      - `start_game`, move broadcast (`e2e4`), and resign game end
+      - `/api/history` verification for both users
+    - Outcome: pass (game persisted and visible in both histories)
 
 ## 6) GitHub Actions Learning Guide
 Goal: implement CI/CD in small, understandable steps.

@@ -147,6 +147,21 @@ variable "ecs_container_port" {
   default     = 8080
 }
 
+variable "ecs_container_environment" {
+  description = "Additional environment variables passed to the ECS app container."
+  type        = map(string)
+  default     = {}
+}
+
+variable "ecs_container_secrets" {
+  description = "Optional list of container secrets (name/valueFrom) passed to ECS app container."
+  type = list(object({
+    name      = string
+    valueFrom = string
+  }))
+  default = []
+}
+
 variable "ecs_task_cpu" {
   description = "Fargate task CPU units."
   type        = number

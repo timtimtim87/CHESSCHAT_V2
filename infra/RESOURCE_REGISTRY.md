@@ -13,7 +13,7 @@ Purpose: single source of truth for human-readable names, IDs, and ARNs as infra
 
 ## Status
 - Last updated: 2026-03-01
-- Provisioning state: bootstrap backend configured; Phase A network, Phase B data, Phase 4 identity/IAM, Phase 5 compute, Phase 6/7 edge + DNS, and Phase E observability/operations applied in `us-east-1`
+- Provisioning state: bootstrap backend configured; Phase A network, Phase B data, Phase 4 identity/IAM, Phase 5 compute, Phase 6/7 edge + DNS, Phase E observability/operations, and Phase F app MVP deployment validation applied in `us-east-1`
 - Terraform code status:
   - `ecs` module now serves as ECS identity-only IAM foundation.
   - New `ecs_compute` module implemented (ECR, ECS cluster/task/service, ECS service SG).
@@ -24,6 +24,10 @@ Purpose: single source of truth for human-readable names, IDs, and ARNs as infra
   - Count-expression dependency fix applied for deterministic planning:
     - `ecs_compute`: ALB ingress and service load balancer gating now uses known booleans.
     - `route53`: alias creation now uses explicit `enable_app_alias` boolean input.
+  - App runtime rollout updates:
+    - ECS task definition now injects app runtime env vars + Redis auth secret.
+    - Redis secret injection fixed to JSON key extraction (`auth_token`) for ECS container runtime.
+    - Running app revision validated on ECS task definition `chesschat-dev-task:3` (`v0.1.0` image).
 
 ## Naming Convention
 - Pattern: `chesschat-<env>-<service>-<purpose>`
@@ -83,7 +87,7 @@ Purpose: single source of truth for human-readable names, IDs, and ARNs as infra
 | compute | ecr | app_repository | `chesschat-dev-app` | `arn:aws:ecr:us-east-1:723580627470:repository/chesschat-dev-app` | us-east-1 | Terraform `module.ecs_compute.aws_ecr_repository.app[0]` | Project=chesschat, Environment=dev | 2026-03-01 | Repository URI `723580627470.dkr.ecr.us-east-1.amazonaws.com/chesschat-dev-app`; bootstrap tag pushed |
 | compute | ecs | cluster | `chesschat-dev-ecs-cluster` | `arn:aws:ecs:us-east-1:723580627470:cluster/chesschat-dev-ecs-cluster` | us-east-1 | Terraform `module.ecs_compute.aws_ecs_cluster.this[0]` | Project=chesschat, Environment=dev | 2026-03-01 | Container Insights enabled |
 | compute | ecs | service | `chesschat-dev-ecs-service` | `arn:aws:ecs:us-east-1:723580627470:service/chesschat-dev-ecs-cluster/chesschat-dev-ecs-service` | us-east-1 | Terraform `module.ecs_compute.aws_ecs_service.app[0]` | Project=chesschat, Environment=dev | 2026-03-01 | Service active in private app subnets; desired=1 |
-| compute | ecs | task_definition | `chesschat-dev-task:1` | `arn:aws:ecs:us-east-1:723580627470:task-definition/chesschat-dev-task:1` | us-east-1 | Terraform `module.ecs_compute.aws_ecs_task_definition.app[0]` | Project=chesschat, Environment=dev | 2026-03-01 | Runtime platform `LINUX/X86_64`; image tag `bootstrap` |
+| compute | ecs | task_definition | `chesschat-dev-task:3` | `arn:aws:ecs:us-east-1:723580627470:task-definition/chesschat-dev-task:3` | us-east-1 | Terraform `module.ecs_compute.aws_ecs_task_definition.app[0]` | Project=chesschat, Environment=dev | 2026-03-01 | Runtime platform `LINUX/X86_64`; image tag `v0.1.0`; includes app env vars + Redis secret injection via `auth_token` key |
 | compute | ec2_security_group | ecs_service_sg | `sg-0c22505653f5a2167` | n/a | us-east-1 | Terraform `module.ecs_compute.aws_security_group.service[0]` | Project=chesschat, Environment=dev | 2026-03-01 | Name `chesschat-dev-ecs-service-sg`; egress all; ingress managed by edge integration when enabled |
 | edge | acm | app_certificate | `app.chess-chat.com` | `arn:aws:acm:us-east-1:723580627470:certificate/929a5de0-68d5-42ad-8f1a-1c2ca6593eda` | us-east-1 | Terraform `module.alb.aws_acm_certificate.app[0]` | Project=chesschat, Environment=dev | 2026-03-01 | DNS-validated; status `ISSUED`; type `AMAZON_ISSUED` |
 | edge | alb | app_load_balancer | `chesschat-dev-alb` | `arn:aws:elasticloadbalancing:us-east-1:723580627470:loadbalancer/app/chesschat-dev-alb/3f386d7f443ecbd1` | us-east-1 | Terraform `module.alb.aws_lb.this[0]` | Project=chesschat, Environment=dev | 2026-03-01 | DNS `chesschat-dev-alb-251000663.us-east-1.elb.amazonaws.com`; internet-facing; state `active` |

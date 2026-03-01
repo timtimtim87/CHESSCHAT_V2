@@ -1,0 +1,20 @@
+# CHESSCHAT App Layer (MVP)
+
+This directory contains the application code that replaces the bootstrap ECS image.
+
+## Structure
+- `backend/`: Node.js API + WebSocket server + static asset hosting
+- `frontend/`: React/Vite client for auth, lobby, and room flow
+
+## MVP routes
+- `/`: landing (login/signup)
+- `/auth/callback`: Cognito OAuth callback
+- `/lobby`: start/join room using one 5-character code field
+- `/room/:code`: video + chess room
+
+## Runtime notes
+- Health check endpoint is `GET /healthz` on port `8080`.
+- WebSocket endpoint is `/ws`.
+- Redis auth token is injected through ECS secrets.
+- Game persistence uses DynamoDB transactions.
+- Video tile rendering is currently placeholder-only; Chime media device wiring is the next increment before demo use.

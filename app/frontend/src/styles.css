@@ -1,0 +1,144 @@
+:root {
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  color: #1c1d1f;
+  background: radial-gradient(circle at top left, #f4f4f0 0%, #e7ecef 45%, #d9e2ec 100%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  min-height: 100vh;
+  padding: 24px;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+.auth-shell,
+.lobby-shell,
+.room-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.auth-shell {
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-card,
+.lobby-card,
+.video-panel,
+.game-panel {
+  background: #ffffffd9;
+  border: 1px solid #c5d0db;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 8px 24px #1234;
+}
+
+.auth-card,
+.lobby-card {
+  width: min(500px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  border: 1px solid #567;
+  border-radius: 10px;
+  padding: 10px 14px;
+  background: #f0f4f8;
+  cursor: pointer;
+}
+
+button.primary {
+  background: #0f6a8b;
+  color: #fff;
+  border-color: #0f6a8b;
+}
+
+.code-form {
+  display: flex;
+  gap: 10px;
+}
+
+.code-form input {
+  flex: 1;
+  border: 1px solid #8fa0af;
+  border-radius: 10px;
+  padding: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  text-align: center;
+}
+
+.room-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.video-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.video-tile {
+  background: #e3ebf3;
+  border: 1px dashed #7d90a3;
+  border-radius: 10px;
+  min-height: 140px;
+  display: grid;
+  place-items: center;
+}
+
+.controls {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.notice {
+  color: #7a1b1b;
+  background: #fde8e8;
+  border: 1px solid #f5b6b6;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.error {
+  color: #b42318;
+}
+
+@media (max-width: 960px) {
+  .room-layout {
+    grid-template-columns: 1fr;
+  }
+}

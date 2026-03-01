@@ -17,11 +17,28 @@ tags = {
 # ECS SG from ecs_compute is auto-appended to this list.
 redis_allowed_security_group_ids = []
 
-enable_ecs_compute        = true
-ecr_repository_name       = "chesschat-dev-app"
-ecs_image_tag             = "bootstrap"
-ecs_container_name        = "app"
-ecs_container_port        = 8080
+enable_ecs_compute  = true
+ecr_repository_name = "chesschat-dev-app"
+ecs_image_tag       = "v0.1.0"
+ecs_container_name  = "app"
+ecs_container_port  = 8080
+ecs_container_environment = {
+  AWS_REGION                 = "us-east-1"
+  REDIS_HOST                 = "master.chesschat-dev.zu5wgj.use1.cache.amazonaws.com"
+  REDIS_PORT                 = "6379"
+  REDIS_TLS                  = "true"
+  DYNAMODB_USERS_TABLE       = "chesschat-dev-users"
+  DYNAMODB_GAMES_TABLE       = "chesschat-dev-games"
+  COGNITO_USER_POOL_ID       = "us-east-1_AWq14lBGV"
+  COGNITO_CLIENT_ID          = "5numi4223d3jnebrlfqboseu42"
+  COGNITO_REGION             = "us-east-1"
+  COGNITO_HOSTED_UI_BASE_URL = "https://chesschat-dev-6c96bb.auth.us-east-1.amazoncognito.com"
+  CHIME_REGION               = "us-east-1"
+  APP_DOMAIN                 = "https://app.chess-chat.com"
+  ROOM_TTL_SECONDS           = "3600"
+  GAME_DURATION_SECONDS      = "300"
+  HEARTBEAT_INTERVAL_MS      = "30000"
+}
 ecs_task_cpu              = 256
 ecs_task_memory           = 512
 ecs_service_desired_count = 1

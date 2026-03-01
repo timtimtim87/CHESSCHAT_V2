@@ -17,6 +17,13 @@ locals {
   cognito_logout_urls_effective = var.use_app_domain_for_cognito_urls && local.app_domain_name != null ? [
     "https://${local.app_domain_name}/logout"
   ] : var.cognito_logout_urls
+  ecs_container_secrets_effective = concat(
+    var.ecs_container_secrets,
+    [{
+      name      = "REDIS_AUTH_TOKEN"
+      valueFrom = "${module.elasticache.redis_auth_secret_arn}:auth_token::"
+    }]
+  )
 }
 
 module "vpc" {
@@ -68,6 +75,8 @@ module "ecs_compute" {
   image_tag              = var.ecs_image_tag
   container_name         = var.ecs_container_name
   container_port         = var.ecs_container_port
+  container_environment  = var.ecs_container_environment
+  container_secrets      = local.ecs_container_secrets_effective
   task_cpu               = var.ecs_task_cpu
   task_memory            = var.ecs_task_memory
   desired_count          = var.ecs_service_desired_count

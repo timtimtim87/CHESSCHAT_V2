@@ -58,6 +58,21 @@ variable "container_port" {
   default     = 8080
 }
 
+variable "container_environment" {
+  description = "Additional environment variables injected into the app container."
+  type        = map(string)
+  default     = {}
+}
+
+variable "container_secrets" {
+  description = "Secrets injected into the app container from AWS Secrets Manager/SSM."
+  type = list(object({
+    name      = string
+    valueFrom = string
+  }))
+  default = []
+}
+
 variable "task_cpu" {
   description = "Fargate task CPU units."
   type        = number

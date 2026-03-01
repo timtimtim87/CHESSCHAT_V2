@@ -7,6 +7,18 @@ locals {
   log_group_name      = "/aws/ecs/${local.name_prefix}/${var.container_name}"
   service_sg_name     = "${local.name_prefix}-ecs-service-sg"
   effective_repo_name = coalesce(var.ecr_repository_name, "${local.name_prefix}-app")
+  effective_environment = merge(
+    var.container_environment,
+    {
+      PORT = tostring(var.container_port)
+    }
+  )
+  container_environment_list = [
+    for key in sort(keys(local.effective_environment)) : {
+      name  = key
+      value = tostring(local.effective_environment[key])
+    }
+  ]
 }
 
 resource "aws_ecr_repository" "app" {
@@ -118,11 +130,12 @@ resource "aws_ecs_task_definition" "app" {
         }
       }
       environment = [
-        {
-          name  = "PORT"
-          value = tostring(var.container_port)
+        for item in local.container_environment_list : {
+          name  = item.name
+          value = item.value
         }
       ]
+      secrets = var.container_secrets
     }
   ])
 
