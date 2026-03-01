@@ -87,6 +87,22 @@ module "ecs_compute" {
   tags                   = local.common_tags
 }
 
+module "github_actions_oidc" {
+  source                  = "./modules/github_actions_oidc"
+  enabled                 = var.enable_github_actions_oidc && var.enable_ecs_compute
+  project                 = var.project
+  environment             = var.environment
+  github_repository       = var.github_actions_repository
+  github_branch           = var.github_actions_branch
+  oidc_thumbprints        = var.github_actions_oidc_thumbprints
+  ecr_repository_arn      = module.ecs_compute.ecr_repository_arn
+  ecs_cluster_name        = module.ecs_compute.cluster_name
+  ecs_service_name        = module.ecs_compute.service_name
+  task_execution_role_arn = module.ecs_identity.task_execution_role_arn
+  task_role_arn           = module.ecs_identity.task_role_arn
+  tags                    = local.common_tags
+}
+
 module "elasticache" {
   source                        = "./modules/elasticache"
   project                       = var.project

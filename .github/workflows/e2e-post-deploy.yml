@@ -1,0 +1,52 @@
+name: E2E Post Deploy Validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_base:
+        description: "Application base URL"
+        required: true
+        default: "https://app.chess-chat.com"
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  e2e-live:
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: us-east-1
+      APP_BASE_URL: ${{ inputs.app_base }}
+      COGNITO_USER_POOL_ID: ${{ vars.COGNITO_USER_POOL_ID }}
+      COGNITO_CLIENT_ID: ${{ vars.COGNITO_CLIENT_ID }}
+      E2E_SUMMARY_PATH: e2e-summary.json
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GHA_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run live E2E
+        run: |
+          set -euo pipefail
+          node scripts/e2e-live.mjs | tee e2e-live.log
+
+      - name: Upload E2E artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-live-results
+          path: |
+            e2e-live.log
+            e2e-summary.json

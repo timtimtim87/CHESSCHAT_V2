@@ -178,6 +178,11 @@ resource "aws_ecs_service" "app" {
     security_groups  = [aws_security_group.service[0].id]
   }
 
+  lifecycle {
+    # CI/CD deploy workflow updates task definition revisions out-of-band.
+    ignore_changes = [task_definition]
+  }
+
   tags = merge(var.tags, {
     Name = local.service_name
   })

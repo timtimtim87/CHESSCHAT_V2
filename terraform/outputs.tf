@@ -9,6 +9,7 @@ output "modules_active" {
     module.cognito.cognito_module_status,
     module.route53.route53_module_status,
     module.monitoring.monitoring_module_status,
+    module.github_actions_oidc.module_status,
   ]
   description = "Keeps a simple list of module placeholders to verify the configuration links all modules."
 }
@@ -73,9 +74,19 @@ output "ecs_cluster_arn" {
   description = "ECS cluster ARN."
 }
 
+output "ecs_cluster_name" {
+  value       = module.ecs_compute.cluster_name
+  description = "ECS cluster name."
+}
+
 output "ecs_service_name" {
   value       = module.ecs_compute.service_name
   description = "ECS service name."
+}
+
+output "github_actions_deploy_role_arn" {
+  value       = module.github_actions_oidc.deploy_role_arn
+  description = "IAM role ARN assumed by GitHub Actions for image deploy and e2e workflows."
 }
 
 output "ecs_service_security_group_id" {

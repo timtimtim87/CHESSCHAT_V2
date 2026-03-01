@@ -115,8 +115,26 @@ button.primary {
   border: 1px dashed #7d90a3;
   border-radius: 10px;
   min-height: 140px;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+}
+
+.video-tile video {
+  width: 100%;
+  min-height: 140px;
+  object-fit: cover;
+  background: #111827;
+}
+
+.video-tile span {
+  display: block;
+  padding: 6px 8px;
+  font-size: 0.85rem;
+  color: #334155;
+  border-top: 1px solid #b5c1cd;
+  background: #eff4f9;
 }
 
 .controls {

@@ -234,6 +234,40 @@ Purpose: keep one practical, interview-ready plan for building CHESSCHAT as an A
   - Race-condition behavior after hardening:
     - Concurrent updates now resolve as deterministic single-writer commits.
     - Losing writers receive retry/conflict errors instead of corrupting room/game state.
+- Phase F completion: Chime frontend media wiring (2026-03-01, repository changes):
+  - Frontend now initializes real Chime sessions from existing backend `video_ready` payload.
+  - Added explicit user action ("Join Media") before attaching devices to satisfy browser permission/autoplay constraints.
+  - Local/remote video tiles and mic/camera controls wired in Room UI.
+  - Existing WebSocket game events and room/game flow preserved.
+- Phase 10 CI/CD baseline (2026-03-01):
+  - Terraform:
+    - Added `github_actions_oidc` module and applied in AWS.
+    - Created IAM OIDC provider:
+      - `arn:aws:iam::723580627470:oidc-provider/token.actions.githubusercontent.com`
+    - Created deploy role:
+      - `arn:aws:iam::723580627470:role/chesschat-dev-github-actions-deploy-role`
+    - Added ECS service drift guard:
+      - `lifecycle { ignore_changes = [task_definition] }`
+  - GitHub workflows:
+    - Added `.github/workflows/deploy-main.yml` (push to `main` -> build/push image -> register task definition -> update ECS service).
+    - Added `.github/workflows/e2e-post-deploy.yml` (manual `workflow_dispatch` live validation).
+  - E2E script hardening:
+    - `scripts/e2e-live.mjs` now supports env-driven config (`AWS_REGION`, `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`, `APP_BASE_URL`).
+    - Added `finally` cleanup to delete run-generated Cognito users.
+  - Verification:
+    - `terraform apply` result: `3 added, 0 changed, 0 destroyed`
+    - post-apply plan: `No changes`
+    - live E2E rerun: `E2E_PASS` with Cognito cleanup logs confirming both test users deleted.
+- Phase 10 validation evidence (2026-03-01):
+  - Security validation:
+    - ECS service `assignPublicIp = DISABLED` (private subnet app tier confirmed).
+    - ECS SG ingress allows `tcp/8080` only from ALB SG (`sg-0d04ffe829ce755f0`).
+    - Redis SG ingress allows `tcp/6379` only from ECS SG (`sg-0c22505653f5a2167`).
+    - No broad inbound CIDR rules on app/data tier security groups.
+  - Cost validation:
+    - Cost Explorer month-to-date (`2026-03-01` to `2026-03-02`, estimated):
+      - Unblended cost: `$2.3072867404`
+    - Portfolio estimate remains on track (`$150-$350/month`) based on current daily burn and budget alarm baseline (`$250`).
 
 ## 6) GitHub Actions Learning Guide
 Goal: implement CI/CD in small, understandable steps.

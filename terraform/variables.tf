@@ -305,3 +305,27 @@ variable "monitoring_budget_alert_thresholds" {
   type        = list(number)
   default     = [80, 90, 100]
 }
+
+variable "enable_github_actions_oidc" {
+  description = "Whether to provision IAM OIDC trust and deploy role for GitHub Actions."
+  type        = bool
+  default     = true
+}
+
+variable "github_actions_repository" {
+  description = "GitHub repository (owner/repo) allowed to assume deploy role."
+  type        = string
+  default     = "timtimtim87/CHESSCHAT_V2"
+}
+
+variable "github_actions_branch" {
+  description = "Git branch permitted in GitHub OIDC trust policy."
+  type        = string
+  default     = "main"
+}
+
+variable "github_actions_oidc_thumbprints" {
+  description = "Root certificate thumbprints for token.actions.githubusercontent.com."
+  type        = list(string)
+  default     = ["6938fd4d98bab03faadb97b34396831e3780aea1"]
+}

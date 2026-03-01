@@ -1,0 +1,128 @@
+name: Deploy Main to ECS
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: us-east-1
+      ECR_REPOSITORY_URL: ${{ vars.ECR_REPOSITORY_URL }}
+      ECS_CLUSTER_NAME: ${{ vars.ECS_CLUSTER_NAME }}
+      ECS_SERVICE_NAME: ${{ vars.ECS_SERVICE_NAME }}
+      ECS_CONTAINER_NAME: app
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GHA_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push container image
+        run: |
+          set -euo pipefail
+          test -n "${ECR_REPOSITORY_URL}"
+          IMAGE_SHA_URI="${ECR_REPOSITORY_URL}:${GITHUB_SHA}"
+          IMAGE_LATEST_URI="${ECR_REPOSITORY_URL}:main-latest"
+          docker build -f app/backend/Dockerfile -t "${IMAGE_SHA_URI}" -t "${IMAGE_LATEST_URI}" .
+          docker push "${IMAGE_SHA_URI}"
+          docker push "${IMAGE_LATEST_URI}"
+          echo "IMAGE_SHA_URI=${IMAGE_SHA_URI}" >> "$GITHUB_ENV"
+
+      - name: Register task definition revision
+        run: |
+          set -euo pipefail
+          test -n "${ECS_CLUSTER_NAME}"
+          test -n "${ECS_SERVICE_NAME}"
+
+          CURRENT_TASK_DEF_ARN="$(aws ecs describe-services \
+            --cluster "${ECS_CLUSTER_NAME}" \
+            --services "${ECS_SERVICE_NAME}" \
+            --query 'services[0].taskDefinition' \
+            --output text)"
+
+          aws ecs describe-task-definition \
+            --task-definition "${CURRENT_TASK_DEF_ARN}" \
+            --query 'taskDefinition' \
+            --output json > task-definition.json
+
+          jq --arg IMAGE_URI "${IMAGE_SHA_URI}" --arg CONTAINER_NAME "${ECS_CONTAINER_NAME}" '
+            del(
+              .taskDefinitionArn,
+              .revision,
+              .status,
+              .requiresAttributes,
+              .compatibilities,
+              .registeredAt,
+              .registeredBy
+            )
+            | .containerDefinitions = (
+              .containerDefinitions
+              | map(if .name == $CONTAINER_NAME then .image = $IMAGE_URI else . end)
+            )
+          ' task-definition.json > task-definition-updated.json
+
+          NEW_TASK_DEF_ARN="$(aws ecs register-task-definition \
+            --cli-input-json file://task-definition-updated.json \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)"
+
+          echo "NEW_TASK_DEF_ARN=${NEW_TASK_DEF_ARN}" >> "$GITHUB_ENV"
+
+      - name: Deploy ECS service
+        run: |
+          set -euo pipefail
+          aws ecs update-service \
+            --cluster "${ECS_CLUSTER_NAME}" \
+            --service "${ECS_SERVICE_NAME}" \
+            --task-definition "${NEW_TASK_DEF_ARN}" \
+            --force-new-deployment >/dev/null
+
+          aws ecs wait services-stable \
+            --cluster "${ECS_CLUSTER_NAME}" \
+            --services "${ECS_SERVICE_NAME}"
+
+      - name: Capture deployment metadata
+        run: |
+          set -euo pipefail
+          IMAGE_DIGEST="$(aws ecr describe-images \
+            --repository-name "$(echo "${ECR_REPOSITORY_URL}" | awk -F'/' '{print $2}')" \
+            --image-ids imageTag="${GITHUB_SHA}" \
+            --query 'imageDetails[0].imageDigest' \
+            --output text)"
+
+          cat > deploy-metadata.json <<EOF
+          {
+            "commit_sha": "${GITHUB_SHA}",
+            "image_uri": "${IMAGE_SHA_URI}",
+            "image_digest": "${IMAGE_DIGEST}",
+            "ecs_cluster_name": "${ECS_CLUSTER_NAME}",
+            "ecs_service_name": "${ECS_SERVICE_NAME}",
+            "task_definition_arn": "${NEW_TASK_DEF_ARN}"
+          }
+          EOF
+
+      - name: Upload deployment artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-metadata
+          path: |
+            deploy-metadata.json
+            task-definition-updated.json

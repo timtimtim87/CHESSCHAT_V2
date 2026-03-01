@@ -1,10 +1,12 @@
 import crypto from 'node:crypto';
 import { exec } from 'node:child_process';
+import fs from 'node:fs/promises';
 
-const region = 'us-east-1';
-const userPoolId = 'us-east-1_AWq14lBGV';
-const clientId = '5numi4223d3jnebrlfqboseu42';
-const appBase = 'https://app.chess-chat.com';
+const region = process.env.AWS_REGION || 'us-east-1';
+const userPoolId = process.env.COGNITO_USER_POOL_ID || 'us-east-1_AWq14lBGV';
+const clientId = process.env.COGNITO_CLIENT_ID || '5numi4223d3jnebrlfqboseu42';
+const appBase = process.env.APP_BASE_URL || 'https://app.chess-chat.com';
+const summaryPath = process.env.E2E_SUMMARY_PATH || '';
 
 function run(cmd) {
   return new Promise((resolve, reject) => {
@@ -36,6 +38,10 @@ async function ensureUser(username, email, password) {
   await awsJson(`cognito-idp admin-set-user-password --user-pool-id ${userPoolId} --username ${username} --password '${password}' --permanent --region ${region}`);
 }
 
+async function deleteUser(username) {
+  await awsJson(`cognito-idp admin-delete-user --user-pool-id ${userPoolId} --username ${username} --region ${region}`);
+}
+
 async function login(username, password) {
   const auth = await awsJson(`cognito-idp initiate-auth --auth-flow USER_PASSWORD_AUTH --client-id ${clientId} --auth-parameters USERNAME=${username},PASSWORD='${password}' --region ${region}`);
   return {
@@ -56,8 +62,11 @@ async function apiGet(path, token) {
 }
 
 function connectWs(token) {
+  const appUrl = new URL(appBase);
+  const wsProtocol = appUrl.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${wsProtocol}//${appUrl.host}/ws?token=${encodeURIComponent(token)}`;
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(`wss://app.chess-chat.com/ws?token=${encodeURIComponent(token)}`);
+    const ws = new WebSocket(wsUrl);
     const timer = setTimeout(() => reject(new Error('ws timeout')), 10000);
     ws.onopen = () => {
       clearTimeout(timer);
@@ -96,106 +105,124 @@ function send(ws, type, payload = {}) {
 }
 
 async function main() {
-  const stamp = Date.now();
-  const userA = `e2e_a_${stamp}@example.com`;
-  const userB = `e2e_b_${stamp}@example.com`;
-  const pass = `E2e!Passw0rd${String(stamp).slice(-2)}`;
-  const room = crypto.randomBytes(3).toString('hex').toUpperCase().slice(0, 5);
+  const createdUsers = [];
+  try {
+    const stamp = Date.now();
+    const userA = `e2e_a_${stamp}@example.com`;
+    const userB = `e2e_b_${stamp}@example.com`;
+    const pass = `E2e!Passw0rd${String(stamp).slice(-2)}`;
+    const room = crypto.randomBytes(3).toString('hex').toUpperCase().slice(0, 5);
 
-  console.log('Creating test users...');
-  await ensureUser(userA, userA, pass);
-  await ensureUser(userB, userB, pass);
+    console.log('Creating test users...');
+    await ensureUser(userA, userA, pass);
+    createdUsers.push(userA);
+    await ensureUser(userB, userB, pass);
+    createdUsers.push(userB);
 
-  console.log('Logging in users...');
-  const authA = await login(userA, pass);
-  const authB = await login(userB, pass);
+    console.log('Logging in users...');
+    const authA = await login(userA, pass);
+    const authB = await login(userB, pass);
 
-  console.log('Ensuring app user rows exist via /api/me ...');
-  const meA = await apiGet('/api/me', authA.accessToken);
-  const meB = await apiGet('/api/me', authB.accessToken);
-  const subA = meA.user.user_id;
-  const subB = meB.user.user_id;
+    console.log('Ensuring app user rows exist via /api/me ...');
+    const meA = await apiGet('/api/me', authA.accessToken);
+    const meB = await apiGet('/api/me', authB.accessToken);
+    const subA = meA.user.user_id;
+    const subB = meB.user.user_id;
 
-  console.log('Connecting websocket clients...');
-  const wsA = await connectWs(authA.accessToken);
-  const wsB = await connectWs(authB.accessToken);
+    console.log('Connecting websocket clients...');
+    const wsA = await connectWs(authA.accessToken);
+    const wsB = await connectWs(authB.accessToken);
 
-  const seenA = [];
-  const seenB = [];
-  wsA.addEventListener('message', (e) => {
-    const p = JSON.parse(e.data);
-    seenA.push(p.type);
-    console.log('[A]', p.type);
-  });
-  wsB.addEventListener('message', (e) => {
-    const p = JSON.parse(e.data);
-    seenB.push(p.type);
-    console.log('[B]', p.type);
-  });
+    const seenA = [];
+    const seenB = [];
+    wsA.addEventListener('message', (e) => {
+      const p = JSON.parse(e.data);
+      seenA.push(p.type);
+      console.log('[A]', p.type);
+    });
+    wsB.addEventListener('message', (e) => {
+      const p = JSON.parse(e.data);
+      seenB.push(p.type);
+      console.log('[B]', p.type);
+    });
 
-  console.log(`Joining room ${room} ...`);
-  send(wsA, 'join_room', { roomCode: room });
-  await waitForEvent(wsA, 'room_joined');
+    console.log(`Joining room ${room} ...`);
+    send(wsA, 'join_room', { roomCode: room });
+    await waitForEvent(wsA, 'room_joined');
 
-  send(wsB, 'join_room', { roomCode: room });
-  await waitForEvent(wsB, 'room_joined');
+    send(wsB, 'join_room', { roomCode: room });
+    await waitForEvent(wsB, 'room_joined');
 
-  // Both should receive video_ready after second join.
-  await Promise.all([
-    waitForEvent(wsA, 'video_ready', 20000),
-    waitForEvent(wsB, 'video_ready', 20000)
-  ]);
+    await Promise.all([
+      waitForEvent(wsA, 'video_ready', 20000),
+      waitForEvent(wsB, 'video_ready', 20000)
+    ]);
 
-  console.log('Starting game ...');
-  send(wsA, 'start_game', { roomCode: room });
-  const started = await waitForEvent(wsA, 'game_started', 20000);
+    console.log('Starting game ...');
+    send(wsA, 'start_game', { roomCode: room });
+    const started = await waitForEvent(wsA, 'game_started', 20000);
 
-  const white = started.whitePlayerId;
-  const black = started.blackPlayerId;
-  const wsWhite = white === subA ? wsA : wsB;
-  const wsBlack = black === subA ? wsA : wsB;
+    const white = started.whitePlayerId;
+    const black = started.blackPlayerId;
+    const wsWhite = white === subA ? wsA : wsB;
+    const wsBlack = black === subA ? wsA : wsB;
 
-  console.log(`Game started: white=${white === subA ? 'A' : 'B'} black=${black === subA ? 'A' : 'B'}`);
+    console.log(`Game started: white=${white === subA ? 'A' : 'B'} black=${black === subA ? 'A' : 'B'}`);
 
-  send(wsWhite, 'make_move', { roomCode: room, move: 'e2e4' });
-  await Promise.all([
-    waitForEvent(wsA, 'move_made', 20000),
-    waitForEvent(wsB, 'move_made', 20000)
-  ]);
+    send(wsWhite, 'make_move', { roomCode: room, move: 'e2e4' });
+    await Promise.all([
+      waitForEvent(wsA, 'move_made', 20000),
+      waitForEvent(wsB, 'move_made', 20000)
+    ]);
 
-  console.log('Resigning from black ...');
-  const waitEndedA = waitForEvent(wsA, 'game_ended', 20000);
-  const waitEndedB = waitForEvent(wsB, 'game_ended', 20000);
-  send(wsBlack, 'resign', { roomCode: room });
-  const [endedA, endedB] = await Promise.all([waitEndedA, waitEndedB]);
+    console.log('Resigning from black ...');
+    const waitEndedA = waitForEvent(wsA, 'game_ended', 20000);
+    const waitEndedB = waitForEvent(wsB, 'game_ended', 20000);
+    send(wsBlack, 'resign', { roomCode: room });
+    const [endedA, endedB] = await Promise.all([waitEndedA, waitEndedB]);
 
-  console.log('Fetching history ...');
-  const historyA = await apiGet('/api/history', authA.accessToken);
-  const historyB = await apiGet('/api/history', authB.accessToken);
+    console.log('Fetching history ...');
+    const historyA = await apiGet('/api/history', authA.accessToken);
+    const historyB = await apiGet('/api/history', authB.accessToken);
 
-  const foundA = (historyA.games || []).find((g) => g.room_code === room);
-  const foundB = (historyB.games || []).find((g) => g.room_code === room);
+    const foundA = (historyA.games || []).find((g) => g.room_code === room);
+    const foundB = (historyB.games || []).find((g) => g.room_code === room);
 
-  wsA.close();
-  wsB.close();
+    wsA.close();
+    wsB.close();
 
-  if (!foundA || !foundB) {
-    throw new Error('Game not found in one or both user histories');
+    if (!foundA || !foundB) {
+      throw new Error('Game not found in one or both user histories');
+    }
+
+    const summary = {
+      room,
+      resultA: endedA.result,
+      resultB: endedB.result,
+      winnerA: endedA.winner,
+      winnerB: endedB.winner,
+      historyFoundA: Boolean(foundA),
+      historyFoundB: Boolean(foundB),
+      eventCounts: { A: seenA.length, B: seenB.length }
+    };
+
+    console.log('E2E_PASS');
+    console.log(JSON.stringify(summary, null, 2));
+
+    if (summaryPath) {
+      await fs.writeFile(summaryPath, `${JSON.stringify(summary, null, 2)}\n`, 'utf8');
+    }
+    return summary;
+  } finally {
+    for (const username of createdUsers) {
+      try {
+        await deleteUser(username);
+        console.log(`Deleted test user ${username}`);
+      } catch (cleanupError) {
+        console.warn(`Cleanup warning for ${username}: ${cleanupError.message}`);
+      }
+    }
   }
-
-  const summary = {
-    room,
-    resultA: endedA.result,
-    resultB: endedB.result,
-    winnerA: endedA.winner,
-    winnerB: endedB.winner,
-    historyFoundA: Boolean(foundA),
-    historyFoundB: Boolean(foundB),
-    eventCounts: { A: seenA.length, B: seenB.length }
-  };
-
-  console.log('E2E_PASS');
-  console.log(JSON.stringify(summary, null, 2));
 }
 
 main().catch((err) => {

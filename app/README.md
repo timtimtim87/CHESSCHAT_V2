@@ -17,4 +17,7 @@ This directory contains the application code that replaces the bootstrap ECS ima
 - WebSocket endpoint is `/ws`.
 - Redis auth token is injected through ECS secrets.
 - Game persistence uses DynamoDB transactions.
-- Video tile rendering is currently placeholder-only; Chime media device wiring is the next increment before demo use.
+- Chime frontend media wiring is active:
+  - Backend emits `video_ready` with Chime meeting/attendee payload.
+  - Frontend Room page initializes a Chime session on explicit "Join Media".
+  - Local/remote video tiles and mic/camera controls are wired through `amazon-chime-sdk-js`.
