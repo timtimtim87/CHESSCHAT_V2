@@ -225,6 +225,15 @@ Purpose: keep one practical, interview-ready plan for building CHESSCHAT as an A
       - `start_game`, move broadcast (`e2e4`), and resign game end
       - `/api/history` verification for both users
     - Outcome: pass (game persisted and visible in both histories)
+- Phase F concurrency hardening (2026-03-01, repository changes):
+  - Added Redis optimistic concurrency controls for room state mutations:
+    - `createRoomIfAbsent(...)` uses atomic `SET ... NX` to prevent duplicate room creation races.
+    - `mutateRoom(...)` uses Redis `WATCH` + `MULTI/EXEC` with retry to guarantee stale room snapshots cannot overwrite newer state.
+  - Migrated WebSocket room mutation flows to atomic updates:
+    - `join_room`, `start_game`, `make_move`, `resign`/game end, and `leave_room`.
+  - Race-condition behavior after hardening:
+    - Concurrent updates now resolve as deterministic single-writer commits.
+    - Losing writers receive retry/conflict errors instead of corrupting room/game state.
 
 ## 6) GitHub Actions Learning Guide
 Goal: implement CI/CD in small, understandable steps.

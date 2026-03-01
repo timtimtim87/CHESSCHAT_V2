@@ -3,15 +3,15 @@ import { InboundEvent, OutboundEvent } from "./events.js";
 import { config } from "../config.js";
 import { verifyAccessToken } from "../middleware/auth.js";
 import {
-  createRoom,
+  createRoomIfAbsent,
   deleteConnection,
   deleteRoom,
   getConnection,
   getExpiringRooms,
   getRoom,
+  mutateRoom,
   removeRoomFromExpiryIndex,
-  setConnection,
-  updateRoom
+  setConnection
 } from "../services/redis.js";
 import { createAttendee, createMeeting, deleteMeeting } from "../services/chime.js";
 import { applyMove, startNewGame } from "../services/chess.js";
@@ -37,59 +37,72 @@ function broadcastToRoom(room, payload) {
   });
 }
 
-async function endGame(roomCode, room, result) {
-  if (!room.active_game) {
+async function endGame(roomCode, result) {
+  const mutation = await mutateRoom(roomCode, (nextRoom) => {
+    if (!nextRoom.active_game) {
+      return { error: { code: "NO_ACTIVE_GAME" } };
+    }
+
+    const game = nextRoom.active_game;
+    const winnerPlayerId =
+      result.winner === "white"
+        ? game.white_player_id
+        : result.winner === "black"
+          ? game.black_player_id
+          : "draw";
+
+    const gameRecord = {
+      game_id: game.game_id,
+      ended_at: new Date().toISOString(),
+      room_code: roomCode,
+      white_player_id: game.white_player_id,
+      black_player_id: game.black_player_id,
+      winner: winnerPlayerId,
+      result: result.reason,
+      total_moves: game.moves.length,
+      duration_seconds: Math.floor((Date.now() - game.started_at) / 1000),
+      time_white_remaining: Math.floor(game.time_white),
+      time_black_remaining: Math.floor(game.time_black),
+      pgn_notation: result.pgn || "",
+      started_at: new Date(game.started_at).toISOString()
+    };
+
+    nextRoom.games_played.push({
+      game_id: game.game_id,
+      winner: winnerPlayerId,
+      result: result.reason,
+      ended_at: Date.now()
+    });
+    nextRoom.active_game = null;
+
+    return {
+      room: nextRoom,
+      meta: {
+        gameRecord,
+        whitePlayerId: game.white_player_id,
+        blackPlayerId: game.black_player_id,
+        winnerPlayerId,
+        event: {
+          type: OutboundEvent.GAME_ENDED,
+          gameId: game.game_id,
+          winner: winnerPlayerId,
+          result: result.reason,
+          pgn: result.pgn || ""
+        }
+      }
+    };
+  });
+
+  if (!mutation.ok) {
+    if (mutation.reason !== "aborted" || mutation.error?.code !== "NO_ACTIVE_GAME") {
+      log("warn", "end_game_mutation_failed", { roomCode, reason: mutation.reason, error: mutation.error?.code });
+    }
     return;
   }
 
-  const game = room.active_game;
-  const winnerPlayerId =
-    result.winner === "white"
-      ? game.white_player_id
-      : result.winner === "black"
-        ? game.black_player_id
-        : "draw";
-
-  const gameRecord = {
-    game_id: game.game_id,
-    ended_at: new Date().toISOString(),
-    room_code: roomCode,
-    white_player_id: game.white_player_id,
-    black_player_id: game.black_player_id,
-    winner: winnerPlayerId,
-    result: result.reason,
-    total_moves: game.moves.length,
-    duration_seconds: Math.floor((Date.now() - game.started_at) / 1000),
-    time_white_remaining: Math.floor(game.time_white),
-    time_black_remaining: Math.floor(game.time_black),
-    pgn_notation: result.pgn || "",
-    started_at: new Date(game.started_at).toISOString()
-  };
-
-  await saveGameAndUpdateStats(
-    gameRecord,
-    game.white_player_id,
-    game.black_player_id,
-    winnerPlayerId
-  );
-
-  room.games_played.push({
-    game_id: game.game_id,
-    winner: winnerPlayerId,
-    result: result.reason,
-    ended_at: Date.now()
-  });
-  room.active_game = null;
-
-  await updateRoom(roomCode, room);
-
-  broadcastToRoom(room, {
-    type: OutboundEvent.GAME_ENDED,
-    gameId: game.game_id,
-    winner: winnerPlayerId,
-    result: result.reason,
-    pgn: result.pgn || ""
-  });
+  const { gameRecord, whitePlayerId, blackPlayerId, winnerPlayerId, event } = mutation.meta;
+  await saveGameAndUpdateStats(gameRecord, whitePlayerId, blackPlayerId, winnerPlayerId);
+  broadcastToRoom(mutation.room, event);
 }
 
 async function handleJoinRoom(ws, roomCode) {
@@ -98,77 +111,106 @@ async function handleJoinRoom(ws, roomCode) {
     return;
   }
 
-  let room = await getRoom(roomCode);
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const room = await getRoom(roomCode);
 
-  if (!room) {
-    room = {
-      room_code: roomCode,
-      status: "waiting",
-      participants: {
-        [ws.userId]: {
-          userId: ws.userId,
-          connectionId: ws.connectionId,
-          joinedAt: Date.now(),
-          connected: true
-        }
-      },
-      created_at: Date.now(),
-      expiresAt: Date.now() + config.app.roomTtlSeconds * 1000,
-      games_played: [],
-      active_game: null,
-      chime_meeting: null
-    };
+    if (!room) {
+      const initialRoom = {
+        room_code: roomCode,
+        status: "waiting",
+        participants: {
+          [ws.userId]: {
+            userId: ws.userId,
+            connectionId: ws.connectionId,
+            joinedAt: Date.now(),
+            connected: true
+          }
+        },
+        created_at: Date.now(),
+        expiresAt: Date.now() + config.app.roomTtlSeconds * 1000,
+        games_played: [],
+        active_game: null,
+        chime_meeting: null
+      };
 
-    await createRoom(roomCode, room);
+      const created = await createRoomIfAbsent(roomCode, initialRoom);
+      if (!created) {
+        continue;
+      }
+
+      await setConnection(ws.connectionId, { userId: ws.userId, roomCode });
+      send(ws, {
+        type: OutboundEvent.ROOM_JOINED,
+        roomCode,
+        participants: Object.keys(initialRoom.participants),
+        expiresAt: initialRoom.expiresAt
+      });
+      return;
+    }
+
+    const joinMutation = await mutateRoom(roomCode, (nextRoom) => {
+      const participantIds = Object.keys(nextRoom.participants);
+      if (!nextRoom.participants[ws.userId] && participantIds.length >= 2) {
+        return {
+          error: { type: OutboundEvent.ERROR, code: "ROOM_FULL", message: "Room already has two players." }
+        };
+      }
+
+      nextRoom.participants[ws.userId] = {
+        userId: ws.userId,
+        connectionId: ws.connectionId,
+        joinedAt: nextRoom.participants[ws.userId]?.joinedAt || Date.now(),
+        connected: true
+      };
+      nextRoom.status = Object.keys(nextRoom.participants).length === 2 ? "both_connected" : "waiting";
+
+      return { room: nextRoom };
+    });
+
+    if (!joinMutation.ok) {
+      if (joinMutation.reason === "aborted" && joinMutation.error?.code === "ROOM_FULL") {
+        send(ws, joinMutation.error);
+        return;
+      }
+      continue;
+    }
+
+    const joinedRoom = joinMutation.room;
     await setConnection(ws.connectionId, { userId: ws.userId, roomCode });
-    send(ws, {
+    broadcastToRoom(joinedRoom, {
       type: OutboundEvent.ROOM_JOINED,
       roomCode,
-      participants: Object.keys(room.participants),
-      expiresAt: room.expiresAt
+      participants: Object.keys(joinedRoom.participants),
+      expiresAt: joinedRoom.expiresAt
     });
-    return;
-  }
 
-  const participantIds = Object.keys(room.participants);
-  if (!room.participants[ws.userId] && participantIds.length >= 2) {
-    send(ws, { type: OutboundEvent.ERROR, code: "ROOM_FULL", message: "Room already has two players." });
-    return;
-  }
+    if (joinedRoom.status !== "both_connected" || joinedRoom.chime_meeting) {
+      return;
+    }
 
-  room.participants[ws.userId] = {
-    userId: ws.userId,
-    connectionId: ws.connectionId,
-    joinedAt: room.participants[ws.userId]?.joinedAt || Date.now(),
-    connected: true
-  };
-
-  room.status = Object.keys(room.participants).length === 2 ? "both_connected" : "waiting";
-
-  await updateRoom(roomCode, room);
-  await setConnection(ws.connectionId, { userId: ws.userId, roomCode });
-
-  broadcastToRoom(room, {
-    type: OutboundEvent.ROOM_JOINED,
-    roomCode,
-    participants: Object.keys(room.participants),
-    expiresAt: room.expiresAt
-  });
-
-  if (room.status === "both_connected" && !room.chime_meeting) {
     const meeting = await createMeeting(roomCode);
-    const participants = Object.values(room.participants);
+    const participants = Object.values(joinedRoom.participants);
     const attendees = await Promise.all(
       participants.map((participant) => createAttendee(meeting.MeetingId, participant.userId))
     );
 
-    room.chime_meeting = {
-      meetingId: meeting.MeetingId,
-      meetingData: meeting
-    };
-    await updateRoom(roomCode, room);
+    const videoMutation = await mutateRoom(roomCode, (nextRoom) => {
+      if (nextRoom.chime_meeting || nextRoom.status !== "both_connected") {
+        return { error: { code: "VIDEO_ALREADY_BOUND" } };
+      }
+      nextRoom.chime_meeting = {
+        meetingId: meeting.MeetingId,
+        meetingData: meeting
+      };
+      return { room: nextRoom };
+    });
 
-    participants.forEach((participant) => {
+    if (!videoMutation.ok) {
+      await deleteMeeting(meeting.MeetingId).catch(() => null);
+      return;
+    }
+
+    Object.values(videoMutation.room.participants).forEach((participant) => {
       const attendee = attendees.find((item) => item.ExternalUserId === participant.userId);
       sendToConnection(participant.connectionId, {
         type: OutboundEvent.VIDEO_READY,
@@ -176,115 +218,221 @@ async function handleJoinRoom(ws, roomCode) {
         attendeeData: attendee
       });
     });
-  }
-}
-
-async function handleStartGame(ws, roomCode) {
-  const room = await getRoom(roomCode);
-  if (!room) {
-    send(ws, { type: OutboundEvent.ERROR, code: "ROOM_NOT_FOUND", message: "Room does not exist." });
     return;
   }
 
-  const players = Object.keys(room.participants);
-  if (players.length !== 2) {
-    send(ws, { type: OutboundEvent.ERROR, code: "WAITING_FOR_PLAYER", message: "Waiting for second player." });
-    return;
-  }
-
-  if (room.active_game) {
-    send(ws, { type: OutboundEvent.ERROR, code: "GAME_ALREADY_ACTIVE", message: "Game already in progress." });
-    return;
-  }
-
-  const [whitePlayerId, blackPlayerId] =
-    Math.random() < 0.5 ? [players[0], players[1]] : [players[1], players[0]];
-  room.active_game = startNewGame(roomCode, whitePlayerId, blackPlayerId, config.app.gameDurationSeconds);
-  await updateRoom(roomCode, room);
-
-  broadcastToRoom(room, {
-    type: OutboundEvent.GAME_STARTED,
-    gameId: room.active_game.game_id,
-    whitePlayerId,
-    blackPlayerId,
-    fen: room.active_game.board_fen,
-    turn: room.active_game.turn,
-    timeWhite: room.active_game.time_white,
-    timeBlack: room.active_game.time_black
+  send(ws, {
+    type: OutboundEvent.ERROR,
+    code: "ROOM_UPDATE_CONFLICT",
+    message: "Concurrent room update detected. Please try joining again."
   });
 }
 
-async function handleMakeMove(ws, roomCode, move) {
-  const room = await getRoom(roomCode);
-  if (!room?.active_game) {
-    send(ws, { type: OutboundEvent.ERROR, code: "NO_ACTIVE_GAME", message: "No active game in this room." });
-    return;
-  }
+async function handleStartGame(ws, roomCode) {
+  const mutation = await mutateRoom(roomCode, (nextRoom) => {
+    const players = Object.keys(nextRoom.participants);
+    if (players.length !== 2) {
+      return {
+        error: {
+          type: OutboundEvent.ERROR,
+          code: "WAITING_FOR_PLAYER",
+          message: "Waiting for second player."
+        }
+      };
+    }
 
-  const game = room.active_game;
-  const expectedPlayer = game.turn === "white" ? game.white_player_id : game.black_player_id;
-  if (expectedPlayer !== ws.userId) {
-    send(ws, { type: OutboundEvent.ERROR, code: "NOT_YOUR_TURN", message: "Wait for your turn." });
-    return;
-  }
+    if (nextRoom.active_game) {
+      return {
+        error: {
+          type: OutboundEvent.ERROR,
+          code: "GAME_ALREADY_ACTIVE",
+          message: "Game already in progress."
+        }
+      };
+    }
 
-  const elapsed = (Date.now() - game.last_move_at) / 1000;
-  if (game.turn === "white") {
-    game.time_white = Math.max(0, game.time_white - elapsed);
-  } else {
-    game.time_black = Math.max(0, game.time_black - elapsed);
-  }
+    const [whitePlayerId, blackPlayerId] =
+      Math.random() < 0.5 ? [players[0], players[1]] : [players[1], players[0]];
+    nextRoom.active_game = startNewGame(roomCode, whitePlayerId, blackPlayerId, config.app.gameDurationSeconds);
 
-  const applied = applyMove(game.board_fen, move);
-  if (!applied.ok) {
-    send(ws, { type: OutboundEvent.ERROR, code: "ILLEGAL_MOVE", message: "Illegal move." });
-    return;
-  }
+    return {
+      room: nextRoom,
+      meta: {
+        type: OutboundEvent.GAME_STARTED,
+        gameId: nextRoom.active_game.game_id,
+        whitePlayerId,
+        blackPlayerId,
+        fen: nextRoom.active_game.board_fen,
+        turn: nextRoom.active_game.turn,
+        timeWhite: nextRoom.active_game.time_white,
+        timeBlack: nextRoom.active_game.time_black
+      }
+    };
+  });
 
-  game.board_fen = applied.newFen;
-  game.moves.push(move);
-  game.turn = game.turn === "white" ? "black" : "white";
-  game.last_move_at = Date.now();
-
-  const timeoutReached = game.time_white <= 0 || game.time_black <= 0;
-  const gameEnded = applied.isCheckmate || applied.isStalemate || applied.isDraw || timeoutReached;
-
-  if (gameEnded) {
-    const winner = timeoutReached
-      ? game.time_white <= 0
-        ? "black"
-        : "white"
-      : applied.isCheckmate
-        ? game.turn === "white"
-          ? "black"
-          : "white"
-        : "draw";
-
-    await endGame(roomCode, room, {
-      winner,
-      reason: timeoutReached
-        ? "timeout"
-        : applied.isCheckmate
-          ? "checkmate"
-          : applied.isStalemate
-            ? "stalemate"
-            : "draw",
-      pgn: applied.pgn
+  if (!mutation.ok) {
+    if (mutation.reason === "not_found") {
+      send(ws, { type: OutboundEvent.ERROR, code: "ROOM_NOT_FOUND", message: "Room does not exist." });
+      return;
+    }
+    if (mutation.reason === "aborted" && mutation.error) {
+      send(ws, mutation.error);
+      return;
+    }
+    send(ws, {
+      type: OutboundEvent.ERROR,
+      code: "ROOM_UPDATE_CONFLICT",
+      message: "Concurrent room update detected. Please retry."
     });
     return;
   }
 
-  room.active_game = game;
-  await updateRoom(roomCode, room);
+  broadcastToRoom(mutation.room, mutation.meta);
+}
 
-  broadcastToRoom(room, {
-    type: OutboundEvent.MOVE_MADE,
-    move,
-    fen: game.board_fen,
-    turn: game.turn,
-    timeWhite: game.time_white,
-    timeBlack: game.time_black
+async function handleMakeMove(ws, roomCode, move) {
+  const mutation = await mutateRoom(roomCode, (nextRoom) => {
+    if (!nextRoom.active_game) {
+      return {
+        error: { type: OutboundEvent.ERROR, code: "NO_ACTIVE_GAME", message: "No active game in this room." }
+      };
+    }
+
+    const game = nextRoom.active_game;
+    const expectedPlayer = game.turn === "white" ? game.white_player_id : game.black_player_id;
+    if (expectedPlayer !== ws.userId) {
+      return { error: { type: OutboundEvent.ERROR, code: "NOT_YOUR_TURN", message: "Wait for your turn." } };
+    }
+
+    const elapsed = (Date.now() - game.last_move_at) / 1000;
+    if (game.turn === "white") {
+      game.time_white = Math.max(0, game.time_white - elapsed);
+    } else {
+      game.time_black = Math.max(0, game.time_black - elapsed);
+    }
+
+    const applied = applyMove(game.board_fen, move);
+    if (!applied.ok) {
+      return { error: { type: OutboundEvent.ERROR, code: "ILLEGAL_MOVE", message: "Illegal move." } };
+    }
+
+    game.board_fen = applied.newFen;
+    game.moves.push(move);
+    game.turn = game.turn === "white" ? "black" : "white";
+    game.last_move_at = Date.now();
+
+    const timeoutReached = game.time_white <= 0 || game.time_black <= 0;
+    const gameEnded = applied.isCheckmate || applied.isStalemate || applied.isDraw || timeoutReached;
+
+    if (gameEnded) {
+      const winner = timeoutReached
+        ? game.time_white <= 0
+          ? "black"
+          : "white"
+        : applied.isCheckmate
+          ? game.turn === "white"
+            ? "black"
+            : "white"
+          : "draw";
+      const result = {
+        winner,
+        reason: timeoutReached
+          ? "timeout"
+          : applied.isCheckmate
+            ? "checkmate"
+            : applied.isStalemate
+              ? "stalemate"
+              : "draw",
+        pgn: applied.pgn
+      };
+      const winnerPlayerId =
+        result.winner === "white"
+          ? game.white_player_id
+          : result.winner === "black"
+            ? game.black_player_id
+            : "draw";
+
+      const gameRecord = {
+        game_id: game.game_id,
+        ended_at: new Date().toISOString(),
+        room_code: roomCode,
+        white_player_id: game.white_player_id,
+        black_player_id: game.black_player_id,
+        winner: winnerPlayerId,
+        result: result.reason,
+        total_moves: game.moves.length,
+        duration_seconds: Math.floor((Date.now() - game.started_at) / 1000),
+        time_white_remaining: Math.floor(game.time_white),
+        time_black_remaining: Math.floor(game.time_black),
+        pgn_notation: result.pgn || "",
+        started_at: new Date(game.started_at).toISOString()
+      };
+
+      nextRoom.games_played.push({
+        game_id: game.game_id,
+        winner: winnerPlayerId,
+        result: result.reason,
+        ended_at: Date.now()
+      });
+      nextRoom.active_game = null;
+
+      return {
+        room: nextRoom,
+        meta: {
+          event: {
+            type: OutboundEvent.GAME_ENDED,
+            gameId: game.game_id,
+            winner: winnerPlayerId,
+            result: result.reason,
+            pgn: result.pgn || ""
+          },
+          gameRecord,
+          whitePlayerId: game.white_player_id,
+          blackPlayerId: game.black_player_id,
+          winnerPlayerId
+        }
+      };
+    }
+
+    nextRoom.active_game = game;
+    return {
+      room: nextRoom,
+      meta: {
+        event: {
+          type: OutboundEvent.MOVE_MADE,
+          move,
+          fen: game.board_fen,
+          turn: game.turn,
+          timeWhite: game.time_white,
+          timeBlack: game.time_black
+        }
+      }
+    };
   });
+
+  if (!mutation.ok) {
+    if (mutation.reason === "aborted" && mutation.error) {
+      send(ws, mutation.error);
+      return;
+    }
+    send(ws, {
+      type: OutboundEvent.ERROR,
+      code: "ROOM_UPDATE_CONFLICT",
+      message: "Concurrent room update detected. Please retry your move."
+    });
+    return;
+  }
+
+  if (mutation.meta.gameRecord) {
+    await saveGameAndUpdateStats(
+      mutation.meta.gameRecord,
+      mutation.meta.whitePlayerId,
+      mutation.meta.blackPlayerId,
+      mutation.meta.winnerPlayerId
+    );
+  }
+
+  broadcastToRoom(mutation.room, mutation.meta.event);
 }
 
 async function handleResign(ws, roomCode) {
@@ -295,7 +443,7 @@ async function handleResign(ws, roomCode) {
 
   const game = room.active_game;
   const winner = ws.userId === game.white_player_id ? "black" : "white";
-  await endGame(roomCode, room, { winner, reason: "resign", pgn: "" });
+  await endGame(roomCode, { winner, reason: "resign", pgn: "" });
 }
 
 async function handleLeaveRoom(ws) {
@@ -310,12 +458,17 @@ async function handleLeaveRoom(ws) {
     return;
   }
 
-  if (room.participants[ws.userId]) {
-    room.participants[ws.userId].connected = false;
-    room.participants[ws.userId].connectionId = null;
-    await updateRoom(connection.roomCode, room);
+  const mutation = await mutateRoom(connection.roomCode, (nextRoom) => {
+    if (!nextRoom.participants[ws.userId]) {
+      return { error: { code: "PARTICIPANT_NOT_FOUND" } };
+    }
+    nextRoom.participants[ws.userId].connected = false;
+    nextRoom.participants[ws.userId].connectionId = null;
+    return { room: nextRoom };
+  });
 
-    broadcastToRoom(room, {
+  if (mutation.ok) {
+    broadcastToRoom(mutation.room, {
       type: OutboundEvent.PARTICIPANT_LEFT,
       userId: ws.userId
     });
@@ -332,7 +485,7 @@ async function handleRoomExpiry(roomCode) {
   }
 
   if (room.active_game) {
-    await endGame(roomCode, room, { winner: "draw", reason: "room_expired", pgn: "" });
+    await endGame(roomCode, { winner: "draw", reason: "room_expired", pgn: "" });
   }
 
   if (room.chime_meeting?.meetingId) {

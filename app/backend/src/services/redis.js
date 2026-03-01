@@ -37,6 +37,17 @@ export async function createRoom(roomCode, room, ttlSeconds) {
   await redisClient.zadd(ROOM_EXPIRY_ZSET, room.expiresAt, roomCode);
 }
 
+export async function createRoomIfAbsent(roomCode, room, ttlSeconds) {
+  const ttl = ttlSeconds ?? config.app.roomTtlSeconds;
+  const created = await redisClient.set(roomKey(roomCode), JSON.stringify(room), "EX", ttl, "NX");
+  if (created !== "OK") {
+    return false;
+  }
+
+  await redisClient.zadd(ROOM_EXPIRY_ZSET, room.expiresAt, roomCode);
+  return true;
+}
+
 export async function getRoom(roomCode) {
   const raw = await redisClient.get(roomKey(roomCode));
   return raw ? JSON.parse(raw) : null;
@@ -46,6 +57,52 @@ export async function updateRoom(roomCode, room, ttlSeconds) {
   const ttl = ttlSeconds ?? config.app.roomTtlSeconds;
   await redisClient.set(roomKey(roomCode), JSON.stringify(room), "EX", ttl);
   await redisClient.zadd(ROOM_EXPIRY_ZSET, room.expiresAt, roomCode);
+}
+
+export async function mutateRoom(roomCode, mutator, options = {}) {
+  const ttl = options.ttlSeconds ?? config.app.roomTtlSeconds;
+  const maxRetries = options.maxRetries ?? 5;
+  const key = roomKey(roomCode);
+
+  for (let attempt = 0; attempt < maxRetries; attempt += 1) {
+    await redisClient.watch(key);
+
+    const raw = await redisClient.get(key);
+    if (!raw) {
+      await redisClient.unwatch();
+      return { ok: false, reason: "not_found" };
+    }
+
+    const room = JSON.parse(raw);
+    const candidate = JSON.parse(raw);
+    const outcome = await mutator(candidate);
+
+    if (outcome?.error) {
+      await redisClient.unwatch();
+      return { ok: false, reason: "aborted", error: outcome.error };
+    }
+
+    const nextRoom = outcome?.room ?? outcome;
+    const meta = outcome?.meta;
+    if (!nextRoom) {
+      await redisClient.unwatch();
+      return { ok: false, reason: "aborted" };
+    }
+    if (!nextRoom.expiresAt) {
+      nextRoom.expiresAt = room.expiresAt;
+    }
+
+    const multi = redisClient.multi();
+    multi.set(key, JSON.stringify(nextRoom), "EX", ttl);
+    multi.zadd(ROOM_EXPIRY_ZSET, nextRoom.expiresAt, roomCode);
+    const execResult = await multi.exec();
+
+    if (execResult) {
+      return { ok: true, room: nextRoom, previousRoom: room, meta };
+    }
+  }
+
+  return { ok: false, reason: "conflict" };
 }
 
 export async function deleteRoom(roomCode) {
