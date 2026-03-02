@@ -541,5 +541,20 @@ At the beginning of each session:
     - `/tmp/chesschat-evidence/m8-2026-03-02/e2e-live-after-rollout.log`
     - `/tmp/chesschat-evidence/m8-2026-03-02/e2e-summary-after-rollout.json`
     - `/tmp/chesschat-evidence/m8-2026-03-02/app-metric-data-after-rollout.json`
-  - Remaining portfolio-proof gap:
-    - Intentional failing PR-check screenshot/log and branch-protection automation are pending because local `gh` auth token is invalid.
+  - Governance evidence closure (2026-03-02):
+    - Intentional failing PR-check captured:
+      - PR: `https://github.com/timtimtim87/CHESSCHAT_V2/pull/1` (draft, then closed)
+      - Workflow run: `https://github.com/timtimtim87/CHESSCHAT_V2/actions/runs/22566503921`
+      - Failure point: `backend-quality` -> `Run backend tests with coverage` (intentional assertion failure)
+    - Branch protection automation applied on `main` via GitHub API:
+      - Required status checks (`strict=true`): `backend-quality`, `frontend-quality`, `terraform-quality`
+      - `enforce_admins=true`
+      - `required_conversation_resolution=true`
+      - Force-push and delete disabled.
+    - Evidence artifacts:
+      - `/tmp/chesschat-evidence/m9-2026-03-02/pr-backend-quality-run-22566503921.json`
+      - `/tmp/chesschat-evidence/m9-2026-03-02/pr-backend-quality-run-22566503921-failed.log`
+      - `/tmp/chesschat-evidence/m9-2026-03-02/pr-1-summary.json`
+      - `/tmp/chesschat-evidence/m9-2026-03-02/main-branch-protection-request.json`
+      - `/tmp/chesschat-evidence/m9-2026-03-02/main-branch-protection-response.json`
+      - `/tmp/chesschat-evidence/m9-2026-03-02/main-branch-protection-readback.json`

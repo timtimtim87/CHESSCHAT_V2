@@ -58,9 +58,15 @@ Purpose: single source of truth for human-readable names, IDs, and ARNs as infra
       - CloudWatch app metrics emitted in namespace `Chesschat/Dev` (`WsConnectionsOpened`, `WsConnectionsClosed`, `GamesStarted`, `GamesEnded`).
     - Evidence bundle:
       - `/tmp/chesschat-evidence/m8-2026-03-02/`
-  - CI governance gap (2026-03-02):
-    - GitHub CLI auth token for account `timtimtim87` is invalid in local environment.
-    - PR-check failure screenshot/log capture and branch-protection API automation remain pending until `gh auth login` is restored.
+  - CI governance closure (2026-03-02):
+    - Intentional failing PR-check evidence captured:
+      - PR `#1` (`codex/pr-check-failure-evidence-20260302` -> `main`) created as draft, failed checks captured, then closed/deleted.
+      - Failing run: `PR Backend Quality` run `22566503921` (intentional assertion in backend unit test).
+      - Evidence bundle captured locally at `/tmp/chesschat-evidence/m9-2026-03-02/`.
+    - Branch protection automation applied and verified via GitHub API on `main`:
+      - Required checks (`strict=true`): `backend-quality`, `frontend-quality`, `terraform-quality`.
+      - `enforce_admins=true`, `required_conversation_resolution=true`.
+      - `allow_force_pushes=false`, `allow_deletions=false`.
 - Workflow validation evidence update (2026-03-02):
     - `e2e-post-deploy` run `22556404347` failed at `Run live E2E`.
     - Root cause: `AccessDeniedException` for `cognito-idp:AdminCreateUser` on user pool `us-east-1_AWq14lBGV` when assumed role was `chesschat-dev-github-actions-deploy-role`.
