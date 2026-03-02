@@ -2,9 +2,6 @@ name: PR Terraform Quality
 
 on:
   pull_request:
-    paths:
-      - "terraform/**"
-      - ".github/workflows/pr-terraform-quality.yml"
 
 jobs:
   terraform-quality:

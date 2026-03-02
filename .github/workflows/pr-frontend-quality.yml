@@ -2,9 +2,6 @@ name: PR Frontend Quality
 
 on:
   pull_request:
-    paths:
-      - "app/frontend/**"
-      - ".github/workflows/pr-frontend-quality.yml"
 
 jobs:
   frontend-quality:
