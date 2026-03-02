@@ -193,3 +193,26 @@ Purpose: single source of truth for human-readable names, IDs, and ARNs as infra
 
 ## Update Rule
 - After creating any resource, update this file in the same session with exact name, ARN, and command context.
+
+## Runtime Updates (No New AWS Resources)
+- Reliability/runtime hardening update (2026-03-02):
+  - Implemented Redis-backed game finalization durability queue + dead-letter handling in app runtime:
+    - Queue key: `game_finalization_queue`
+    - Dead-letter key: `game_finalization_deadletter`
+  - Added DynamoDB idempotent transaction guard for game persistence to prevent duplicate game inserts/stat double-count during retry/replay.
+  - Added app-level persistence metrics:
+    - `GamePersistSucceeded`
+    - `GamePersistRetried`
+    - `GamePersistFailed`
+  - Added reconnect lifecycle hardening:
+    - stale reconnect deadline cleanup when both players are connected
+    - reconnect state versioning (`reconnectVersion`, optional event field) for monotonic client behavior
+    - defensive lifecycle transition logs in websocket handlers
+  - Validation commands executed in repo:
+    - `npm --prefix app/backend run test:coverage` (pass, 20/20)
+    - `npm --prefix app/frontend run test:coverage` (pass, 10/10)
+    - `npm --prefix app/frontend run build` (pass)
+  - Terraform caveat in this sandbox:
+    - `terraform -chdir=terraform init -backend=false` failed due DNS/STS resolution (`sts.us-east-1.amazonaws.com`)
+    - `terraform -chdir=terraform validate` failed to load provider schemas in sandbox runtime
+    - Re-validate Terraform from normal host shell with working AWS/network.

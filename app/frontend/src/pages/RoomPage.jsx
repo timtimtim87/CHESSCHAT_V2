@@ -53,6 +53,7 @@ export default function RoomPage() {
   const remoteTileIdRef = useRef(null);
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
+  const reconnectVersionRef = useRef(0);
   const [clockNowMs, setClockNowMs] = useState(Date.now());
   const [confirmResignOpen, setConfirmResignOpen] = useState(false);
 
@@ -140,6 +141,7 @@ export default function RoomPage() {
       onMessage: (payload) => {
         switch (payload.type) {
           case "room_joined":
+            reconnectVersionRef.current = payload.activeGame?.reconnectVersion || reconnectVersionRef.current;
             dispatch({
               type: "ROOM_JOINED",
               participants: normalizeParticipants(payload.participants),
@@ -154,11 +156,20 @@ export default function RoomPage() {
             dispatch({ type: "PARTICIPANT_LEFT", participants: normalizeParticipants(payload.participants) });
             break;
           case "reconnect_state":
+            if (
+              typeof payload.reconnectVersion === "number" &&
+              payload.reconnectVersion < reconnectVersionRef.current
+            ) {
+              return;
+            }
+            reconnectVersionRef.current =
+              typeof payload.reconnectVersion === "number" ? payload.reconnectVersion : reconnectVersionRef.current;
             dispatch({
               type: "RECONNECT_STATE",
               status: payload.status,
               disconnectedUserId: payload.disconnectedUserId,
-              graceEndsAt: payload.graceEndsAt
+              graceEndsAt: payload.graceEndsAt,
+              reconnectVersion: payload.reconnectVersion
             });
             if (payload.status === "paused") {
               dispatch({
@@ -198,6 +209,7 @@ export default function RoomPage() {
             dispatch({ type: "CLEAR_TOAST_ERROR" });
             break;
           case "game_started":
+            reconnectVersionRef.current += 1;
             dispatch({
               type: "GAME_STARTED",
               game: {
@@ -229,6 +241,7 @@ export default function RoomPage() {
             });
             break;
           case "game_ended":
+            reconnectVersionRef.current += 1;
             dispatch({
               type: "GAME_ENDED",
               result: {

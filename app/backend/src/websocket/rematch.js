@@ -49,8 +49,6 @@ export function buildRematchOutcome({
   const players = Object.keys(room.participants);
   const [whitePlayerId, blackPlayerId] = pickColors(players);
   room.active_game = startNewGame(roomCode, whitePlayerId, blackPlayerId, gameDurationSeconds);
-  room.active_game.disconnect_deadline_ms = null;
-  room.active_game.disconnected_user_id = null;
   room.rematch_requested_by = null;
 
   return {

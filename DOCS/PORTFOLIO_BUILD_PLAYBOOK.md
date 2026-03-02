@@ -560,3 +560,50 @@ At the beginning of each session:
       - `/tmp/chesschat-evidence/m9-2026-03-02/main-branch-protection-request.json`
       - `/tmp/chesschat-evidence/m9-2026-03-02/main-branch-protection-response.json`
       - `/tmp/chesschat-evidence/m9-2026-03-02/main-branch-protection-readback.json`
+
+## Phase 1-2 Reliability/Runtime Hardening Update (2026-03-02)
+- Scope completed in repo (no API/WS breaking changes):
+  - Phase 1 durable/idempotent finalization baseline implemented.
+  - Phase 2 reconnect/expiry lifecycle hardening implemented.
+- Backend durability updates:
+  - Added Redis-backed post-game finalization queue and dead-letter list in `app/backend/src/services/redis.js`:
+    - `game_finalization_queue`
+    - `game_finalization_deadletter`
+  - Refactored game-end paths to queue finalization jobs instead of inline DynamoDB writes:
+    - resign
+    - checkmate/stalemate/draw/timeout
+    - reconnect forfeit timeout
+    - room expiry
+  - Added background finalization worker loop in websocket lifecycle (`handler.js`) with retry/backoff and dead-letter fallback.
+  - Added idempotent game persistence semantics in DynamoDB transaction (`dynamodb.js`):
+    - game `Put` now conditionally inserts only when PK/SK do not already exist.
+    - duplicate finalization is treated as successful no-op (prevents stat double-increment).
+- Runtime lifecycle hardening updates:
+  - Added reconnect state versioning in active game state (`reconnect_version`) and reconnect events (`reconnectVersion`, optional).
+  - Added stale reconnect deadline cleanup when both participants are connected.
+  - Tightened reconnect transition emission rules to avoid duplicate/contradictory pause/restored transitions.
+  - Hardened room expiry cleanup ordering to avoid duplicate Chime cleanup and duplicate game-end effects under race conditions.
+  - Added defensive transition logging for reconnect/expiry lifecycle paths.
+- Observability updates:
+  - Added app metrics:
+    - `GamePersistSucceeded`
+    - `GamePersistRetried`
+    - `GamePersistFailed`
+- Frontend runtime hardening:
+  - Added reconnect event monotonicity guards using reconnect version checks in reducer and Room page socket handling to suppress stale reconnect toasts/state regressions.
+- Validation and tests:
+  - Backend coverage suite now includes finalization worker scenarios:
+    - queue push on game end
+    - duplicate finalization treated as no-op success
+    - retry then success
+    - dead-letter after retry exhaustion
+  - Frontend reducer tests now cover stale reconnect event suppression.
+  - Commands run:
+    - `npm --prefix app/backend run test:coverage`
+    - `npm --prefix app/frontend run test:coverage`
+    - `npm --prefix app/frontend run build`
+  - Terraform verification in this sandbox remains constrained by STS/provider runtime limits and must be re-run from host shell.
+- Decision rationale:
+  - Decoupling room mutation/broadcast from persistence closes the highest reliability gap with minimal contract churn.
+  - Idempotent persistence enables safe replay/retry and supports interview-ready reasoning for distributed consistency under failure.
+  - Reconnect versioning plus stale-deadline cleanup makes lifecycle behavior monotonic and easier to debug in production logs.

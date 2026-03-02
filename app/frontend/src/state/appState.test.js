@@ -21,15 +21,37 @@ describe("appStateReducer", () => {
       type: "RECONNECT_STATE",
       status: "paused",
       disconnectedUserId: "user-2",
-      graceEndsAt: 1700000060000
+      graceEndsAt: 1700000060000,
+      reconnectVersion: 2
     });
     expect(reconnecting.room_state.reconnect.status).toBe("paused");
+    expect(reconnecting.room_state.reconnect.version).toBe(2);
 
     const rematch = appStateReducer(reconnecting, {
       type: "REMATCH_REQUESTED",
       requestedBy: "user-2"
     });
     expect(rematch.room_state.rematch.requestedBy).toBe("user-2");
+  });
+
+  it("ignores stale reconnect events by version", () => {
+    const paused = appStateReducer(initialAppState, {
+      type: "RECONNECT_STATE",
+      status: "paused",
+      disconnectedUserId: "user-2",
+      graceEndsAt: 1700000060000,
+      reconnectVersion: 3
+    });
+    const stale = appStateReducer(paused, {
+      type: "RECONNECT_STATE",
+      status: "restored",
+      disconnectedUserId: null,
+      graceEndsAt: null,
+      reconnectVersion: 2
+    });
+
+    expect(stale.room_state.reconnect.status).toBe("paused");
+    expect(stale.room_state.reconnect.version).toBe(3);
   });
 
   it("handles game lifecycle events", () => {

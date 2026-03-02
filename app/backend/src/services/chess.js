@@ -12,7 +12,10 @@ export function startNewGame(roomCode, whitePlayerId, blackPlayerId, durationSec
     time_white: durationSeconds,
     time_black: durationSeconds,
     started_at: Date.now(),
-    last_move_at: Date.now()
+    last_move_at: Date.now(),
+    reconnect_version: 0,
+    disconnect_deadline_ms: null,
+    disconnected_user_id: null
   };
 }
 

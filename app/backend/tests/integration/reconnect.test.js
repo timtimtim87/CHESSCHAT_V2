@@ -16,7 +16,8 @@ test("reconnect pause state includes grace deadline", () => {
     roomCode: "ABCDE",
     status: "paused",
     disconnectedUserId: "user-1",
-    graceEndsAt: 1700000060000
+    graceEndsAt: 1700000060000,
+    reconnectVersion: null
   });
 });
 
@@ -27,7 +28,8 @@ test("reconnect restored event clears paused metadata", () => {
     roomCode: "ABCDE",
     status: "restored",
     disconnectedUserId: null,
-    graceEndsAt: null
+    graceEndsAt: null,
+    reconnectVersion: null
   });
 });
 
