@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 
 export default function LobbyPage() {
   const [roomCode, setRoomCode] = useState("");
+  const [roomCodeError, setRoomCodeError] = useState("");
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -11,8 +12,10 @@ export default function LobbyPage() {
     event.preventDefault();
     const normalized = roomCode.toUpperCase().trim();
     if (!/^[A-Z0-9]{5}$/.test(normalized)) {
+      setRoomCodeError("Room code must be exactly 5 letters or numbers.");
       return;
     }
+    setRoomCodeError("");
     navigate(`/room/${normalized}`);
   }
 
@@ -33,7 +36,12 @@ export default function LobbyPage() {
         <form onSubmit={onSubmit} className="code-form">
           <input
             value={roomCode}
-            onChange={(event) => setRoomCode(event.target.value.toUpperCase())}
+            onChange={(event) => {
+              setRoomCode(event.target.value.toUpperCase());
+              if (roomCodeError) {
+                setRoomCodeError("");
+              }
+            }}
             maxLength={5}
             placeholder="ABCDE"
             aria-label="Room code"
@@ -42,6 +50,7 @@ export default function LobbyPage() {
             Start / Join
           </button>
         </form>
+        {roomCodeError ? <p className="inline-error">{roomCodeError}</p> : null}
       </section>
     </main>
   );

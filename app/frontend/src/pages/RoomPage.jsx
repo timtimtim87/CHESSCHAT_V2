@@ -1,16 +1,34 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useReducer, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ChessBoardPanel from "../components/ChessBoardPanel";
 import VideoPanel from "../components/VideoPanel";
 import { useAuth } from "../context/AuthContext";
 import { createMeetingSession, listDevices, startMedia, stopMedia } from "../services/chime";
 import { ChessChatSocket } from "../services/socket";
+import { appStateReducer, initialAppState } from "../state/appState";
+
+function normalizeError(payload) {
+  return {
+    code: payload?.code || "INTERNAL_ERROR",
+    message: payload?.message || "Unexpected error.",
+    retryable: Boolean(payload?.retryable),
+    context: payload?.context || null
+  };
+}
 
 export default function RoomPage() {
   const { code } = useParams();
   const roomCode = useMemo(() => (code || "").toUpperCase(), [code]);
   const { accessToken, user } = useAuth();
   const navigate = useNavigate();
+
+  const [state, dispatch] = useReducer(appStateReducer, {
+    ...initialAppState,
+    room_state: {
+      ...initialAppState.room_state,
+      code: roomCode
+    }
+  });
 
   const socketRef = useRef(null);
   const meetingSessionRef = useRef(null);
@@ -19,16 +37,6 @@ export default function RoomPage() {
   const remoteTileIdRef = useRef(null);
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
-
-  const [participants, setParticipants] = useState([]);
-  const [videoStatus, setVideoStatus] = useState("Waiting for second player...");
-  const [videoCredentials, setVideoCredentials] = useState(null);
-  const [mediaStarted, setMediaStarted] = useState(false);
-  const [mediaError, setMediaError] = useState("");
-  const [isMicMuted, setIsMicMuted] = useState(false);
-  const [isCameraOn, setIsCameraOn] = useState(false);
-  const [game, setGame] = useState(null);
-  const [message, setMessage] = useState("");
 
   function stopMeetingSession() {
     const session = meetingSessionRef.current;
@@ -45,69 +53,119 @@ export default function RoomPage() {
     session.audioVideo.unbindVideoElement(remoteVideoRef.current);
     remoteTileIdRef.current = null;
     meetingSessionRef.current = null;
-    setMediaStarted(false);
-    setIsMicMuted(false);
-    setIsCameraOn(false);
+    dispatch({ type: "MEDIA_STOPPED" });
   }
+
+  useEffect(() => {
+    if (state.toast_error) {
+      const timer = setTimeout(() => {
+        dispatch({ type: "CLEAR_TOAST_ERROR" });
+      }, 3500);
+      return () => clearTimeout(timer);
+    }
+  }, [state.toast_error]);
 
   useEffect(() => {
     audioElementRef.current = new Audio();
     audioElementRef.current.autoplay = true;
+
+    dispatch({ type: "INIT_AUTH", isAuthenticated: Boolean(accessToken), userId: user?.sub });
 
     if (!accessToken) {
       navigate("/", { replace: true });
       return;
     }
 
+    dispatch({ type: "ROOM_INIT", roomCode });
+
     const socket = new ChessChatSocket({
       token: accessToken,
+      onStateChange: (socketState) => {
+        dispatch({
+          type: "SOCKET_STATE",
+          status: socketState.status,
+          reconnectAttempt: socketState.reconnectAttempt,
+          retryInMs: socketState.retryInMs
+        });
+      },
       onOpen: () => {
+        dispatch({ type: "CLEAR_BLOCKING_ERROR" });
         socket.send("join_room", { roomCode });
+      },
+      onClose: ({ willReconnect }) => {
+        if (!willReconnect) {
+          return;
+        }
+        dispatch({
+          type: "SET_TOAST_ERROR",
+          error: {
+            code: "SOCKET_RECONNECTING",
+            message: "Connection lost. Reconnecting...",
+            retryable: true,
+            context: { roomCode }
+          }
+        });
       },
       onMessage: (payload) => {
         switch (payload.type) {
           case "room_joined":
-            setParticipants(payload.participants || []);
+            dispatch({ type: "ROOM_JOINED", participants: payload.participants });
             break;
           case "video_ready":
-            setVideoCredentials({
-              meetingData: payload.meetingData,
-              attendeeData: payload.attendeeData
+            dispatch({
+              type: "VIDEO_READY",
+              credentials: {
+                meetingData: payload.meetingData,
+                attendeeData: payload.attendeeData
+              }
             });
-            setVideoStatus("Video credentials ready. Click Join Media.");
-            setMediaError("");
+            dispatch({ type: "CLEAR_TOAST_ERROR" });
             break;
           case "game_started":
-            setGame({
-              gameId: payload.gameId,
-              whitePlayerId: payload.whitePlayerId,
-              blackPlayerId: payload.blackPlayerId,
+            dispatch({
+              type: "GAME_STARTED",
+              game: {
+                gameId: payload.gameId,
+                whitePlayerId: payload.whitePlayerId,
+                blackPlayerId: payload.blackPlayerId,
+                fen: payload.fen,
+                turn: payload.turn,
+                timeWhite: payload.timeWhite,
+                timeBlack: payload.timeBlack
+              }
+            });
+            dispatch({ type: "CLEAR_TOAST_ERROR" });
+            break;
+          case "move_made":
+            dispatch({
+              type: "MOVE_MADE",
               fen: payload.fen,
               turn: payload.turn,
               timeWhite: payload.timeWhite,
               timeBlack: payload.timeBlack
             });
             break;
-          case "move_made":
-            setGame((current) =>
-              current
-                ? {
-                    ...current,
-                    fen: payload.fen,
-                    turn: payload.turn,
-                    timeWhite: payload.timeWhite,
-                    timeBlack: payload.timeBlack
-                  }
-                : current
-            );
-            break;
           case "game_ended":
-            setMessage(`Game ended: ${payload.result}`);
-            setGame(null);
+            dispatch({ type: "GAME_ENDED" });
+            dispatch({
+              type: "SET_TOAST_ERROR",
+              error: {
+                code: "GAME_ENDED",
+                message: `Game ended: ${payload.result}`,
+                retryable: false,
+                context: { gameId: payload.gameId }
+              }
+            });
             break;
-          case "error":
-            setMessage(payload.message || payload.code || "Unknown error");
+          case "error": {
+            const normalized = normalizeError(payload);
+            if (normalized.retryable) {
+              dispatch({ type: "SET_TOAST_ERROR", error: normalized });
+            } else {
+              dispatch({ type: "SET_BLOCKING_ERROR", error: normalized });
+            }
             break;
+          }
           default:
             break;
         }
@@ -122,8 +180,9 @@ export default function RoomPage() {
       stopMeetingSession();
       socket.disconnect();
     };
-  }, [accessToken, navigate, roomCode]);
+  }, [accessToken, navigate, roomCode, user?.sub]);
 
+  const game = state.game_state.game;
   const myColor = game
     ? game.whitePlayerId === user?.sub
       ? "white"
@@ -148,13 +207,14 @@ export default function RoomPage() {
   }
 
   async function joinMedia() {
+    const videoCredentials = state.media_state.credentials;
     if (!videoCredentials || meetingSessionRef.current) {
       return;
     }
 
     try {
-      setMediaError("");
-      setVideoStatus("Connecting media...");
+      dispatch({ type: "CLEAR_BLOCKING_ERROR" });
+      dispatch({ type: "MEDIA_CONNECTING" });
 
       const session = createMeetingSession({
         meetingData: videoCredentials.meetingData,
@@ -182,18 +242,26 @@ export default function RoomPage() {
             if (remoteVideoRef.current) {
               audioVideo.bindVideoElement(tileState.tileId, remoteVideoRef.current);
             }
-            setVideoStatus("Media connected.");
+            dispatch({ type: "MEDIA_STARTED", message: "Media connected." });
           }
         },
         videoTileWasRemoved: (tileId) => {
           if (remoteTileIdRef.current === tileId) {
             audioVideo.unbindVideoElement(remoteVideoRef.current);
             remoteTileIdRef.current = null;
-            setVideoStatus("Connected. Waiting for remote video...");
+            dispatch({ type: "MEDIA_STARTED", message: "Connected. Waiting for remote video..." });
           }
         },
         audioVideoDidStop: (sessionStatus) => {
-          setMediaError(`Media stopped: ${sessionStatus.statusCode()}`);
+          dispatch({
+            type: "SET_BLOCKING_ERROR",
+            error: {
+              code: "MEDIA_STOPPED",
+              message: `Media stopped: ${sessionStatus.statusCode()}`,
+              retryable: true,
+              context: null
+            }
+          });
         }
       };
       observerRef.current = observer;
@@ -209,14 +277,18 @@ export default function RoomPage() {
       }
 
       await startMedia(audioVideo, { audioInputDeviceId, videoInputDeviceId });
-      setMediaStarted(true);
-      setIsCameraOn(true);
-      setIsMicMuted(false);
-      setVideoStatus("Connected. Waiting for remote video...");
+      dispatch({ type: "MEDIA_STARTED", message: "Connected. Waiting for remote video..." });
     } catch (error) {
       stopMeetingSession();
-      setMediaError(error.message || "Unable to start media.");
-      setVideoStatus("Media unavailable.");
+      dispatch({
+        type: "SET_BLOCKING_ERROR",
+        error: {
+          code: "MEDIA_START_FAILED",
+          message: error.message || "Unable to start media.",
+          retryable: true,
+          context: { roomCode }
+        }
+      });
     }
   }
 
@@ -225,13 +297,13 @@ export default function RoomPage() {
     if (!session) {
       return;
     }
-    if (isMicMuted) {
+    if (state.media_state.micMuted) {
       session.audioVideo.realtimeUnmuteLocalAudio();
-      setIsMicMuted(false);
+      dispatch({ type: "MEDIA_MIC_TOGGLED", micMuted: false });
       return;
     }
     session.audioVideo.realtimeMuteLocalAudio();
-    setIsMicMuted(true);
+    dispatch({ type: "MEDIA_MIC_TOGGLED", micMuted: true });
   }
 
   function toggleCamera() {
@@ -239,39 +311,57 @@ export default function RoomPage() {
     if (!session) {
       return;
     }
-    if (isCameraOn) {
+    if (state.media_state.cameraOn) {
       session.audioVideo.stopLocalVideoTile();
-      setIsCameraOn(false);
+      dispatch({ type: "MEDIA_CAMERA_TOGGLED", cameraOn: false });
       return;
     }
     session.audioVideo.startLocalVideoTile();
-    setIsCameraOn(true);
+    dispatch({ type: "MEDIA_CAMERA_TOGGLED", cameraOn: true });
   }
+
+  const socketSubtitle =
+    state.socket_state.status === "reconnecting"
+      ? `Reconnecting (attempt ${state.socket_state.reconnectAttempt})...`
+      : `Socket: ${state.socket_state.status}`;
 
   return (
     <main className="room-shell">
       <header className="top-row">
         <div>
           <h1>Room {roomCode}</h1>
-          <p>Players: {participants.join(", ") || "waiting"}</p>
+          <p>Players: {state.room_state.participants.join(", ") || "waiting"}</p>
+          <p className="socket-status">{socketSubtitle}</p>
         </div>
         <button onClick={() => navigate("/lobby")}>Back to Lobby</button>
       </header>
 
-      {message ? <p className="notice">{message}</p> : null}
+      {state.blocking_error ? (
+        <section className="error-banner" role="alert">
+          <strong>{state.blocking_error.code}</strong>
+          <span>{state.blocking_error.message}</span>
+          <button onClick={() => dispatch({ type: "CLEAR_BLOCKING_ERROR" })}>Dismiss</button>
+        </section>
+      ) : null}
+
+      {state.toast_error ? (
+        <section className="error-toast" role="status">
+          <span>{state.toast_error.message}</span>
+        </section>
+      ) : null}
 
       <section className="room-layout">
         <VideoPanel
-          status={videoStatus}
-          mediaStarted={mediaStarted}
+          status={state.media_state.message}
+          mediaStarted={state.media_state.started}
           onJoinMedia={joinMedia}
           onToggleMic={toggleMic}
           onToggleCamera={toggleCamera}
-          isMicMuted={isMicMuted}
-          isCameraOn={isCameraOn}
+          isMicMuted={state.media_state.micMuted}
+          isCameraOn={state.media_state.cameraOn}
           localVideoRef={localVideoRef}
           remoteVideoRef={remoteVideoRef}
-          error={mediaError}
+          error={state.blocking_error?.code?.startsWith("MEDIA") ? state.blocking_error.message : ""}
         />
 
         <section className="game-panel">

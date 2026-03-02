@@ -151,6 +151,48 @@ button.primary {
   padding: 8px 10px;
 }
 
+.inline-error {
+  color: #b42318;
+  margin-top: 4px;
+}
+
+.socket-status {
+  color: #475467;
+  font-size: 0.9rem;
+  margin-top: 4px;
+}
+
+.error-banner {
+  border: 1px solid #fda29b;
+  background: #fef3f2;
+  color: #b42318;
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.error-banner strong {
+  font-size: 0.85rem;
+}
+
+.error-banner button {
+  margin-left: auto;
+}
+
+.error-toast {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  background: #101828;
+  color: #ffffff;
+  padding: 10px 12px;
+  border-radius: 8px;
+  box-shadow: 0 10px 24px #00000033;
+  z-index: 50;
+}
+
 .error {
   color: #b42318;
 }

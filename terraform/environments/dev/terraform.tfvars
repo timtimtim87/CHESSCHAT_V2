@@ -69,7 +69,7 @@ monitoring_ecs_memory_utilization_threshold = 80
 monitoring_alb_5xx_count_threshold          = 5
 monitoring_alb_min_healthy_hosts_threshold  = 1
 monitoring_redis_engine_cpu_threshold       = 75
-monitoring_monthly_budget_limit_usd         = 250
+monitoring_monthly_budget_limit_usd         = 100
 monitoring_budget_alert_thresholds          = [80, 90, 100]
 
 enable_github_actions_oidc = true

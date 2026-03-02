@@ -32,7 +32,7 @@ Purpose: single source of truth for human-readable names, IDs, and ARNs as infra
     - Added `github_actions_oidc` module (IAM OIDC provider + least-privilege deploy role).
     - ECS service drift guard added (`ignore_changes = [task_definition]`) so CI-driven task definition revisions persist.
     - Terraform apply succeeded with `3 added, 0 changed, 0 destroyed`.
-  - Workflow validation evidence update (2026-03-02):
+- Workflow validation evidence update (2026-03-02):
     - `e2e-post-deploy` run `22556404347` failed at `Run live E2E`.
     - Root cause: `AccessDeniedException` for `cognito-idp:AdminCreateUser` on user pool `us-east-1_AWq14lBGV` when assumed role was `chesschat-dev-github-actions-deploy-role`.
     - Evidence bundle captured locally at `/tmp/chesschat-evidence/e2e-22556404347/`.
@@ -47,6 +47,17 @@ Purpose: single source of truth for human-readable names, IDs, and ARNs as infra
       - `/tmp/chesschat-evidence/e2e-22556628729/`
       - `/tmp/chesschat-evidence/deploy-22556661125/`
       - `/tmp/chesschat-evidence/ecs-service-2026-03-02-post-deploy.json`
+  - Baseline drift alignment update (2026-03-02):
+    - Accepted console budget preference update as source-of-truth intent:
+      - Monthly budget target changed to `$100`.
+    - Terraform desired state aligned:
+      - `terraform/environments/dev/terraform.tfvars` now sets `monitoring_monthly_budget_limit_usd = 100`.
+    - Budget notification model remains `SNS-only`:
+      - Budget thresholds publish to SNS topic `chesschat-dev-alerts`.
+      - Email routing is handled by SNS subscription `tim.antibes+CHESSCHAT_V2@gmail.com`.
+    - Terraform execution evidence:
+      - `terraform apply` completed with `0 added, 1 changed, 0 destroyed` (budget config normalization).
+      - Follow-up `terraform plan` returned `No changes`.
 
 ## Naming Convention
 - Pattern: `chesschat-<env>-<service>-<purpose>`
@@ -128,7 +139,7 @@ Purpose: single source of truth for human-readable names, IDs, and ARNs as infra
 | observability | cloudwatch_alarm | redis_engine_cpu_high_alarm | `chesschat-dev-redis-engine-cpu-high` | `arn:aws:cloudwatch:us-east-1:723580627470:alarm:chesschat-dev-redis-engine-cpu-high` | us-east-1 | Terraform `module.monitoring.aws_cloudwatch_metric_alarm.redis_engine_cpu_high[0]` | Project=chesschat, Environment=dev | 2026-03-01 | Triggers when Redis EngineCPUUtilization >= 75% |
 | observability | cloudwatch_alarm | ddb_users_throttles_alarm | `chesschat-dev-ddb-users-throttles` | `arn:aws:cloudwatch:us-east-1:723580627470:alarm:chesschat-dev-ddb-users-throttles` | us-east-1 | Terraform `module.monitoring.aws_cloudwatch_metric_alarm.dynamodb_users_throttles[0]` | Project=chesschat, Environment=dev | 2026-03-01 | Triggers when users table ThrottledRequests > 0 |
 | observability | cloudwatch_alarm | ddb_games_throttles_alarm | `chesschat-dev-ddb-games-throttles` | `arn:aws:cloudwatch:us-east-1:723580627470:alarm:chesschat-dev-ddb-games-throttles` | us-east-1 | Terraform `module.monitoring.aws_cloudwatch_metric_alarm.dynamodb_games_throttles[0]` | Project=chesschat, Environment=dev | 2026-03-01 | Triggers when games table ThrottledRequests > 0 |
-| cost | budgets | monthly_cost_budget | `chesschat-dev-monthly-cost` | n/a | us-east-1 | Terraform `module.monitoring.aws_budgets_budget.monthly_cost[0]` | Project=chesschat | 2026-03-01 | `$250` monthly COST budget with 80/90/100% ACTUAL notifications to SNS |
+| cost | budgets | monthly_cost_budget | `chesschat-dev-monthly-cost` | n/a | us-east-1 | Terraform `module.monitoring.aws_budgets_budget.monthly_cost[0]` | Project=chesschat | 2026-03-01 | `$100` monthly COST budget (updated 2026-03-02) with 80/90/100% ACTUAL notifications to SNS (`SNS-only` routing model) |
 
 ## Auth Baseline
 - Keep only these AWS CLI profiles: `default`, `CHESSCHAT_IAM_USER`.

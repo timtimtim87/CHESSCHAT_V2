@@ -16,11 +16,22 @@ import {
 import { createAttendee, createMeeting, deleteMeeting } from "../services/chime.js";
 import { applyMove, startNewGame } from "../services/chess.js";
 import { saveGameAndUpdateStats } from "../services/dynamodb.js";
+import { buildWsError, normalizeWsPayload } from "../utils/errors.js";
 import { log } from "../utils/logger.js";
 import { registerSocket, sendToConnection, unregisterSocket } from "./state.js";
 
 function send(ws, payload) {
-  ws.send(JSON.stringify(payload));
+  const normalizedPayload =
+    payload?.type === OutboundEvent.ERROR
+      ? normalizeWsPayload(payload)
+      : payload?.code && !payload?.type
+        ? buildWsError(payload.code, {
+            message: payload.message,
+            retryable: payload.retryable,
+            context: payload.context
+          })
+        : payload;
+  ws.send(JSON.stringify(normalizedPayload));
 }
 
 function normalizeRoomCode(raw) {
@@ -107,7 +118,7 @@ async function endGame(roomCode, result) {
 
 async function handleJoinRoom(ws, roomCode) {
   if (!isValidRoomCode(roomCode)) {
-    send(ws, { type: OutboundEvent.ERROR, code: "INVALID_ROOM_CODE", message: "Room code must be 5 characters." });
+    send(ws, buildWsError("INVALID_ROOM_CODE", { context: { roomCode } }));
     return;
   }
 
@@ -222,9 +233,8 @@ async function handleJoinRoom(ws, roomCode) {
   }
 
   send(ws, {
-    type: OutboundEvent.ERROR,
-    code: "ROOM_UPDATE_CONFLICT",
-    message: "Concurrent room update detected. Please try joining again."
+    ...buildWsError("ROOM_UPDATE_CONFLICT", { message: "Concurrent room update detected. Please try joining again." }),
+    context: { roomCode }
   });
 }
 
@@ -272,7 +282,7 @@ async function handleStartGame(ws, roomCode) {
 
   if (!mutation.ok) {
     if (mutation.reason === "not_found") {
-      send(ws, { type: OutboundEvent.ERROR, code: "ROOM_NOT_FOUND", message: "Room does not exist." });
+      send(ws, buildWsError("ROOM_NOT_FOUND", { context: { roomCode } }));
       return;
     }
     if (mutation.reason === "aborted" && mutation.error) {
@@ -280,9 +290,8 @@ async function handleStartGame(ws, roomCode) {
       return;
     }
     send(ws, {
-      type: OutboundEvent.ERROR,
-      code: "ROOM_UPDATE_CONFLICT",
-      message: "Concurrent room update detected. Please retry."
+      ...buildWsError("ROOM_UPDATE_CONFLICT"),
+      context: { roomCode }
     });
     return;
   }
@@ -416,9 +425,8 @@ async function handleMakeMove(ws, roomCode, move) {
       return;
     }
     send(ws, {
-      type: OutboundEvent.ERROR,
-      code: "ROOM_UPDATE_CONFLICT",
-      message: "Concurrent room update detected. Please retry your move."
+      ...buildWsError("ROOM_UPDATE_CONFLICT", { message: "Concurrent room update detected. Please retry your move." }),
+      context: { roomCode, move }
     });
     return;
   }
@@ -528,7 +536,7 @@ export function installWebSocketServer(wss) {
       try {
         message = JSON.parse(raw.toString());
       } catch {
-        send(ws, { type: OutboundEvent.ERROR, code: "BAD_JSON", message: "Invalid JSON payload." });
+        send(ws, buildWsError("BAD_JSON"));
         return;
       }
 
@@ -554,7 +562,7 @@ export function installWebSocketServer(wss) {
             send(ws, { type: OutboundEvent.HEARTBEAT_ACK });
             break;
           default:
-            send(ws, { type: OutboundEvent.ERROR, code: "UNKNOWN_EVENT", message: "Unknown event type." });
+            send(ws, buildWsError("UNKNOWN_EVENT", { context: { eventType: message.type } }));
         }
       } catch (error) {
         log("error", "websocket_message_handler_failed", {
@@ -562,11 +570,7 @@ export function installWebSocketServer(wss) {
           userId: ws.userId,
           error: error.message
         });
-        send(ws, {
-          type: OutboundEvent.ERROR,
-          code: "INTERNAL_ERROR",
-          message: "Unexpected error handling request."
-        });
+        send(ws, buildWsError("INTERNAL_ERROR"));
       }
     });
 

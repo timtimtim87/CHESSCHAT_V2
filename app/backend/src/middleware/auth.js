@@ -1,5 +1,6 @@
 import { CognitoJwtVerifier } from "aws-jwt-verify";
 import { config } from "../config.js";
+import { sendHttpError } from "../utils/errors.js";
 
 const verifier = CognitoJwtVerifier.create({
   userPoolId: config.cognito.userPoolId,
@@ -20,7 +21,7 @@ export async function requireHttpAuth(req, res, next) {
   const header = req.headers.authorization || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;
   if (!token) {
-    res.status(401).json({ error: "unauthorized" });
+    sendHttpError(res, 401, "UNAUTHORIZED");
     return;
   }
 
@@ -28,6 +29,6 @@ export async function requireHttpAuth(req, res, next) {
     req.auth = await verifyAccessToken(token);
     next();
   } catch {
-    res.status(401).json({ error: "unauthorized" });
+    sendHttpError(res, 401, "UNAUTHORIZED");
   }
 }

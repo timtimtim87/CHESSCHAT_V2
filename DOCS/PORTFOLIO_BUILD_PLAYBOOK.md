@@ -172,7 +172,7 @@ Purpose: keep one practical, interview-ready plan for building CHESSCHAT as an A
       - `chesschat-dev-ddb-users-throttles`
       - `chesschat-dev-ddb-games-throttles`
   - Budget resources provisioned:
-    - Budget `chesschat-dev-monthly-cost` (`$250/month`)
+    - Budget `chesschat-dev-monthly-cost` (`$250/month`, later updated to `$100/month` on 2026-03-02)
     - Notification thresholds at `80%`, `90%`, and `100%` routed to SNS topic
   - Terraform verification:
     - `terraform apply` completed with `10 added, 0 changed, 0 destroyed`
@@ -267,7 +267,28 @@ Purpose: keep one practical, interview-ready plan for building CHESSCHAT as an A
   - Cost validation:
     - Cost Explorer month-to-date (`2026-03-01` to `2026-03-02`, estimated):
       - Unblended cost: `$2.3072867404`
-    - Portfolio estimate remains on track (`$150-$350/month`) based on current daily burn and budget alarm baseline (`$250`).
+    - Portfolio estimate remains on track (`$150-$350/month`) based on current daily burn and budget alarm baseline (moved from `$250` to `$100` on 2026-03-02 for tighter alerting).
+- Baseline alignment update (2026-03-02):
+  - User-driven console change accepted as new desired state:
+    - Monthly AWS Budget target reduced from `$250` to `$100`.
+  - Alerting strategy standardized:
+    - Keep budget notifications SNS-only (no direct budget email recipients in Terraform).
+    - Email delivery continues through SNS subscription `tim.antibes+CHESSCHAT_V2@gmail.com`.
+  - Drift action:
+    - Updated `terraform/environments/dev/terraform.tfvars` to `monitoring_monthly_budget_limit_usd = 100`.
+  - Terraform reconciliation result:
+    - `terraform apply` completed with `0 added, 1 changed, 0 destroyed`.
+    - Follow-up `terraform plan` returned `No changes`.
+- Milestone 1 foundation implementation (2026-03-02, repository changes):
+  - Backend error contract normalized:
+    - Added shared error utility with shape `{ code, message, retryable, context }`.
+    - HTTP auth/API error responses now emit `{"error": {...}}` using normalized fields.
+    - WebSocket error emissions now normalize to `{ type: "error", code, message, retryable, context }`.
+  - Frontend state/error model upgraded:
+    - Room flow now uses reducer-based state domains:
+      - `auth_state`, `socket_state`, `room_state`, `game_state`, `media_state`
+    - Added deterministic error tiers:
+      - blocking banner, transient toast, and inline lobby room-code validation error.
 - Phase 10 validation closure attempt (2026-03-02, GitHub Actions):
   - Manual workflow run:
     - Workflow: `e2e-post-deploy.yml`
