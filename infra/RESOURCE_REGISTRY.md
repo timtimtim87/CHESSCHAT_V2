@@ -67,6 +67,8 @@ Purpose: single source of truth for human-readable names, IDs, and ARNs as infra
       - Required checks (`strict=true`): `backend-quality`, `frontend-quality`, `terraform-quality`.
       - `enforce_admins=true`, `required_conversation_resolution=true`.
       - `allow_force_pushes=false`, `allow_deletions=false`.
+    - Required-check trigger alignment:
+      - Updated PR workflow triggers to run on all pull requests (removed `pull_request.paths` filters) so required status checks are always produced for protected-branch merges.
 - Workflow validation evidence update (2026-03-02):
     - `e2e-post-deploy` run `22556404347` failed at `Run live E2E`.
     - Root cause: `AccessDeniedException` for `cognito-idp:AdminCreateUser` on user pool `us-east-1_AWq14lBGV` when assumed role was `chesschat-dev-github-actions-deploy-role`.

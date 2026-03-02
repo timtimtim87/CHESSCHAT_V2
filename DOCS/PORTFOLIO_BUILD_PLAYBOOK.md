@@ -551,6 +551,8 @@ At the beginning of each session:
       - `enforce_admins=true`
       - `required_conversation_resolution=true`
       - Force-push and delete disabled.
+    - Required-check deadlock remediation:
+      - Removed `pull_request.paths` filters from all three PR quality workflows so required checks always run on PRs (including docs-only changes).
     - Evidence artifacts:
       - `/tmp/chesschat-evidence/m9-2026-03-02/pr-backend-quality-run-22566503921.json`
       - `/tmp/chesschat-evidence/m9-2026-03-02/pr-backend-quality-run-22566503921-failed.log`

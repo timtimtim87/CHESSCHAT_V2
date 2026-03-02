@@ -2,9 +2,6 @@ name: PR Backend Quality
 
 on:
   pull_request:
-    paths:
-      - "app/backend/**"
-      - ".github/workflows/pr-backend-quality.yml"
 
 jobs:
   backend-quality:
