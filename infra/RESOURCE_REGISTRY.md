@@ -45,6 +45,22 @@ Purpose: single source of truth for human-readable names, IDs, and ARNs as infra
     - Monitoring dashboard module now includes app-level metric widget using namespace `Chesschat/Dev`.
     - Runtime env update in Terraform desired state:
       - `APP_METRICS_NAMESPACE = "Chesschat/Dev"` in `terraform/environments/dev/terraform.tfvars`.
+  - Milestones 7-8 apply/verification closure (2026-03-02):
+    - Terraform apply completed:
+      - `1 added, 1 changed, 1 destroyed`.
+      - ECS task definition advanced to `chesschat-dev-task:9`.
+      - CloudWatch dashboard `chesschat-dev-operations-dashboard` updated in-place with app-level widget.
+    - Post-apply drift check:
+      - `terraform plan` returned `No changes`.
+    - Live runtime verification:
+      - ECS service active task definition: `arn:aws:ecs:us-east-1:723580627470:task-definition/chesschat-dev-task:9`.
+      - Correlation headers verified on public endpoints (`x-correlation-id` present).
+      - CloudWatch app metrics emitted in namespace `Chesschat/Dev` (`WsConnectionsOpened`, `WsConnectionsClosed`, `GamesStarted`, `GamesEnded`).
+    - Evidence bundle:
+      - `/tmp/chesschat-evidence/m8-2026-03-02/`
+  - CI governance gap (2026-03-02):
+    - GitHub CLI auth token for account `timtimtim87` is invalid in local environment.
+    - PR-check failure screenshot/log capture and branch-protection API automation remain pending until `gh auth login` is restored.
 - Workflow validation evidence update (2026-03-02):
     - `e2e-post-deploy` run `22556404347` failed at `Run live E2E`.
     - Root cause: `AccessDeniedException` for `cognito-idp:AdminCreateUser` on user pool `us-east-1_AWq14lBGV` when assumed role was `chesschat-dev-github-actions-deploy-role`.

@@ -47,12 +47,20 @@ Repository Actions settings should have:
   - `COGNITO_CLIENT_ID`
 
 ## Recommended First Checks for Next Session
-1. Confirm first green run of manual E2E workflow in GitHub Actions.
-2. Confirm first green run of `deploy-main` from a tiny `main` commit.
-3. Capture deployment metadata artifact and ECS service event screenshot/log snippet for portfolio evidence.
-4. Update docs/diary with actual workflow run IDs and timestamps.
+1. Restore GitHub CLI auth (`gh auth login`) to unblock PR-evidence and branch-protection automation.
+2. Create one intentional failing PR check run and capture screenshot/log as portfolio gate evidence.
+3. Enforce required-check branch protection on `main` for:
+   - PR Backend Quality
+   - PR Frontend Quality
+   - PR Terraform Quality
+4. Keep post-deploy manual E2E (`e2e-post-deploy`) evidence current with run IDs/timestamps.
 
 ## Known Constraints / Notes
 - Local `app/frontend/dist/` is now ignored in `.gitignore` and should not be committed.
 - Terraform validate still reports existing DynamoDB deprecation warnings (`hash_key`), pre-existing and non-blocking.
 - Keep naming convention `chesschat-*` intact unless explicitly changed.
+- Milestone 8 runtime evidence now exists under:
+  - `/tmp/chesschat-evidence/m8-2026-03-02/`
+- ECS service currently runs:
+  - `arn:aws:ecs:us-east-1:723580627470:task-definition/chesschat-dev-task:9`
+  - Includes `APP_METRICS_NAMESPACE=Chesschat/Dev`.

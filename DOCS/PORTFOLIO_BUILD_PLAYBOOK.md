@@ -517,3 +517,29 @@ At the beginning of each session:
   - IAM/security posture note:
     - Terraform validation succeeded; no resource IDs changed in this phase.
     - Existing ECS task role `cloudwatch:PutMetricData` condition already matches `Chesschat/Dev` namespace.
+- Milestones 7-8 live operational verification (2026-03-02):
+  - Terraform apply execution:
+    - `terraform -chdir=terraform apply -var-file=environments/dev/terraform.tfvars -auto-approve`
+    - Result: `1 added, 1 changed, 1 destroyed` (ECS task definition revision and CloudWatch dashboard update).
+    - Follow-up plan: `No changes`.
+  - Runtime rollout completion:
+    - ECS service updated to task definition `chesschat-dev-task:9` (includes `APP_METRICS_NAMESPACE=Chesschat/Dev`).
+  - Correlation ID verification:
+    - `GET /healthz` and `GET /api/public-config` responses include `x-correlation-id` header.
+  - App metric verification (CloudWatch namespace `Chesschat/Dev`):
+    - Observed datapoints after live E2E:
+      - `WsConnectionsOpened = 2`
+      - `WsConnectionsClosed = 2`
+      - `GamesStarted = 1`
+      - `GamesEnded = 1`
+  - Dashboard verification:
+    - `chesschat-dev-operations-dashboard` contains `Application Health Counters` widget with app metrics.
+  - Evidence artifacts:
+    - `/tmp/chesschat-evidence/m8-2026-03-02/healthz.txt`
+    - `/tmp/chesschat-evidence/m8-2026-03-02/public-config.txt`
+    - `/tmp/chesschat-evidence/m8-2026-03-02/dashboard.json`
+    - `/tmp/chesschat-evidence/m8-2026-03-02/e2e-live-after-rollout.log`
+    - `/tmp/chesschat-evidence/m8-2026-03-02/e2e-summary-after-rollout.json`
+    - `/tmp/chesschat-evidence/m8-2026-03-02/app-metric-data-after-rollout.json`
+  - Remaining portfolio-proof gap:
+    - Intentional failing PR-check screenshot/log and branch-protection automation are pending because local `gh` auth token is invalid.
