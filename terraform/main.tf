@@ -100,6 +100,7 @@ module "github_actions_oidc" {
   ecs_service_name        = module.ecs_compute.service_name
   task_execution_role_arn = module.ecs_identity.task_execution_role_arn
   task_role_arn           = module.ecs_identity.task_role_arn
+  cognito_user_pool_arn   = module.cognito.user_pool_arn
   tags                    = local.common_tags
 }
 

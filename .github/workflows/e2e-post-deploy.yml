@@ -40,7 +40,7 @@ jobs:
       - name: Run live E2E
         run: |
           set -euo pipefail
-          node scripts/e2e-live.mjs | tee e2e-live.log
+          node --experimental-websocket scripts/e2e-live.mjs | tee e2e-live.log
 
       - name: Upload E2E artifacts
         if: always()

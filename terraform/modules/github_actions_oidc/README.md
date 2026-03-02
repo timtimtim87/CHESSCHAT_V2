@@ -9,6 +9,7 @@ Purpose: provision a least-privilege IAM role for GitHub Actions deployments wit
   - ECR push/pull actions
   - ECS deploy actions (describe/register/update)
   - `iam:PassRole` scoped to ECS task execution/task roles
+  - Cognito E2E user lifecycle actions (`AdminCreateUser`, `AdminDeleteUser`, `AdminGetUser`, `AdminSetUserPassword`) scoped to the configured user pool ARN
 
 ## Inputs
 - `github_repository` (`owner/repo`)
@@ -18,6 +19,7 @@ Purpose: provision a least-privilege IAM role for GitHub Actions deployments wit
 - `ecs_service_name`
 - `task_execution_role_arn`
 - `task_role_arn`
+- `cognito_user_pool_arn`
 
 ## Outputs
 - `deploy_role_arn`

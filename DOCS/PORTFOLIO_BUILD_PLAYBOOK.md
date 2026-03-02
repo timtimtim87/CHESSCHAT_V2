@@ -268,6 +268,41 @@ Purpose: keep one practical, interview-ready plan for building CHESSCHAT as an A
     - Cost Explorer month-to-date (`2026-03-01` to `2026-03-02`, estimated):
       - Unblended cost: `$2.3072867404`
     - Portfolio estimate remains on track (`$150-$350/month`) based on current daily burn and budget alarm baseline (`$250`).
+- Phase 10 validation closure attempt (2026-03-02, GitHub Actions):
+  - Manual workflow run:
+    - Workflow: `e2e-post-deploy.yml`
+    - Run ID: `22556404347`
+    - URL: `https://github.com/timtimtim87/CHESSCHAT_V2/actions/runs/22556404347`
+    - Created: `2026-03-02T00:21:07Z`
+    - Completed: `2026-03-02T00:21:24Z`
+    - Result: `failure`
+  - Failure classification:
+    - Category: `auth/iam` (least-privilege gap in GitHub deploy role for E2E user lifecycle operations)
+    - Failing API: `cognito-idp:AdminCreateUser`
+    - Failing principal: `arn:aws:sts::723580627470:assumed-role/chesschat-dev-github-actions-deploy-role/GitHubActions`
+    - Failing resource: `arn:aws:cognito-idp:us-east-1:723580627470:userpool/us-east-1_AWq14lBGV`
+  - Evidence captured to local temp artifacts:
+    - `/tmp/chesschat-evidence/e2e-22556404347/run-view.json`
+    - `/tmp/chesschat-evidence/e2e-22556404347/failed.log`
+    - `/tmp/chesschat-evidence/e2e-22556404347/e2e-live.log`
+  - Control action taken:
+    - Did **not** trigger `deploy-main` from a new `main` commit because E2E gate failed.
+  - Runtime corroboration captured during failure triage:
+    - ECS service snapshot:
+      - `status=ACTIVE`, `running=1`, `desired=1`
+      - Task definition at check time: `arn:aws:ecs:us-east-1:723580627470:task-definition/chesschat-dev-task:4`
+      - Evidence file: `/tmp/chesschat-evidence/ecs-service-2026-03-02.json`
+    - App health probe:
+      - `GET https://app.chess-chat.com/healthz` returned `HTTP/2 200` with `{"status":"ok",...}`
+      - Evidence file: `/tmp/chesschat-evidence/healthz-2026-03-02.txt`
+  - Required remediation before rerun:
+    - Extend `github_actions_oidc` deploy role policy to allow Cognito admin ops used by `scripts/e2e-live.mjs`:
+      - `cognito-idp:AdminCreateUser`
+      - `cognito-idp:AdminSetUserPassword`
+      - `cognito-idp:AdminDeleteUser`
+      - `cognito-idp:AdminGetUser`
+      - `cognito-idp:InitiateAuth`
+    - Scope permissions to user pool `us-east-1_AWq14lBGV` only.
 
 ## 6) GitHub Actions Learning Guide
 Goal: implement CI/CD in small, understandable steps.

@@ -56,6 +56,11 @@ variable "task_role_arn" {
   type        = string
 }
 
+variable "cognito_user_pool_arn" {
+  description = "Cognito user pool ARN for E2E admin user lifecycle actions."
+  type        = string
+}
+
 variable "tags" {
   description = "Common tags."
   type        = map(string)

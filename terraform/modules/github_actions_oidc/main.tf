@@ -114,6 +114,18 @@ data "aws_iam_policy_document" "deploy_permissions" {
       values   = ["ecs-tasks.amazonaws.com"]
     }
   }
+
+  statement {
+    sid    = "CognitoE2EUserLifecycle"
+    effect = "Allow"
+    actions = [
+      "cognito-idp:AdminCreateUser",
+      "cognito-idp:AdminDeleteUser",
+      "cognito-idp:AdminGetUser",
+      "cognito-idp:AdminSetUserPassword"
+    ]
+    resources = [var.cognito_user_pool_arn]
+  }
 }
 
 resource "aws_iam_role_policy" "deploy_permissions" {
