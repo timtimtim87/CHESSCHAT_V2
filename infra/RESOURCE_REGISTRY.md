@@ -13,7 +13,7 @@ Purpose: single source of truth for human-readable names, IDs, and ARNs as infra
 
 ## Status
 - Last updated: 2026-03-02
-- Provisioning state: bootstrap backend configured; Phase A network, Phase B data, Phase 4 identity/IAM, Phase 5 compute, Phase 6/7 edge + DNS, Phase E observability/operations, Phase F app MVP deployment validation, and Phase 10 GitHub OIDC deploy IAM baseline applied in `us-east-1`. Phase 10 validation closure is currently blocked on missing Cognito admin permissions in the GitHub deploy role for manual E2E workflow user lifecycle actions.
+- Provisioning state: bootstrap backend configured; Phase A network, Phase B data, Phase 4 identity/IAM, Phase 5 compute, Phase 6/7 edge + DNS, Phase E observability/operations, Phase F app MVP deployment validation, and Phase 10 GitHub OIDC deploy IAM baseline applied in `us-east-1`. Phase 10 validation closure completed with first green `e2e-post-deploy` and `deploy-main` runs on 2026-03-02.
 - Terraform code status:
   - `ecs` module now serves as ECS identity-only IAM foundation.
   - New `ecs_compute` module implemented (ECR, ECS cluster/task/service, ECS service SG).
@@ -36,7 +36,17 @@ Purpose: single source of truth for human-readable names, IDs, and ARNs as infra
     - `e2e-post-deploy` run `22556404347` failed at `Run live E2E`.
     - Root cause: `AccessDeniedException` for `cognito-idp:AdminCreateUser` on user pool `us-east-1_AWq14lBGV` when assumed role was `chesschat-dev-github-actions-deploy-role`.
     - Evidence bundle captured locally at `/tmp/chesschat-evidence/e2e-22556404347/`.
-    - `deploy-main` trigger run intentionally deferred until IAM remediation is applied and E2E gate is green.
+    - Secondary failure during remediation validation: `e2e-post-deploy` run `22556582827` failed with `WebSocket is not defined` in GitHub Actions Node 20 runtime.
+    - Remediations applied:
+      - Added Cognito admin permissions (`AdminCreateUser`, `AdminDeleteUser`, `AdminGetUser`, `AdminSetUserPassword`) to GitHub deploy role policy scoped to user pool ARN `arn:aws:cognito-idp:us-east-1:723580627470:userpool/us-east-1_AWq14lBGV`.
+      - Updated E2E workflow runtime invocation to `node --experimental-websocket`.
+    - First green validation runs after remediation:
+      - `e2e-post-deploy` run `22556628729` (`success`)
+      - `deploy-main` run `22556661125` (`success`)
+    - Deploy evidence artifacts:
+      - `/tmp/chesschat-evidence/e2e-22556628729/`
+      - `/tmp/chesschat-evidence/deploy-22556661125/`
+      - `/tmp/chesschat-evidence/ecs-service-2026-03-02-post-deploy.json`
 
 ## Naming Convention
 - Pattern: `chesschat-<env>-<service>-<purpose>`

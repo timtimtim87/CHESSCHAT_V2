@@ -301,8 +301,49 @@ Purpose: keep one practical, interview-ready plan for building CHESSCHAT as an A
       - `cognito-idp:AdminSetUserPassword`
       - `cognito-idp:AdminDeleteUser`
       - `cognito-idp:AdminGetUser`
-      - `cognito-idp:InitiateAuth`
     - Scope permissions to user pool `us-east-1_AWq14lBGV` only.
+  - Secondary non-IAM failure discovered after IAM remediation:
+    - Workflow run `22556582827` failed with `E2E_FAIL WebSocket is not defined` under GitHub Actions Node 20 runtime.
+    - Fix applied in workflow:
+      - `.github/workflows/e2e-post-deploy.yml` now runs `node --experimental-websocket scripts/e2e-live.mjs`.
+- Phase 10 validation closure success (2026-03-02, GitHub Actions):
+  - Manual E2E first-green run:
+    - Workflow: `e2e-post-deploy.yml`
+    - Run ID: `22556628729`
+    - URL: `https://github.com/timtimtim87/CHESSCHAT_V2/actions/runs/22556628729`
+    - Created: `2026-03-02T00:32:27Z`
+    - Completed: `2026-03-02T00:32:57Z`
+    - Result: `success`
+    - Artifact summary:
+      - Room code: `D1BCD`
+      - Result: `resign`
+      - `historyFoundA=true`, `historyFoundB=true`
+      - Evidence files:
+        - `/tmp/chesschat-evidence/e2e-22556628729/run-view.json`
+        - `/tmp/chesschat-evidence/e2e-22556628729/e2e-summary.json`
+  - Deploy workflow first-green run:
+    - Workflow: `deploy-main.yml`
+    - Run ID: `22556661125`
+    - URL: `https://github.com/timtimtim87/CHESSCHAT_V2/actions/runs/22556661125`
+    - Created: `2026-03-02T00:34:03Z`
+    - Completed: `2026-03-02T00:38:12Z`
+    - Result: `success`
+    - Deployment metadata:
+      - Image URI: `723580627470.dkr.ecr.us-east-1.amazonaws.com/chesschat-dev-app:2400bfac68982ec439bc5ba0b857eeadea43cb99`
+      - Image digest: `sha256:b4936fd2d2e8421c00a372d54643ed0ba7040ba03e629a7556919f5b8b72bf15`
+      - Task definition: `arn:aws:ecs:us-east-1:723580627470:task-definition/chesschat-dev-task:5`
+      - Evidence files:
+        - `/tmp/chesschat-evidence/deploy-22556661125/deploy-metadata.json`
+        - `/tmp/chesschat-evidence/deploy-22556661125/task-definition-updated.json`
+  - Post-deploy runtime corroboration:
+    - ECS service snapshot:
+      - `status=ACTIVE`, `running=1`, `desired=1`
+      - Active task definition: `arn:aws:ecs:us-east-1:723580627470:task-definition/chesschat-dev-task:5`
+      - Includes steady-state/deployment-completed service events.
+      - Evidence file: `/tmp/chesschat-evidence/ecs-service-2026-03-02-post-deploy.json`
+    - App health probe:
+      - `GET https://app.chess-chat.com/healthz` returned `HTTP/2 200` with `{"status":"ok",...}`
+      - Evidence file: `/tmp/chesschat-evidence/healthz-2026-03-02-post-deploy.txt`
 
 ## 6) GitHub Actions Learning Guide
 Goal: implement CI/CD in small, understandable steps.
