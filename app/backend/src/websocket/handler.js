@@ -19,9 +19,13 @@ import {
 import { createAttendee, createMeeting, deleteMeeting } from "../services/chime.js";
 import { applyMove, startNewGame } from "../services/chess.js";
 import { saveGameAndUpdateStats } from "../services/dynamodb.js";
+import { emitAppError, emitGameEnded, emitGameStarted, emitWsConnectionClosed, emitWsConnectionOpened } from "../services/metrics.js";
 import { buildWsError, normalizeWsPayload } from "../utils/errors.js";
 import { log } from "../utils/logger.js";
 import { registerSocket, sendToConnection, unregisterSocket } from "./state.js";
+import { buildRematchOutcome } from "./rematch.js";
+import { forfeitWinnerFromDisconnect, reconnectPauseState, reconnectRestoredState } from "./reconnect.js";
+import { normalizeRoomCode, validateInboundEnvelope, validateRoomCodeForEvent } from "./validation.js";
 
 function send(ws, payload) {
   const normalizedPayload =
@@ -35,14 +39,6 @@ function send(ws, payload) {
           })
         : payload;
   ws.send(JSON.stringify(normalizedPayload));
-}
-
-function normalizeRoomCode(raw) {
-  return String(raw || "").toUpperCase().trim();
-}
-
-function isValidRoomCode(code) {
-  return /^[A-Z0-9]{5}$/.test(code);
 }
 
 function broadcastToRoom(room, payload) {
@@ -165,14 +161,10 @@ async function endGame(roomCode, result) {
   await saveGameAndUpdateStats(gameRecord, whitePlayerId, blackPlayerId, winnerPlayerId);
   await clearReconnectDeadline(roomCode);
   broadcastToRoom(mutation.room, event);
+  await emitGameEnded();
 }
 
 async function handleJoinRoom(ws, roomCode) {
-  if (!isValidRoomCode(roomCode)) {
-    send(ws, buildWsError("INVALID_ROOM_CODE", { context: { roomCode } }));
-    return;
-  }
-
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const room = await getRoom(roomCode);
 
@@ -228,13 +220,7 @@ async function handleJoinRoom(ws, roomCode) {
       if (nextRoom.active_game && nextRoom.active_game.disconnect_deadline_ms && !wasConnected) {
         nextRoom.active_game.disconnect_deadline_ms = null;
         nextRoom.active_game.disconnected_user_id = null;
-        reconnectEvent = {
-          type: OutboundEvent.RECONNECT_STATE,
-          roomCode,
-          status: "restored",
-          disconnectedUserId: null,
-          graceEndsAt: null
-        };
+        reconnectEvent = reconnectRestoredState({ roomCode });
       }
 
       return {
@@ -378,6 +364,7 @@ async function handleStartGame(ws, roomCode) {
   }
 
   broadcastToRoom(mutation.room, mutation.meta);
+  await emitGameStarted();
 }
 
 async function handleMakeMove(ws, roomCode, move) {
@@ -540,6 +527,7 @@ async function handleMakeMove(ws, roomCode, move) {
       mutation.meta.blackPlayerId,
       mutation.meta.winnerPlayerId
     );
+    await emitGameEnded();
   }
 
   broadcastToRoom(mutation.room, mutation.meta.event);
@@ -608,76 +596,20 @@ async function handleRequestRematch(ws, roomCode) {
 
 async function handleRespondRematch(ws, roomCode, accept) {
   const mutation = await mutateRoom(roomCode, (nextRoom) => {
-    if (typeof accept !== "boolean") {
-      return {
-        error: {
-          type: OutboundEvent.ERROR,
-          code: "INVALID_REMATCH_RESPONSE",
-          message: "Invalid rematch response."
-        }
-      };
-    }
-
     if (!nextRoom.rematch_requested_by) {
       return {
         error: { type: OutboundEvent.ERROR, code: "REMATCH_NOT_PENDING", message: "No pending rematch request." }
       };
     }
 
-    if (nextRoom.rematch_requested_by === ws.userId) {
-      return {
-        error: { type: OutboundEvent.ERROR, code: "REMATCH_NOT_PENDING", message: "No pending rematch request." }
-      };
-    }
-
-    const requestedBy = nextRoom.rematch_requested_by;
-
-    if (!accept) {
-      nextRoom.rematch_requested_by = null;
-      return {
-        room: nextRoom,
-        meta: {
-          event: {
-            type: OutboundEvent.REMATCH_DECLINED,
-            roomCode,
-            requestedBy,
-            declinedBy: ws.userId
-          }
-        }
-      };
-    }
-
-    const players = Object.keys(nextRoom.participants);
-    const [whitePlayerId, blackPlayerId] =
-      Math.random() < 0.5 ? [players[0], players[1]] : [players[1], players[0]];
-    nextRoom.active_game = startNewGame(roomCode, whitePlayerId, blackPlayerId, config.app.gameDurationSeconds);
-    nextRoom.active_game.disconnect_deadline_ms = null;
-    nextRoom.active_game.disconnected_user_id = null;
-    nextRoom.rematch_requested_by = null;
-
-    return {
+    return buildRematchOutcome({
       room: nextRoom,
-      meta: {
-        rematchAcceptedEvent: {
-          type: OutboundEvent.REMATCH_ACCEPTED,
-          roomCode,
-          requestedBy,
-          acceptedBy: ws.userId
-        },
-        gameStartedEvent: {
-          type: OutboundEvent.GAME_STARTED,
-          gameId: nextRoom.active_game.game_id,
-          whitePlayerId,
-          blackPlayerId,
-          fen: nextRoom.active_game.board_fen,
-          moves: [...nextRoom.active_game.moves],
-          turn: nextRoom.active_game.turn,
-          timeWhite: nextRoom.active_game.time_white,
-          timeBlack: nextRoom.active_game.time_black,
-          serverTimestampMs: Date.now()
-        }
-      }
-    };
+      roomCode,
+      requestedBy: nextRoom.rematch_requested_by,
+      responderUserId: ws.userId,
+      accept,
+      gameDurationSeconds: config.app.gameDurationSeconds
+    });
   });
 
   if (!mutation.ok) {
@@ -697,6 +629,7 @@ async function handleRespondRematch(ws, roomCode, accept) {
 
   if (mutation.meta.gameStartedEvent) {
     broadcastToRoom(mutation.room, mutation.meta.gameStartedEvent);
+    await emitGameStarted();
   }
 }
 
@@ -725,16 +658,15 @@ async function handleLeaveRoom(ws) {
     let reconnectEvent = null;
     let reconnectDeadlineMs = null;
     if (nextRoom.active_game && connectedIds.length === 1) {
-      reconnectDeadlineMs = Date.now() + config.app.reconnectGraceSeconds * 1000;
+      const pauseState = reconnectPauseState({
+        roomCode: connection.roomCode,
+        disconnectedUserId: ws.userId,
+        reconnectGraceSeconds: config.app.reconnectGraceSeconds
+      });
+      reconnectDeadlineMs = pauseState.reconnectDeadlineMs;
       nextRoom.active_game.disconnect_deadline_ms = reconnectDeadlineMs;
       nextRoom.active_game.disconnected_user_id = ws.userId;
-      reconnectEvent = {
-        type: OutboundEvent.RECONNECT_STATE,
-        roomCode: connection.roomCode,
-        status: "paused",
-        disconnectedUserId: ws.userId,
-        graceEndsAt: reconnectDeadlineMs
-      };
+      reconnectEvent = pauseState.event;
     }
 
     return {
@@ -805,12 +737,7 @@ async function handleReconnectTimeout(roomCode) {
     return;
   }
 
-  const winner =
-    disconnectedUserId === room.active_game.white_player_id
-      ? "black"
-      : disconnectedUserId === room.active_game.black_player_id
-        ? "white"
-        : "draw";
+  const winner = forfeitWinnerFromDisconnect(room.active_game, disconnectedUserId);
 
   await endGame(roomCode, { winner, reason: "forfeit_disconnect", pgn: "" });
 }
@@ -834,10 +761,18 @@ export function installWebSocketServer(wss) {
     }
 
     ws.connectionId = uuidv4();
+    ws.sessionId = uuidv4();
     ws.userId = auth.sub;
     ws.isAlive = true;
 
     registerSocket(ws.connectionId, ws);
+    emitWsConnectionOpened().catch(() => null);
+
+    log("info", "ws_connected", {
+      connectionId: ws.connectionId,
+      sessionId: ws.sessionId,
+      userId: ws.userId
+    });
 
     ws.on("pong", () => {
       ws.isAlive = true;
@@ -849,11 +784,26 @@ export function installWebSocketServer(wss) {
         message = JSON.parse(raw.toString());
       } catch {
         send(ws, buildWsError("BAD_JSON"));
+        await emitAppError();
         return;
       }
 
       try {
-        const roomCode = normalizeRoomCode(message.roomCode);
+        const envelopeValidation = validateInboundEnvelope(message);
+        if (!envelopeValidation.ok) {
+          send(ws, envelopeValidation.error);
+          await emitAppError();
+          return;
+        }
+
+        const roomValidation = validateRoomCodeForEvent(message);
+        if (!roomValidation.ok) {
+          send(ws, roomValidation.error);
+          await emitAppError();
+          return;
+        }
+
+        const roomCode = roomValidation.roomCode ?? normalizeRoomCode(message.roomCode);
         switch (message.type) {
           case InboundEvent.JOIN_ROOM:
             await handleJoinRoom(ws, roomCode);
@@ -881,20 +831,29 @@ export function installWebSocketServer(wss) {
             break;
           default:
             send(ws, buildWsError("UNKNOWN_EVENT", { context: { eventType: message.type } }));
+            await emitAppError();
         }
       } catch (error) {
         log("error", "websocket_message_handler_failed", {
           connectionId: ws.connectionId,
+          sessionId: ws.sessionId,
           userId: ws.userId,
           error: error.message
         });
         send(ws, buildWsError("INTERNAL_ERROR"));
+        await emitAppError();
       }
     });
 
     ws.on("close", async () => {
       await handleLeaveRoom(ws).catch(() => null);
       unregisterSocket(ws.connectionId);
+      emitWsConnectionClosed().catch(() => null);
+      log("info", "ws_disconnected", {
+        connectionId: ws.connectionId,
+        sessionId: ws.sessionId,
+        userId: ws.userId
+      });
     });
   });
 

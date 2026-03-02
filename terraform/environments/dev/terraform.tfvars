@@ -35,6 +35,7 @@ ecs_container_environment = {
   COGNITO_HOSTED_UI_BASE_URL = "https://chesschat-dev-6c96bb.auth.us-east-1.amazoncognito.com"
   CHIME_REGION               = "us-east-1"
   APP_DOMAIN                 = "https://app.chess-chat.com"
+  APP_METRICS_NAMESPACE      = "Chesschat/Dev"
   ROOM_TTL_SECONDS           = "3600"
   GAME_DURATION_SECONDS      = "300"
   RECONNECT_GRACE_SECONDS    = "60"

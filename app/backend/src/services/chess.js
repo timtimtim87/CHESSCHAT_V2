@@ -18,7 +18,12 @@ export function startNewGame(roomCode, whitePlayerId, blackPlayerId, durationSec
 
 export function applyMove(fen, move) {
   const chess = new Chess(fen === "start" ? undefined : fen);
-  const applied = chess.move(move);
+  let applied = null;
+  try {
+    applied = chess.move(move);
+  } catch {
+    return { ok: false };
+  }
 
   if (!applied) {
     return { ok: false };

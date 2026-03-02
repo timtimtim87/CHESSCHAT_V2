@@ -127,6 +127,12 @@ variable "monthly_budget_limit_usd" {
   default     = 250
 }
 
+variable "app_metric_namespace" {
+  description = "CloudWatch namespace for app-level custom metrics."
+  type        = string
+  default     = null
+}
+
 variable "budget_alert_thresholds" {
   description = "Budget alert thresholds as percentages."
   type        = list(number)

@@ -48,6 +48,7 @@ export const config = {
     roomTtlSeconds: Number(process.env.ROOM_TTL_SECONDS || 3600),
     gameDurationSeconds: Number(process.env.GAME_DURATION_SECONDS || 300),
     heartbeatIntervalMs: Number(process.env.HEARTBEAT_INTERVAL_MS || 30000),
-    reconnectGraceSeconds: Number(process.env.RECONNECT_GRACE_SECONDS || 60)
+    reconnectGraceSeconds: Number(process.env.RECONNECT_GRACE_SECONDS || 60),
+    metricsNamespace: process.env.APP_METRICS_NAMESPACE || "Chesschat/Dev"
   }
 };

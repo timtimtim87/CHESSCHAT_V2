@@ -1,8 +1,9 @@
 locals {
-  module_name    = "monitoring"
-  name_prefix    = "${var.project}-${var.environment}"
-  alerts_topic   = "${local.name_prefix}-alerts"
-  dashboard_name = "${local.name_prefix}-operations-dashboard"
+  module_name          = "monitoring"
+  name_prefix          = "${var.project}-${var.environment}"
+  alerts_topic         = "${local.name_prefix}-alerts"
+  dashboard_name       = "${local.name_prefix}-operations-dashboard"
+  app_metric_namespace = var.app_metric_namespace != null ? var.app_metric_namespace : "${title(var.project)}/${title(var.environment)}"
 
   alarm_actions = var.enabled ? [aws_sns_topic.alerts[0].arn] : []
 
@@ -85,7 +86,30 @@ locals {
           ]
         }
       }
-    ] : []
+    ] : [],
+    [
+      {
+        "type"   = "metric"
+        "x"      = 0
+        "y"      = 12
+        "width"  = 24
+        "height" = 6
+        "properties" = {
+          "title"  = "Application Health Counters"
+          "view"   = "timeSeries"
+          "region" = var.aws_region
+          "stat"   = "Sum"
+          "period" = var.alarm_period_seconds
+          "metrics" = [
+            [local.app_metric_namespace, "WsConnectionsOpened"],
+            [".", "WsConnectionsClosed"],
+            [".", "GamesStarted"],
+            [".", "GamesEnded"],
+            [".", "AppErrors"]
+          ]
+        }
+      }
+    ]
   )
 }
 

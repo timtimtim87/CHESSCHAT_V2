@@ -32,6 +32,19 @@ Purpose: single source of truth for human-readable names, IDs, and ARNs as infra
     - Added `github_actions_oidc` module (IAM OIDC provider + least-privilege deploy role).
     - ECS service drift guard added (`ignore_changes = [task_definition]`) so CI-driven task definition revisions persist.
     - Terraform apply succeeded with `3 added, 0 changed, 0 destroyed`.
+  - Milestones 5-8 implementation updates (2026-03-02, no new AWS resource IDs):
+    - Added API/WS contract source-of-truth doc: `DOCS/API_WS_CONTRACT.md`.
+    - Added PR quality workflows:
+      - `.github/workflows/pr-backend-quality.yml`
+      - `.github/workflows/pr-frontend-quality.yml`
+      - `.github/workflows/pr-terraform-quality.yml`
+    - Added app-level observability plumbing:
+      - HTTP correlation IDs (`x-correlation-id`) and request logs.
+      - WS session-level logging (`sessionId`, `connectionId`).
+      - Custom app metrics emission (`WsConnectionsOpened`, `WsConnectionsClosed`, `GamesStarted`, `GamesEnded`, `AppErrors`).
+    - Monitoring dashboard module now includes app-level metric widget using namespace `Chesschat/Dev`.
+    - Runtime env update in Terraform desired state:
+      - `APP_METRICS_NAMESPACE = "Chesschat/Dev"` in `terraform/environments/dev/terraform.tfvars`.
 - Workflow validation evidence update (2026-03-02):
     - `e2e-post-deploy` run `22556404347` failed at `Run live E2E`.
     - Root cause: `AccessDeniedException` for `cognito-idp:AdminCreateUser` on user pool `us-east-1_AWq14lBGV` when assumed role was `chesschat-dev-github-actions-deploy-role`.

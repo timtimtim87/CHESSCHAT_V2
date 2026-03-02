@@ -464,3 +464,56 @@ At the beginning of each session:
 3. Read current Terraform baseline: `terraform/backend.tf`, `terraform/main.tf`, `terraform/README.md`
 4. Propose next smallest high-impact step and explain why.
 5. Include learning notes for Tim while making changes.
+
+## 10) Milestones 5-8 Implementation Update (2026-03-02)
+- Milestone 5 (API/WS interface freeze):
+  - Added source-of-truth contract doc: `DOCS/API_WS_CONTRACT.md`.
+  - Documented/froze HTTP contracts for:
+    - `/healthz`
+    - `/api/public-config`
+    - `/api/me`
+    - `/api/history`
+  - Documented/froze WS contracts including active runtime supplemental events:
+    - `video_ready`
+    - `heartbeat_ack`
+  - Runtime validation hardening:
+    - Added shared WS envelope + roomCode validators in `app/backend/src/websocket/validation.js`.
+    - Added `INVALID_PAYLOAD` normalized error code.
+    - Enforced roomCode validation for all room-bound inbound events.
+    - Kept normalized WS/HTTP error shapes unchanged.
+- Milestone 6 (test suite foundation):
+  - Backend:
+    - Added `node:test` coverage suite for chess, error mapping, rematch transitions, reconnect transitions, and WS payload validation.
+    - Result: backend coverage `91.34%` statements (>=70% target).
+  - Frontend:
+    - Added Vitest + Testing Library coverage suite for:
+      - Lobby profile/history states and room join action.
+      - Room reconnect toast, resign confirm modal, and result modal render.
+      - Reducer state transitions (`appState`).
+    - Result: frontend coverage `61.92%` statements (>=60% target).
+  - E2E:
+    - Extended deterministic live smoke in `scripts/e2e-live.mjs` to include rematch request/decline after game end.
+- Milestone 7 (CI quality gate expansion):
+  - Added PR workflows:
+    - `.github/workflows/pr-backend-quality.yml`
+    - `.github/workflows/pr-frontend-quality.yml`
+    - `.github/workflows/pr-terraform-quality.yml`
+  - Existing `deploy-main` main-only and manual `e2e-post-deploy` workflows unchanged.
+- Milestone 8 (security + operational readiness):
+  - Correlation IDs:
+    - Added HTTP correlation middleware and request logging with `x-correlation-id`.
+    - Added WS `sessionId`/`connectionId` lifecycle logging.
+  - App-level custom metrics:
+    - Added backend metric publisher for:
+      - `WsConnectionsOpened`
+      - `WsConnectionsClosed`
+      - `GamesStarted`
+      - `GamesEnded`
+      - `AppErrors`
+    - Added app metric namespace runtime env (`APP_METRICS_NAMESPACE=Chesschat/Dev`).
+    - Added CloudWatch dashboard widget for app-level counters in monitoring module.
+  - Runbook:
+    - Added end-to-end triage flow with correlation IDs in `DOCS/TRIAGE_RUNBOOK.md`.
+  - IAM/security posture note:
+    - Terraform validation succeeded; no resource IDs changed in this phase.
+    - Existing ECS task role `cloudwatch:PutMetricData` condition already matches `Chesschat/Dev` namespace.

@@ -6,6 +6,7 @@ import { WebSocketServer } from "ws";
 import { config } from "./config.js";
 import { connectRedis } from "./services/redis.js";
 import { requireHttpAuth } from "./middleware/auth.js";
+import { attachCorrelationId, logHttpAccess } from "./middleware/correlation.js";
 import healthRouter from "./routes/health.js";
 import meRouter from "./routes/me.js";
 import historyRouter from "./routes/history.js";
@@ -19,6 +20,8 @@ const publicDir = path.resolve(__dirname, "../public");
 
 const app = express();
 app.use(express.json());
+app.use(attachCorrelationId);
+app.use(logHttpAccess);
 app.use(healthRouter);
 app.use(publicConfigRouter);
 app.use("/api", requireHttpAuth, meRouter, historyRouter);

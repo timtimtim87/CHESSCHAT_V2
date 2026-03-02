@@ -13,6 +13,7 @@ const ERROR_CATALOG = {
   ILLEGAL_MOVE: { message: "Illegal move.", retryable: false },
   ROOM_NOT_FOUND: { message: "Room does not exist.", retryable: false },
   ROOM_UPDATE_CONFLICT: { message: "Concurrent room update detected. Please retry.", retryable: true },
+  INVALID_PAYLOAD: { message: "Invalid payload envelope.", retryable: false },
   BAD_JSON: { message: "Invalid JSON payload.", retryable: true },
   UNKNOWN_EVENT: { message: "Unknown event type.", retryable: false },
   INTERNAL_ERROR: { message: "Unexpected error handling request.", retryable: true }

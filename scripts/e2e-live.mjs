@@ -181,6 +181,17 @@ async function main() {
     send(wsBlack, 'resign', { roomCode: room });
     const [endedA, endedB] = await Promise.all([waitEndedA, waitEndedB]);
 
+    console.log('Requesting and declining rematch ...');
+    const waitRematchRequestedA = waitForEvent(wsA, 'rematch_requested', 20000);
+    const waitRematchRequestedB = waitForEvent(wsB, 'rematch_requested', 20000);
+    send(wsA, 'request_rematch', { roomCode: room });
+    await Promise.all([waitRematchRequestedA, waitRematchRequestedB]);
+
+    const waitRematchDeclinedA = waitForEvent(wsA, 'rematch_declined', 20000);
+    const waitRematchDeclinedB = waitForEvent(wsB, 'rematch_declined', 20000);
+    send(wsB, 'respond_rematch', { roomCode: room, accept: false });
+    await Promise.all([waitRematchDeclinedA, waitRematchDeclinedB]);
+
     console.log('Fetching history ...');
     const historyA = await apiGet('/api/history', authA.accessToken);
     const historyB = await apiGet('/api/history', authB.accessToken);
