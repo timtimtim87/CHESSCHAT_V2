@@ -23,6 +23,7 @@ node_modules/
 /build
 /out
 /coverage/
+app/frontend/dist/
 
 # Environment files
 .env
