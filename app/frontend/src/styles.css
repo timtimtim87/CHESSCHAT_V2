@@ -50,10 +50,20 @@ p {
 
 .auth-card,
 .lobby-card {
-  width: min(500px, 100%);
+  width: min(680px, 100%);
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+.lobby-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.history-card {
+  grid-column: span 2;
 }
 
 .top-row {
@@ -74,6 +84,11 @@ button {
   padding: 10px 14px;
   background: #f0f4f8;
   cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 button.primary {
@@ -139,6 +154,7 @@ button.primary {
 
 .controls {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 12px;
 }
@@ -154,6 +170,42 @@ button.primary {
 .inline-error {
   color: #b42318;
   margin-top: 4px;
+}
+
+.resume-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid #c9d6e2;
+  border-radius: 10px;
+  background: #edf3f8;
+  padding: 10px;
+}
+
+.profile-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+}
+
+.history-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-item {
+  border: 1px solid #d7e0ea;
+  border-radius: 10px;
+  background: #f7fafc;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 
 .socket-status {
@@ -193,12 +245,84 @@ button.primary {
   z-index: 50;
 }
 
+.history-panel {
+  margin-top: 14px;
+  border: 1px solid #d7e0ea;
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.move-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 12px;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: #0f172a99;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  z-index: 60;
+}
+
+.modal-card {
+  width: min(560px, 100%);
+  background: #ffffff;
+  border: 1px solid #c8d2dd;
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 20px 38px #0f172a3d;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.result-pgn {
+  max-height: 120px;
+  overflow: auto;
+  font-size: 0.9rem;
+  background: #f8fafc;
+  border: 1px solid #d5dee8;
+  border-radius: 8px;
+  padding: 8px;
+}
+
 .error {
   color: #b42318;
 }
 
 @media (max-width: 960px) {
   .room-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .lobby-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .history-card {
+    grid-column: span 1;
+  }
+
+  .profile-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .resume-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .move-list {
     grid-template-columns: 1fr;
   }
 }

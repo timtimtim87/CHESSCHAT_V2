@@ -11,11 +11,20 @@ export const initialAppState = {
   room_state: {
     code: "",
     participants: [],
-    status: "idle"
+    status: "idle",
+    reconnect: {
+      status: "none",
+      disconnectedUserId: null,
+      graceEndsAt: null
+    },
+    rematch: {
+      requestedBy: null
+    }
   },
   game_state: {
     active: false,
-    game: null
+    game: null,
+    lastResult: null
   },
   media_state: {
     status: "idle",
@@ -63,7 +72,88 @@ export function appStateReducer(state, action) {
         room_state: {
           ...state.room_state,
           participants: action.participants || [],
-          status: "joined"
+          status: "joined",
+          rematch: {
+            requestedBy: action.rematchRequestedBy || null
+          },
+          reconnect:
+            action.activeGame?.disconnectDeadlineMs
+              ? {
+                  status: "paused",
+                  disconnectedUserId: action.activeGame.disconnectedUserId,
+                  graceEndsAt: action.activeGame.disconnectDeadlineMs
+                }
+              : {
+                  status: "none",
+                  disconnectedUserId: null,
+                  graceEndsAt: null
+                }
+        },
+        game_state: action.activeGame
+          ? {
+              ...state.game_state,
+              active: true,
+              game: {
+                gameId: action.activeGame.gameId,
+                whitePlayerId: action.activeGame.whitePlayerId,
+                blackPlayerId: action.activeGame.blackPlayerId,
+                fen: action.activeGame.fen,
+                moves: action.activeGame.moves || [],
+                moveSans: action.activeGame.moveSans || [],
+                turn: action.activeGame.turn,
+                timeWhite: action.activeGame.timeWhite,
+                timeBlack: action.activeGame.timeBlack,
+                serverTimestampMs: action.activeGame.serverTimestampMs || Date.now()
+              }
+            }
+          : state.game_state
+      };
+    case "REMATCH_REQUESTED":
+      return {
+        ...state,
+        room_state: {
+          ...state.room_state,
+          rematch: {
+            requestedBy: action.requestedBy || null
+          }
+        }
+      };
+    case "REMATCH_CLEARED":
+      return {
+        ...state,
+        room_state: {
+          ...state.room_state,
+          rematch: {
+            requestedBy: null
+          }
+        }
+      };
+    case "PARTICIPANT_JOINED":
+      return {
+        ...state,
+        room_state: {
+          ...state.room_state,
+          participants: action.participants || state.room_state.participants
+        }
+      };
+    case "PARTICIPANT_LEFT":
+      return {
+        ...state,
+        room_state: {
+          ...state.room_state,
+          participants: action.participants || state.room_state.participants
+        }
+      };
+    case "RECONNECT_STATE":
+      return {
+        ...state,
+        room_state: {
+          ...state.room_state,
+          reconnect: {
+            status: action.status || "none",
+            disconnectedUserId: action.disconnectedUserId || null,
+            graceEndsAt: action.graceEndsAt || null
+          }
         }
       };
     case "VIDEO_READY":
@@ -127,9 +217,18 @@ export function appStateReducer(state, action) {
     case "GAME_STARTED":
       return {
         ...state,
+        room_state: {
+          ...state.room_state,
+          reconnect: {
+            status: "none",
+            disconnectedUserId: null,
+            graceEndsAt: null
+          }
+        },
         game_state: {
           active: true,
-          game: action.game
+          game: action.game,
+          lastResult: null
         }
       };
     case "MOVE_MADE":
@@ -143,18 +242,30 @@ export function appStateReducer(state, action) {
           game: {
             ...state.game_state.game,
             fen: action.fen,
+            moves: action.moves || state.game_state.game.moves,
+            moveSans: action.moveSans || state.game_state.game.moveSans,
             turn: action.turn,
             timeWhite: action.timeWhite,
-            timeBlack: action.timeBlack
+            timeBlack: action.timeBlack,
+            serverTimestampMs: action.serverTimestampMs || Date.now()
           }
         }
       };
     case "GAME_ENDED":
       return {
         ...state,
+        room_state: {
+          ...state.room_state,
+          reconnect: {
+            status: "none",
+            disconnectedUserId: null,
+            graceEndsAt: null
+          }
+        },
         game_state: {
           active: false,
-          game: null
+          game: null,
+          lastResult: action.result || null
         }
       };
     case "SET_BLOCKING_ERROR":

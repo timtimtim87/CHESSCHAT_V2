@@ -2,6 +2,7 @@ import Redis from "ioredis";
 import { config } from "../config.js";
 
 const ROOM_EXPIRY_ZSET = "room_expiries";
+const ROOM_RECONNECT_DEADLINES_ZSET = "room_reconnect_deadlines";
 
 export const redisClient = new Redis({
   host: config.redis.host,
@@ -108,6 +109,7 @@ export async function mutateRoom(roomCode, mutator, options = {}) {
 export async function deleteRoom(roomCode) {
   await redisClient.del(roomKey(roomCode));
   await redisClient.zrem(ROOM_EXPIRY_ZSET, roomCode);
+  await redisClient.zrem(ROOM_RECONNECT_DEADLINES_ZSET, roomCode);
 }
 
 export async function setConnection(connectionId, value, ttlSeconds) {
@@ -130,4 +132,16 @@ export async function getExpiringRooms(untilTimestampMs) {
 
 export async function removeRoomFromExpiryIndex(roomCode) {
   await redisClient.zrem(ROOM_EXPIRY_ZSET, roomCode);
+}
+
+export async function setReconnectDeadline(roomCode, deadlineTimestampMs) {
+  await redisClient.zadd(ROOM_RECONNECT_DEADLINES_ZSET, deadlineTimestampMs, roomCode);
+}
+
+export async function clearReconnectDeadline(roomCode) {
+  await redisClient.zrem(ROOM_RECONNECT_DEADLINES_ZSET, roomCode);
+}
+
+export async function getExpiredReconnectDeadlines(untilTimestampMs) {
+  return redisClient.zrangebyscore(ROOM_RECONNECT_DEADLINES_ZSET, 0, untilTimestampMs);
 }

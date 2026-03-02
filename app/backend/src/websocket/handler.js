@@ -3,14 +3,17 @@ import { InboundEvent, OutboundEvent } from "./events.js";
 import { config } from "../config.js";
 import { verifyAccessToken } from "../middleware/auth.js";
 import {
+  clearReconnectDeadline,
   createRoomIfAbsent,
   deleteConnection,
   deleteRoom,
+  getExpiredReconnectDeadlines,
   getConnection,
   getExpiringRooms,
   getRoom,
   mutateRoom,
   removeRoomFromExpiryIndex,
+  setReconnectDeadline,
   setConnection
 } from "../services/redis.js";
 import { createAttendee, createMeeting, deleteMeeting } from "../services/chime.js";
@@ -44,8 +47,54 @@ function isValidRoomCode(code) {
 
 function broadcastToRoom(room, payload) {
   Object.values(room.participants).forEach((participant) => {
-    sendToConnection(participant.connectionId, payload);
+    if (participant.connectionId) {
+      sendToConnection(participant.connectionId, payload);
+    }
   });
+}
+
+function connectedParticipantIds(room) {
+  return Object.values(room.participants)
+    .filter((participant) => participant.connected)
+    .map((participant) => participant.userId);
+}
+
+function participantPresence(room) {
+  return Object.values(room.participants).map((participant) => ({
+    userId: participant.userId,
+    connected: Boolean(participant.connected)
+  }));
+}
+
+function activeGameSnapshot(room) {
+  if (!room.active_game) {
+    return null;
+  }
+  return {
+    gameId: room.active_game.game_id,
+    whitePlayerId: room.active_game.white_player_id,
+    blackPlayerId: room.active_game.black_player_id,
+    fen: room.active_game.board_fen,
+    moves: [...room.active_game.moves],
+    moveSans: [...(room.active_game.move_sans || [])],
+    turn: room.active_game.turn,
+    timeWhite: room.active_game.time_white,
+    timeBlack: room.active_game.time_black,
+    disconnectDeadlineMs: room.active_game.disconnect_deadline_ms || null,
+    disconnectedUserId: room.active_game.disconnected_user_id || null,
+    serverTimestampMs: Date.now()
+  };
+}
+
+function roomJoinedPayload(room, roomCode) {
+  return {
+    type: OutboundEvent.ROOM_JOINED,
+    roomCode,
+    participants: participantPresence(room),
+    expiresAt: room.expiresAt,
+    activeGame: activeGameSnapshot(room),
+    rematchRequestedBy: room.rematch_requested_by || null
+  };
 }
 
 async function endGame(roomCode, result) {
@@ -85,6 +134,7 @@ async function endGame(roomCode, result) {
       ended_at: Date.now()
     });
     nextRoom.active_game = null;
+    nextRoom.rematch_requested_by = null;
 
     return {
       room: nextRoom,
@@ -113,6 +163,7 @@ async function endGame(roomCode, result) {
 
   const { gameRecord, whitePlayerId, blackPlayerId, winnerPlayerId, event } = mutation.meta;
   await saveGameAndUpdateStats(gameRecord, whitePlayerId, blackPlayerId, winnerPlayerId);
+  await clearReconnectDeadline(roomCode);
   broadcastToRoom(mutation.room, event);
 }
 
@@ -141,6 +192,7 @@ async function handleJoinRoom(ws, roomCode) {
         expiresAt: Date.now() + config.app.roomTtlSeconds * 1000,
         games_played: [],
         active_game: null,
+        rematch_requested_by: null,
         chime_meeting: null
       };
 
@@ -150,12 +202,7 @@ async function handleJoinRoom(ws, roomCode) {
       }
 
       await setConnection(ws.connectionId, { userId: ws.userId, roomCode });
-      send(ws, {
-        type: OutboundEvent.ROOM_JOINED,
-        roomCode,
-        participants: Object.keys(initialRoom.participants),
-        expiresAt: initialRoom.expiresAt
-      });
+      send(ws, roomJoinedPayload(initialRoom, roomCode));
       return;
     }
 
@@ -167,15 +214,35 @@ async function handleJoinRoom(ws, roomCode) {
         };
       }
 
+      const wasConnected = nextRoom.participants[ws.userId]?.connected;
       nextRoom.participants[ws.userId] = {
         userId: ws.userId,
         connectionId: ws.connectionId,
         joinedAt: nextRoom.participants[ws.userId]?.joinedAt || Date.now(),
         connected: true
       };
-      nextRoom.status = Object.keys(nextRoom.participants).length === 2 ? "both_connected" : "waiting";
+      const connectedCount = connectedParticipantIds(nextRoom).length;
+      nextRoom.status = connectedCount === 2 ? "both_connected" : "waiting";
 
-      return { room: nextRoom };
+      let reconnectEvent = null;
+      if (nextRoom.active_game && nextRoom.active_game.disconnect_deadline_ms && !wasConnected) {
+        nextRoom.active_game.disconnect_deadline_ms = null;
+        nextRoom.active_game.disconnected_user_id = null;
+        reconnectEvent = {
+          type: OutboundEvent.RECONNECT_STATE,
+          roomCode,
+          status: "restored",
+          disconnectedUserId: null,
+          graceEndsAt: null
+        };
+      }
+
+      return {
+        room: nextRoom,
+        meta: {
+          reconnectEvent
+        }
+      };
     });
 
     if (!joinMutation.ok) {
@@ -188,12 +255,20 @@ async function handleJoinRoom(ws, roomCode) {
 
     const joinedRoom = joinMutation.room;
     await setConnection(ws.connectionId, { userId: ws.userId, roomCode });
+    await clearReconnectDeadline(roomCode);
+
     broadcastToRoom(joinedRoom, {
-      type: OutboundEvent.ROOM_JOINED,
+      type: OutboundEvent.PARTICIPANT_JOINED,
+      userId: ws.userId,
       roomCode,
-      participants: Object.keys(joinedRoom.participants),
-      expiresAt: joinedRoom.expiresAt
+      participants: participantPresence(joinedRoom)
     });
+
+    broadcastToRoom(joinedRoom, roomJoinedPayload(joinedRoom, roomCode));
+
+    if (joinMutation.meta?.reconnectEvent) {
+      broadcastToRoom(joinedRoom, joinMutation.meta.reconnectEvent);
+    }
 
     if (joinedRoom.status !== "both_connected" || joinedRoom.chime_meeting) {
       return;
@@ -264,6 +339,9 @@ async function handleStartGame(ws, roomCode) {
     const [whitePlayerId, blackPlayerId] =
       Math.random() < 0.5 ? [players[0], players[1]] : [players[1], players[0]];
     nextRoom.active_game = startNewGame(roomCode, whitePlayerId, blackPlayerId, config.app.gameDurationSeconds);
+    nextRoom.active_game.disconnect_deadline_ms = null;
+    nextRoom.active_game.disconnected_user_id = null;
+    nextRoom.rematch_requested_by = null;
 
     return {
       room: nextRoom,
@@ -273,9 +351,12 @@ async function handleStartGame(ws, roomCode) {
         whitePlayerId,
         blackPlayerId,
         fen: nextRoom.active_game.board_fen,
+        moves: [...nextRoom.active_game.moves],
+        moveSans: [...(nextRoom.active_game.move_sans || [])],
         turn: nextRoom.active_game.turn,
         timeWhite: nextRoom.active_game.time_white,
-        timeBlack: nextRoom.active_game.time_black
+        timeBlack: nextRoom.active_game.time_black,
+        serverTimestampMs: Date.now()
       }
     };
   });
@@ -308,6 +389,21 @@ async function handleMakeMove(ws, roomCode, move) {
     }
 
     const game = nextRoom.active_game;
+    if (game.disconnect_deadline_ms) {
+      return {
+        error: {
+          type: OutboundEvent.ERROR,
+          code: "GAME_PAUSED",
+          message: "Game is paused while waiting for reconnect.",
+          retryable: true,
+          context: {
+            disconnectedUserId: game.disconnected_user_id,
+            graceEndsAt: game.disconnect_deadline_ms
+          }
+        }
+      };
+    }
+
     const expectedPlayer = game.turn === "white" ? game.white_player_id : game.black_player_id;
     if (expectedPlayer !== ws.userId) {
       return { error: { type: OutboundEvent.ERROR, code: "NOT_YOUR_TURN", message: "Wait for your turn." } };
@@ -327,6 +423,8 @@ async function handleMakeMove(ws, roomCode, move) {
 
     game.board_fen = applied.newFen;
     game.moves.push(move);
+    game.move_sans = game.move_sans || [];
+    game.move_sans.push(applied.san);
     game.turn = game.turn === "white" ? "black" : "white";
     game.last_move_at = Date.now();
 
@@ -410,10 +508,14 @@ async function handleMakeMove(ws, roomCode, move) {
         event: {
           type: OutboundEvent.MOVE_MADE,
           move,
+          moveSan: applied.san,
+          moves: [...game.moves],
+          moveSans: [...(game.move_sans || [])],
           fen: game.board_fen,
           turn: game.turn,
           timeWhite: game.time_white,
-          timeBlack: game.time_black
+          timeBlack: game.time_black,
+          serverTimestampMs: Date.now()
         }
       }
     };
@@ -454,6 +556,150 @@ async function handleResign(ws, roomCode) {
   await endGame(roomCode, { winner, reason: "resign", pgn: "" });
 }
 
+async function handleRequestRematch(ws, roomCode) {
+  const mutation = await mutateRoom(roomCode, (nextRoom) => {
+    if (nextRoom.active_game) {
+      return {
+        error: { type: OutboundEvent.ERROR, code: "GAME_ALREADY_ACTIVE", message: "Game already in progress." }
+      };
+    }
+
+    const connectedIds = connectedParticipantIds(nextRoom);
+    if (connectedIds.length < 2) {
+      return {
+        error: { type: OutboundEvent.ERROR, code: "WAITING_FOR_PLAYER", message: "Waiting for second player." }
+      };
+    }
+
+    if (nextRoom.rematch_requested_by) {
+      return {
+        error: {
+          type: OutboundEvent.ERROR,
+          code: "REMATCH_ALREADY_REQUESTED",
+          message: "Rematch has already been requested."
+        }
+      };
+    }
+
+    nextRoom.rematch_requested_by = ws.userId;
+    return {
+      room: nextRoom,
+      meta: {
+        event: {
+          type: OutboundEvent.REMATCH_REQUESTED,
+          roomCode,
+          requestedBy: ws.userId
+        }
+      }
+    };
+  });
+
+  if (!mutation.ok) {
+    if (mutation.reason === "aborted" && mutation.error) {
+      send(ws, mutation.error);
+      return;
+    }
+    send(ws, buildWsError("ROOM_UPDATE_CONFLICT", { context: { roomCode } }));
+    return;
+  }
+
+  broadcastToRoom(mutation.room, mutation.meta.event);
+}
+
+async function handleRespondRematch(ws, roomCode, accept) {
+  const mutation = await mutateRoom(roomCode, (nextRoom) => {
+    if (typeof accept !== "boolean") {
+      return {
+        error: {
+          type: OutboundEvent.ERROR,
+          code: "INVALID_REMATCH_RESPONSE",
+          message: "Invalid rematch response."
+        }
+      };
+    }
+
+    if (!nextRoom.rematch_requested_by) {
+      return {
+        error: { type: OutboundEvent.ERROR, code: "REMATCH_NOT_PENDING", message: "No pending rematch request." }
+      };
+    }
+
+    if (nextRoom.rematch_requested_by === ws.userId) {
+      return {
+        error: { type: OutboundEvent.ERROR, code: "REMATCH_NOT_PENDING", message: "No pending rematch request." }
+      };
+    }
+
+    const requestedBy = nextRoom.rematch_requested_by;
+
+    if (!accept) {
+      nextRoom.rematch_requested_by = null;
+      return {
+        room: nextRoom,
+        meta: {
+          event: {
+            type: OutboundEvent.REMATCH_DECLINED,
+            roomCode,
+            requestedBy,
+            declinedBy: ws.userId
+          }
+        }
+      };
+    }
+
+    const players = Object.keys(nextRoom.participants);
+    const [whitePlayerId, blackPlayerId] =
+      Math.random() < 0.5 ? [players[0], players[1]] : [players[1], players[0]];
+    nextRoom.active_game = startNewGame(roomCode, whitePlayerId, blackPlayerId, config.app.gameDurationSeconds);
+    nextRoom.active_game.disconnect_deadline_ms = null;
+    nextRoom.active_game.disconnected_user_id = null;
+    nextRoom.rematch_requested_by = null;
+
+    return {
+      room: nextRoom,
+      meta: {
+        rematchAcceptedEvent: {
+          type: OutboundEvent.REMATCH_ACCEPTED,
+          roomCode,
+          requestedBy,
+          acceptedBy: ws.userId
+        },
+        gameStartedEvent: {
+          type: OutboundEvent.GAME_STARTED,
+          gameId: nextRoom.active_game.game_id,
+          whitePlayerId,
+          blackPlayerId,
+          fen: nextRoom.active_game.board_fen,
+          moves: [...nextRoom.active_game.moves],
+          turn: nextRoom.active_game.turn,
+          timeWhite: nextRoom.active_game.time_white,
+          timeBlack: nextRoom.active_game.time_black,
+          serverTimestampMs: Date.now()
+        }
+      }
+    };
+  });
+
+  if (!mutation.ok) {
+    if (mutation.reason === "aborted" && mutation.error) {
+      send(ws, mutation.error);
+      return;
+    }
+    send(ws, buildWsError("ROOM_UPDATE_CONFLICT", { context: { roomCode } }));
+    return;
+  }
+
+  if (mutation.meta.rematchAcceptedEvent) {
+    broadcastToRoom(mutation.room, mutation.meta.rematchAcceptedEvent);
+  } else {
+    broadcastToRoom(mutation.room, mutation.meta.event);
+  }
+
+  if (mutation.meta.gameStartedEvent) {
+    broadcastToRoom(mutation.room, mutation.meta.gameStartedEvent);
+  }
+}
+
 async function handleLeaveRoom(ws) {
   const connection = await getConnection(ws.connectionId);
   if (!connection) {
@@ -470,16 +716,55 @@ async function handleLeaveRoom(ws) {
     if (!nextRoom.participants[ws.userId]) {
       return { error: { code: "PARTICIPANT_NOT_FOUND" } };
     }
+
     nextRoom.participants[ws.userId].connected = false;
     nextRoom.participants[ws.userId].connectionId = null;
-    return { room: nextRoom };
+    const connectedIds = connectedParticipantIds(nextRoom);
+    nextRoom.status = connectedIds.length === 2 ? "both_connected" : "waiting";
+
+    let reconnectEvent = null;
+    let reconnectDeadlineMs = null;
+    if (nextRoom.active_game && connectedIds.length === 1) {
+      reconnectDeadlineMs = Date.now() + config.app.reconnectGraceSeconds * 1000;
+      nextRoom.active_game.disconnect_deadline_ms = reconnectDeadlineMs;
+      nextRoom.active_game.disconnected_user_id = ws.userId;
+      reconnectEvent = {
+        type: OutboundEvent.RECONNECT_STATE,
+        roomCode: connection.roomCode,
+        status: "paused",
+        disconnectedUserId: ws.userId,
+        graceEndsAt: reconnectDeadlineMs
+      };
+    }
+
+    return {
+      room: nextRoom,
+      meta: {
+        reconnectEvent,
+        reconnectDeadlineMs
+      }
+    };
   });
 
   if (mutation.ok) {
+    if (mutation.meta?.reconnectDeadlineMs) {
+      await setReconnectDeadline(connection.roomCode, mutation.meta.reconnectDeadlineMs);
+    } else {
+      await clearReconnectDeadline(connection.roomCode);
+    }
+
     broadcastToRoom(mutation.room, {
       type: OutboundEvent.PARTICIPANT_LEFT,
-      userId: ws.userId
+      userId: ws.userId,
+      roomCode: connection.roomCode,
+      participants: participantPresence(mutation.room)
     });
+
+    broadcastToRoom(mutation.room, roomJoinedPayload(mutation.room, connection.roomCode));
+
+    if (mutation.meta?.reconnectEvent) {
+      broadcastToRoom(mutation.room, mutation.meta.reconnectEvent);
+    }
   }
 
   await deleteConnection(ws.connectionId);
@@ -501,6 +786,33 @@ async function handleRoomExpiry(roomCode) {
   }
 
   await deleteRoom(roomCode);
+}
+
+async function handleReconnectTimeout(roomCode) {
+  const room = await getRoom(roomCode);
+  if (!room?.active_game || !room.active_game.disconnect_deadline_ms) {
+    await clearReconnectDeadline(roomCode);
+    return;
+  }
+
+  if (Date.now() < room.active_game.disconnect_deadline_ms) {
+    return;
+  }
+
+  const disconnectedUserId = room.active_game.disconnected_user_id;
+  if (!disconnectedUserId) {
+    await clearReconnectDeadline(roomCode);
+    return;
+  }
+
+  const winner =
+    disconnectedUserId === room.active_game.white_player_id
+      ? "black"
+      : disconnectedUserId === room.active_game.black_player_id
+        ? "white"
+        : "draw";
+
+  await endGame(roomCode, { winner, reason: "forfeit_disconnect", pgn: "" });
 }
 
 export function installWebSocketServer(wss) {
@@ -558,6 +870,12 @@ export function installWebSocketServer(wss) {
           case InboundEvent.RESIGN:
             await handleResign(ws, roomCode);
             break;
+          case InboundEvent.REQUEST_REMATCH:
+            await handleRequestRematch(ws, roomCode);
+            break;
+          case InboundEvent.RESPOND_REMATCH:
+            await handleRespondRematch(ws, roomCode, message.accept);
+            break;
           case InboundEvent.HEARTBEAT:
             send(ws, { type: OutboundEvent.HEARTBEAT_ACK });
             break;
@@ -591,6 +909,8 @@ export function installWebSocketServer(wss) {
     });
 
     const expiringRoomCodes = await getExpiringRooms(Date.now() + 60_000);
+    const reconnectDeadlineRooms = await getExpiredReconnectDeadlines(Date.now());
     await Promise.all(expiringRoomCodes.map((roomCode) => handleRoomExpiry(roomCode)));
+    await Promise.all(reconnectDeadlineRooms.map((roomCode) => handleReconnectTimeout(roomCode)));
   }, config.app.heartbeatIntervalMs);
 }

@@ -58,6 +58,12 @@ Purpose: single source of truth for human-readable names, IDs, and ARNs as infra
     - Terraform execution evidence:
       - `terraform apply` completed with `0 added, 1 changed, 0 destroyed` (budget config normalization).
       - Follow-up `terraform plan` returned `No changes`.
+  - Application reliability update (2026-03-02, no new AWS resources):
+    - Added reconnect grace-period behavior in app runtime (`RECONNECT_GRACE_SECONDS=60` in ECS task env config).
+    - No infrastructure resource IDs/ARNs changed.
+  - Gameplay completion update (2026-03-02, no new AWS resources):
+    - Added app-layer rematch protocol/events and enhanced chess UX (legal move highlights, move history, result modal, resign confirmation).
+    - No infrastructure resource IDs/ARNs changed.
 
 ## Naming Convention
 - Pattern: `chesschat-<env>-<service>-<purpose>`

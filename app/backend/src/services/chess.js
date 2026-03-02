@@ -5,6 +5,7 @@ export function startNewGame(roomCode, whitePlayerId, blackPlayerId, durationSec
     game_id: `${roomCode}-${Date.now()}`,
     board_fen: "start",
     moves: [],
+    move_sans: [],
     white_player_id: whitePlayerId,
     black_player_id: blackPlayerId,
     turn: "white",
@@ -26,6 +27,7 @@ export function applyMove(fen, move) {
   return {
     ok: true,
     newFen: chess.fen(),
+    san: applied.san,
     pgn: chess.pgn(),
     isCheckmate: chess.isCheckmate(),
     isStalemate: chess.isStalemate(),

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer, useRef } from "react";
+import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ChessBoardPanel from "../components/ChessBoardPanel";
 import VideoPanel from "../components/VideoPanel";
@@ -7,6 +7,8 @@ import { createMeetingSession, listDevices, startMedia, stopMedia } from "../ser
 import { ChessChatSocket } from "../services/socket";
 import { appStateReducer, initialAppState } from "../state/appState";
 
+const LAST_ROOM_CODE_KEY = "chesschat_last_room_code";
+
 function normalizeError(payload) {
   return {
     code: payload?.code || "INTERNAL_ERROR",
@@ -14,6 +16,20 @@ function normalizeError(payload) {
     retryable: Boolean(payload?.retryable),
     context: payload?.context || null
   };
+}
+
+function normalizeParticipants(participants) {
+  return (participants || []).map((participant) => ({
+    userId: participant.userId || participant,
+    connected: typeof participant.connected === "boolean" ? participant.connected : true
+  }));
+}
+
+function formatClock(seconds) {
+  const safe = Math.max(0, Math.floor(seconds));
+  const mins = Math.floor(safe / 60);
+  const secs = safe % 60;
+  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 }
 
 export default function RoomPage() {
@@ -37,6 +53,14 @@ export default function RoomPage() {
   const remoteTileIdRef = useRef(null);
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
+  const [clockNowMs, setClockNowMs] = useState(Date.now());
+  const [confirmResignOpen, setConfirmResignOpen] = useState(false);
+
+  useEffect(() => {
+    if (/^[A-Z0-9]{5}$/.test(roomCode)) {
+      sessionStorage.setItem(LAST_ROOM_CODE_KEY, roomCode);
+    }
+  }, [roomCode]);
 
   function stopMeetingSession() {
     const session = meetingSessionRef.current;
@@ -64,6 +88,13 @@ export default function RoomPage() {
       return () => clearTimeout(timer);
     }
   }, [state.toast_error]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setClockNowMs(Date.now());
+    }, 250);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     audioElementRef.current = new Audio();
@@ -109,7 +140,52 @@ export default function RoomPage() {
       onMessage: (payload) => {
         switch (payload.type) {
           case "room_joined":
-            dispatch({ type: "ROOM_JOINED", participants: payload.participants });
+            dispatch({
+              type: "ROOM_JOINED",
+              participants: normalizeParticipants(payload.participants),
+              activeGame: payload.activeGame || null,
+              rematchRequestedBy: payload.rematchRequestedBy || null
+            });
+            break;
+          case "participant_joined":
+            dispatch({ type: "PARTICIPANT_JOINED", participants: normalizeParticipants(payload.participants) });
+            break;
+          case "participant_left":
+            dispatch({ type: "PARTICIPANT_LEFT", participants: normalizeParticipants(payload.participants) });
+            break;
+          case "reconnect_state":
+            dispatch({
+              type: "RECONNECT_STATE",
+              status: payload.status,
+              disconnectedUserId: payload.disconnectedUserId,
+              graceEndsAt: payload.graceEndsAt
+            });
+            if (payload.status === "paused") {
+              dispatch({
+                type: "SET_TOAST_ERROR",
+                error: {
+                  code: "GAME_PAUSED",
+                  message: "Opponent disconnected. Waiting for reconnect.",
+                  retryable: true,
+                  context: {
+                    disconnectedUserId: payload.disconnectedUserId,
+                    graceEndsAt: payload.graceEndsAt
+                  }
+                }
+              });
+            }
+            if (payload.status === "restored") {
+              dispatch({ type: "CLEAR_TOAST_ERROR" });
+              dispatch({
+                type: "SET_TOAST_ERROR",
+                error: {
+                  code: "RECONNECT_RESTORED",
+                  message: "Opponent reconnected. Game resumed.",
+                  retryable: false,
+                  context: null
+                }
+              });
+            }
             break;
           case "video_ready":
             dispatch({
@@ -129,24 +205,39 @@ export default function RoomPage() {
                 whitePlayerId: payload.whitePlayerId,
                 blackPlayerId: payload.blackPlayerId,
                 fen: payload.fen,
+                moves: payload.moves || [],
+                moveSans: payload.moveSans || [],
                 turn: payload.turn,
                 timeWhite: payload.timeWhite,
-                timeBlack: payload.timeBlack
+                timeBlack: payload.timeBlack,
+                serverTimestampMs: payload.serverTimestampMs || Date.now()
               }
             });
+            dispatch({ type: "REMATCH_CLEARED" });
             dispatch({ type: "CLEAR_TOAST_ERROR" });
             break;
           case "move_made":
             dispatch({
               type: "MOVE_MADE",
               fen: payload.fen,
+              moves: payload.moves,
+              moveSans: payload.moveSans,
               turn: payload.turn,
               timeWhite: payload.timeWhite,
-              timeBlack: payload.timeBlack
+              timeBlack: payload.timeBlack,
+              serverTimestampMs: payload.serverTimestampMs
             });
             break;
           case "game_ended":
-            dispatch({ type: "GAME_ENDED" });
+            dispatch({
+              type: "GAME_ENDED",
+              result: {
+                gameId: payload.gameId,
+                winner: payload.winner,
+                result: payload.result,
+                pgn: payload.pgn
+              }
+            });
             dispatch({
               type: "SET_TOAST_ERROR",
               error: {
@@ -156,6 +247,33 @@ export default function RoomPage() {
                 context: { gameId: payload.gameId }
               }
             });
+            break;
+          case "rematch_requested":
+            dispatch({ type: "REMATCH_REQUESTED", requestedBy: payload.requestedBy });
+            dispatch({
+              type: "SET_TOAST_ERROR",
+              error: {
+                code: "REMATCH_REQUESTED",
+                message: "Rematch requested.",
+                retryable: false,
+                context: { requestedBy: payload.requestedBy }
+              }
+            });
+            break;
+          case "rematch_declined":
+            dispatch({ type: "REMATCH_CLEARED" });
+            dispatch({
+              type: "SET_TOAST_ERROR",
+              error: {
+                code: "REMATCH_DECLINED",
+                message: "Rematch declined.",
+                retryable: false,
+                context: { declinedBy: payload.declinedBy }
+              }
+            });
+            break;
+          case "rematch_accepted":
+            dispatch({ type: "REMATCH_CLEARED" });
             break;
           case "error": {
             const normalized = normalizeError(payload);
@@ -194,16 +312,34 @@ export default function RoomPage() {
       (game.turn === "black" && game.blackPlayerId === user?.sub)
     : false;
 
+  const connectedPlayers = state.room_state.participants.filter((participant) => participant.connected).length;
+  const rematchRequestedBy = state.room_state.rematch.requestedBy;
+  const rematchRequestedByMe = Boolean(rematchRequestedBy && rematchRequestedBy === user?.sub);
+  const rematchPendingForMe = Boolean(rematchRequestedBy && rematchRequestedBy !== user?.sub);
+
   function startGame() {
     socketRef.current?.send("start_game", { roomCode });
   }
 
   function resign() {
+    setConfirmResignOpen(true);
+  }
+
+  function confirmResign() {
+    setConfirmResignOpen(false);
     socketRef.current?.send("resign", { roomCode });
   }
 
   function onMove(move) {
     socketRef.current?.send("make_move", { roomCode, move });
+  }
+
+  function requestRematch() {
+    socketRef.current?.send("request_rematch", { roomCode });
+  }
+
+  function respondRematch(accept) {
+    socketRef.current?.send("respond_rematch", { roomCode, accept });
   }
 
   async function joinMedia() {
@@ -325,13 +461,50 @@ export default function RoomPage() {
       ? `Reconnecting (attempt ${state.socket_state.reconnectAttempt})...`
       : `Socket: ${state.socket_state.status}`;
 
+  const participantsLabel = state.room_state.participants
+    .map((participant) => `${participant.userId}${participant.connected ? "" : " (disconnected)"}`)
+    .join(", ");
+
+  const reconnectLabel =
+    state.room_state.reconnect.status === "paused"
+      ? `Paused: waiting for ${state.room_state.reconnect.disconnectedUserId} until ${new Date(
+          state.room_state.reconnect.graceEndsAt
+        ).toLocaleTimeString()}`
+      : null;
+
+  const derivedClocks = useMemo(() => {
+    if (!game) {
+      return { white: 0, black: 0 };
+    }
+
+    const paused = state.room_state.reconnect.status === "paused";
+    if (paused) {
+      return { white: game.timeWhite, black: game.timeBlack };
+    }
+
+    const elapsed = Math.max(0, (clockNowMs - (game.serverTimestampMs || clockNowMs)) / 1000);
+    if (game.turn === "white") {
+      return {
+        white: Math.max(0, game.timeWhite - elapsed),
+        black: game.timeBlack
+      };
+    }
+    return {
+      white: game.timeWhite,
+      black: Math.max(0, game.timeBlack - elapsed)
+    };
+  }, [game, clockNowMs, state.room_state.reconnect.status]);
+
+  const moveHistory = game?.moveSans || [];
+
   return (
     <main className="room-shell">
       <header className="top-row">
         <div>
           <h1>Room {roomCode}</h1>
-          <p>Players: {state.room_state.participants.join(", ") || "waiting"}</p>
+          <p>Players: {participantsLabel || "waiting"}</p>
           <p className="socket-status">{socketSubtitle}</p>
+          {reconnectLabel ? <p className="socket-status">{reconnectLabel}</p> : null}
         </div>
         <button onClick={() => navigate("/lobby")}>Back to Lobby</button>
       </header>
@@ -366,17 +539,32 @@ export default function RoomPage() {
 
         <section className="game-panel">
           <div className="controls">
-            <button className="primary" onClick={startGame} disabled={Boolean(game)}>
+            <button className="primary" onClick={startGame} disabled={Boolean(game) || connectedPlayers < 2}>
               Start Game
             </button>
             <button onClick={resign} disabled={!game}>
               Resign
             </button>
+            <button onClick={requestRematch} disabled={Boolean(game) || rematchRequestedByMe || connectedPlayers < 2}>
+              {rematchRequestedByMe ? "Rematch Requested" : "Request Rematch"}
+            </button>
+            {rematchPendingForMe ? (
+              <>
+                <button className="primary" onClick={() => respondRematch(true)}>
+                  Accept Rematch
+                </button>
+                <button onClick={() => respondRematch(false)}>
+                  Decline Rematch
+                </button>
+              </>
+            ) : null}
           </div>
 
           <p>
             {game
-              ? `Turn: ${game.turn} | White ${Math.floor(game.timeWhite)}s | Black ${Math.floor(game.timeBlack)}s`
+              ? `Turn: ${game.turn} | White ${formatClock(derivedClocks.white)} | Black ${formatClock(
+                  derivedClocks.black
+                )}`
               : "No active game"}
           </p>
 
@@ -386,8 +574,64 @@ export default function RoomPage() {
             isMyTurn={isMyTurn}
             onMove={onMove}
           />
+
+          <section className="history-panel">
+            <h3>Move History</h3>
+            {moveHistory.length === 0 ? <p>No moves yet.</p> : null}
+            {moveHistory.length > 0 ? (
+              <ol className="move-list">
+                {moveHistory.map((moveSan, index) => (
+                  <li key={`${moveSan}-${index}`}>{moveSan}</li>
+                ))}
+              </ol>
+            ) : null}
+          </section>
         </section>
       </section>
+
+      {confirmResignOpen ? (
+        <section className="modal-backdrop" role="dialog" aria-modal="true">
+          <div className="modal-card">
+            <h3>Confirm Resign</h3>
+            <p>Are you sure you want to resign this game?</p>
+            <div className="controls">
+              <button onClick={() => setConfirmResignOpen(false)}>Cancel</button>
+              <button className="primary" onClick={confirmResign}>
+                Confirm Resign
+              </button>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {state.game_state.lastResult ? (
+        <section className="modal-backdrop" role="dialog" aria-modal="true">
+          <div className="modal-card">
+            <h3>Game Result</h3>
+            <p><strong>Result:</strong> {state.game_state.lastResult.result}</p>
+            <p><strong>Winner:</strong> {state.game_state.lastResult.winner}</p>
+            {state.game_state.lastResult.pgn ? (
+              <p className="result-pgn"><strong>PGN:</strong> {state.game_state.lastResult.pgn}</p>
+            ) : null}
+            <div className="controls">
+              <button onClick={requestRematch} disabled={rematchRequestedByMe || connectedPlayers < 2}>
+                {rematchRequestedByMe ? "Rematch Requested" : "Request Rematch"}
+              </button>
+              {rematchPendingForMe ? (
+                <>
+                  <button className="primary" onClick={() => respondRematch(true)}>
+                    Accept
+                  </button>
+                  <button onClick={() => respondRematch(false)}>
+                    Decline
+                  </button>
+                </>
+              ) : null}
+              <button onClick={() => dispatch({ type: "GAME_ENDED", result: null })}>Close</button>
+            </div>
+          </div>
+        </section>
+      ) : null}
     </main>
   );
 }

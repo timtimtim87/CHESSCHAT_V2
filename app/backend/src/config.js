@@ -47,6 +47,7 @@ export const config = {
     domain: process.env.APP_DOMAIN,
     roomTtlSeconds: Number(process.env.ROOM_TTL_SECONDS || 3600),
     gameDurationSeconds: Number(process.env.GAME_DURATION_SECONDS || 300),
-    heartbeatIntervalMs: Number(process.env.HEARTBEAT_INTERVAL_MS || 30000)
+    heartbeatIntervalMs: Number(process.env.HEARTBEAT_INTERVAL_MS || 30000),
+    reconnectGraceSeconds: Number(process.env.RECONNECT_GRACE_SECONDS || 60)
   }
 };

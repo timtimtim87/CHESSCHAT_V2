@@ -37,6 +37,7 @@ ecs_container_environment = {
   APP_DOMAIN                 = "https://app.chess-chat.com"
   ROOM_TTL_SECONDS           = "3600"
   GAME_DURATION_SECONDS      = "300"
+  RECONNECT_GRACE_SECONDS    = "60"
   HEARTBEAT_INTERVAL_MS      = "30000"
 }
 ecs_task_cpu              = 256

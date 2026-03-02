@@ -289,6 +289,40 @@ Purpose: keep one practical, interview-ready plan for building CHESSCHAT as an A
       - `auth_state`, `socket_state`, `room_state`, `game_state`, `media_state`
     - Added deterministic error tiers:
       - blocking banner, transient toast, and inline lobby room-code validation error.
+- Milestone 2 lobby/player experience implementation (2026-03-02, repository changes):
+  - Lobby upgraded from single-input screen to an operational control center:
+    - Profile panel now loads from `GET /api/me` and renders username + wins/losses/draws.
+    - Recent matches panel now loads from `GET /api/history` with loading, empty, and error states.
+    - Session resume affordance added:
+      - Last room code persisted in session storage and exposed as `Resume Last Room`.
+  - UX hardening:
+    - Start/Join action now has deterministic disabled/loading state.
+    - Lobby includes inline validation feedback and responsive card/grid layout for mobile and desktop.
+- Milestone 3 room reliability + reconnect behavior (2026-03-02, repository changes):
+  - Backend reconnect model added:
+    - Room presence now tracks connected/disconnected participant state and broadcasts presence updates.
+    - Added `reconnect_state` WebSocket event to communicate game pause/resume state.
+    - Added reconnect grace period control (`RECONNECT_GRACE_SECONDS`, default `60`).
+  - Disconnect game continuity rules:
+    - If one player disconnects during an active game, game enters paused reconnect state.
+    - If player does not return before grace deadline, game auto-ends as `forfeit_disconnect`.
+    - If player reconnects before deadline, reconnect pause clears and game resumes.
+  - Frontend reliability UX:
+    - Room header now shows participant connectivity state and reconnect pause context.
+    - Socket reconnect remains capped backoff and now reflects pause/resume semantics from backend events.
+- Milestone 4 gameplay completeness (2026-03-02, repository changes):
+  - Chess UX upgrades:
+    - Added legal-move square highlighting and click-select flow on chessboard.
+    - Added in-room move history panel using SAN notation.
+    - Added end-of-game result modal with winner/result/PGN summary.
+  - Game controls:
+    - Added confirm-before-resign modal.
+    - Added rematch protocol and controls:
+      - WebSocket inbound: `request_rematch`, `respond_rematch`.
+      - WebSocket outbound: `rematch_requested`, `rematch_accepted`, `rematch_declined`.
+      - Rematch accept starts a fresh game server-side and broadcasts `game_started`.
+  - Time-control UX:
+    - Added client-side drift correction rendering based on server timestamp sync fields in game events.
 - Phase 10 validation closure attempt (2026-03-02, GitHub Actions):
   - Manual workflow run:
     - Workflow: `e2e-post-deploy.yml`
