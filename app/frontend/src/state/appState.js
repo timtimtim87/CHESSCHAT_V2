@@ -15,7 +15,8 @@ export const initialAppState = {
     reconnect: {
       status: "none",
       disconnectedUserId: null,
-      graceEndsAt: null
+      graceEndsAt: null,
+      version: 0
     },
     rematch: {
       requestedBy: null
@@ -81,12 +82,14 @@ export function appStateReducer(state, action) {
               ? {
                   status: "paused",
                   disconnectedUserId: action.activeGame.disconnectedUserId,
-                  graceEndsAt: action.activeGame.disconnectDeadlineMs
+                  graceEndsAt: action.activeGame.disconnectDeadlineMs,
+                  version: action.activeGame.reconnectVersion || 0
                 }
               : {
                   status: "none",
                   disconnectedUserId: null,
-                  graceEndsAt: null
+                  graceEndsAt: null,
+                  version: action.activeGame?.reconnectVersion || state.room_state.reconnect.version || 0
                 }
         },
         game_state: action.activeGame
@@ -145,6 +148,9 @@ export function appStateReducer(state, action) {
         }
       };
     case "RECONNECT_STATE":
+      if (typeof action.reconnectVersion === "number" && action.reconnectVersion < state.room_state.reconnect.version) {
+        return state;
+      }
       return {
         ...state,
         room_state: {
@@ -152,7 +158,11 @@ export function appStateReducer(state, action) {
           reconnect: {
             status: action.status || "none",
             disconnectedUserId: action.disconnectedUserId || null,
-            graceEndsAt: action.graceEndsAt || null
+            graceEndsAt: action.graceEndsAt || null,
+            version:
+              typeof action.reconnectVersion === "number"
+                ? action.reconnectVersion
+                : state.room_state.reconnect.version
           }
         }
       };
@@ -222,7 +232,8 @@ export function appStateReducer(state, action) {
           reconnect: {
             status: "none",
             disconnectedUserId: null,
-            graceEndsAt: null
+            graceEndsAt: null,
+            version: (state.room_state.reconnect.version || 0) + 1
           }
         },
         game_state: {
@@ -259,7 +270,8 @@ export function appStateReducer(state, action) {
           reconnect: {
             status: "none",
             disconnectedUserId: null,
-            graceEndsAt: null
+            graceEndsAt: null,
+            version: (state.room_state.reconnect.version || 0) + 1
           }
         },
         game_state: {

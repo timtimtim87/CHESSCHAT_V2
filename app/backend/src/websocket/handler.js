@@ -7,11 +7,14 @@ import {
   createRoomIfAbsent,
   deleteConnection,
   deleteRoom,
+  enqueueGameFinalizationJob,
   getExpiredReconnectDeadlines,
   getConnection,
   getExpiringRooms,
   getRoom,
   mutateRoom,
+  popGameFinalizationJob,
+  pushGameFinalizationDeadLetter,
   removeRoomFromExpiryIndex,
   setReconnectDeadline,
   setConnection
@@ -19,7 +22,16 @@ import {
 import { createAttendee, createMeeting, deleteMeeting } from "../services/chime.js";
 import { applyMove, startNewGame } from "../services/chess.js";
 import { saveGameAndUpdateStats } from "../services/dynamodb.js";
-import { emitAppError, emitGameEnded, emitGameStarted, emitWsConnectionClosed, emitWsConnectionOpened } from "../services/metrics.js";
+import {
+  emitAppError,
+  emitGameEnded,
+  emitGamePersistFailed,
+  emitGamePersistRetried,
+  emitGamePersistSucceeded,
+  emitGameStarted,
+  emitWsConnectionClosed,
+  emitWsConnectionOpened
+} from "../services/metrics.js";
 import { buildWsError, normalizeWsPayload } from "../utils/errors.js";
 import { log } from "../utils/logger.js";
 import { registerSocket, sendToConnection, unregisterSocket } from "./state.js";
@@ -78,6 +90,7 @@ function activeGameSnapshot(room) {
     timeBlack: room.active_game.time_black,
     disconnectDeadlineMs: room.active_game.disconnect_deadline_ms || null,
     disconnectedUserId: room.active_game.disconnected_user_id || null,
+    reconnectVersion: room.active_game.reconnect_version || 0,
     serverTimestampMs: Date.now()
   };
 }
@@ -91,6 +104,144 @@ function roomJoinedPayload(room, roomCode) {
     activeGame: activeGameSnapshot(room),
     rematchRequestedBy: room.rematch_requested_by || null
   };
+}
+
+const FINALIZATION_MAX_ATTEMPTS = 5;
+const FINALIZATION_BACKOFF_BASE_MS = 250;
+const FINALIZATION_IDLE_SLEEP_MS = 500;
+
+function wait(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function buildGameRecord(roomCode, game, result, winnerPlayerId, now = Date.now()) {
+  return {
+    game_id: game.game_id,
+    ended_at: new Date(now).toISOString(),
+    room_code: roomCode,
+    white_player_id: game.white_player_id,
+    black_player_id: game.black_player_id,
+    winner: winnerPlayerId,
+    result: result.reason,
+    total_moves: game.moves.length,
+    duration_seconds: Math.floor((now - game.started_at) / 1000),
+    time_white_remaining: Math.floor(game.time_white),
+    time_black_remaining: Math.floor(game.time_black),
+    pgn_notation: result.pgn || "",
+    started_at: new Date(game.started_at).toISOString()
+  };
+}
+
+export function buildFinalizationJob({ roomCode, gameRecord, whitePlayerId, blackPlayerId, winnerPlayerId }) {
+  return {
+    gameId: gameRecord.game_id,
+    roomCode,
+    gameRecord,
+    whitePlayerId,
+    blackPlayerId,
+    winnerPlayerId,
+    queuedAt: Date.now()
+  };
+}
+
+export async function enqueueFinalizationJob(job, deps = {}) {
+  const enqueue = deps.enqueue || enqueueGameFinalizationJob;
+  const logger = deps.logFn || log;
+
+  await enqueue(job);
+  logger("info", "game_finalization_job_enqueued", {
+    roomCode: job.roomCode,
+    gameId: job.gameId
+  });
+}
+
+export async function persistFinalizationJob(job, deps = {}) {
+  const persist = deps.persist || saveGameAndUpdateStats;
+  const emitSucceeded = deps.emitSucceeded || emitGamePersistSucceeded;
+  const logger = deps.logFn || log;
+
+  const persisted = await persist(
+    job.gameRecord,
+    job.whitePlayerId,
+    job.blackPlayerId,
+    job.winnerPlayerId
+  );
+
+  await emitSucceeded();
+  logger("info", "game_finalization_persisted", {
+    gameId: job.gameId,
+    roomCode: job.roomCode,
+    duplicate: persisted.duplicate === true
+  });
+}
+
+export async function processFinalizationJob(job, deps = {}) {
+  const persist = deps.persist || persistFinalizationJob;
+  const emitRetried = deps.emitRetried || emitGamePersistRetried;
+  const emitFailed = deps.emitFailed || emitGamePersistFailed;
+  const emitError = deps.emitError || emitAppError;
+  const pushDeadLetter = deps.pushDeadLetter || pushGameFinalizationDeadLetter;
+  const waitFn = deps.waitFn || wait;
+  const logger = deps.logFn || log;
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= FINALIZATION_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      await persist(job);
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt < FINALIZATION_MAX_ATTEMPTS) {
+        await emitRetried();
+        const backoffMs = FINALIZATION_BACKOFF_BASE_MS * attempt;
+        logger("warn", "game_finalization_retry_scheduled", {
+          gameId: job.gameId,
+          roomCode: job.roomCode,
+          attempt,
+          backoffMs,
+          error: error.message
+        });
+        await waitFn(backoffMs);
+      }
+    }
+  }
+
+  await pushDeadLetter({
+    ...job,
+    failedAt: new Date().toISOString(),
+    attempts: FINALIZATION_MAX_ATTEMPTS,
+    error: lastError?.message || "unknown_error"
+  });
+  await emitFailed();
+  await emitError();
+  logger("error", "game_finalization_deadlettered", {
+    gameId: job.gameId,
+    roomCode: job.roomCode,
+    attempts: FINALIZATION_MAX_ATTEMPTS,
+    error: lastError?.message || "unknown_error"
+  });
+}
+
+function startFinalizationWorker() {
+  (async () => {
+    // Runs for process lifetime and drains queued game finalization jobs.
+    while (true) {
+      try {
+        const job = await popGameFinalizationJob();
+        if (!job) {
+          await wait(FINALIZATION_IDLE_SLEEP_MS);
+          continue;
+        }
+        await processFinalizationJob(job);
+      } catch (error) {
+        log("error", "game_finalization_worker_failed", { error: error.message });
+        await emitAppError();
+        await wait(FINALIZATION_IDLE_SLEEP_MS);
+      }
+    }
+  })().catch(() => null);
 }
 
 async function endGame(roomCode, result) {
@@ -107,21 +258,8 @@ async function endGame(roomCode, result) {
           ? game.black_player_id
           : "draw";
 
-    const gameRecord = {
-      game_id: game.game_id,
-      ended_at: new Date().toISOString(),
-      room_code: roomCode,
-      white_player_id: game.white_player_id,
-      black_player_id: game.black_player_id,
-      winner: winnerPlayerId,
-      result: result.reason,
-      total_moves: game.moves.length,
-      duration_seconds: Math.floor((Date.now() - game.started_at) / 1000),
-      time_white_remaining: Math.floor(game.time_white),
-      time_black_remaining: Math.floor(game.time_black),
-      pgn_notation: result.pgn || "",
-      started_at: new Date(game.started_at).toISOString()
-    };
+    const gameRecord = buildGameRecord(roomCode, game, result, winnerPlayerId);
+    const reconnectVersion = (game.reconnect_version || 0) + 1;
 
     nextRoom.games_played.push({
       game_id: game.game_id,
@@ -139,12 +277,20 @@ async function endGame(roomCode, result) {
         whitePlayerId: game.white_player_id,
         blackPlayerId: game.black_player_id,
         winnerPlayerId,
+        finalizationJob: buildFinalizationJob({
+          roomCode,
+          gameRecord,
+          whitePlayerId: game.white_player_id,
+          blackPlayerId: game.black_player_id,
+          winnerPlayerId
+        }),
         event: {
           type: OutboundEvent.GAME_ENDED,
           gameId: game.game_id,
           winner: winnerPlayerId,
           result: result.reason,
-          pgn: result.pgn || ""
+          pgn: result.pgn || "",
+          reconnectVersion
         }
       }
     };
@@ -157,10 +303,20 @@ async function endGame(roomCode, result) {
     return;
   }
 
-  const { gameRecord, whitePlayerId, blackPlayerId, winnerPlayerId, event } = mutation.meta;
-  await saveGameAndUpdateStats(gameRecord, whitePlayerId, blackPlayerId, winnerPlayerId);
+  const { event, finalizationJob } = mutation.meta;
   await clearReconnectDeadline(roomCode);
   broadcastToRoom(mutation.room, event);
+  try {
+    await enqueueFinalizationJob(finalizationJob);
+  } catch (error) {
+    await emitGamePersistFailed();
+    await emitAppError();
+    log("error", "game_finalization_enqueue_failed", {
+      roomCode,
+      gameId: finalizationJob.gameId,
+      error: error.message
+    });
+  }
   await emitGameEnded();
 }
 
@@ -217,10 +373,19 @@ async function handleJoinRoom(ws, roomCode) {
       nextRoom.status = connectedCount === 2 ? "both_connected" : "waiting";
 
       let reconnectEvent = null;
-      if (nextRoom.active_game && nextRoom.active_game.disconnect_deadline_ms && !wasConnected) {
+      if (
+        nextRoom.active_game &&
+        nextRoom.active_game.disconnect_deadline_ms &&
+        !wasConnected &&
+        connectedCount === 2
+      ) {
+        nextRoom.active_game.reconnect_version = (nextRoom.active_game.reconnect_version || 0) + 1;
         nextRoom.active_game.disconnect_deadline_ms = null;
         nextRoom.active_game.disconnected_user_id = null;
-        reconnectEvent = reconnectRestoredState({ roomCode });
+        reconnectEvent = reconnectRestoredState({
+          roomCode,
+          reconnectVersion: nextRoom.active_game.reconnect_version
+        });
       }
 
       return {
@@ -254,6 +419,11 @@ async function handleJoinRoom(ws, roomCode) {
 
     if (joinMutation.meta?.reconnectEvent) {
       broadcastToRoom(joinedRoom, joinMutation.meta.reconnectEvent);
+      log("info", "reconnect_state_transition", {
+        roomCode,
+        transition: "restored",
+        reconnectVersion: joinMutation.meta.reconnectEvent.reconnectVersion
+      });
     }
 
     if (joinedRoom.status !== "both_connected" || joinedRoom.chime_meeting) {
@@ -325,8 +495,6 @@ async function handleStartGame(ws, roomCode) {
     const [whitePlayerId, blackPlayerId] =
       Math.random() < 0.5 ? [players[0], players[1]] : [players[1], players[0]];
     nextRoom.active_game = startNewGame(roomCode, whitePlayerId, blackPlayerId, config.app.gameDurationSeconds);
-    nextRoom.active_game.disconnect_deadline_ms = null;
-    nextRoom.active_game.disconnected_user_id = null;
     nextRoom.rematch_requested_by = null;
 
     return {
@@ -446,21 +614,8 @@ async function handleMakeMove(ws, roomCode, move) {
             ? game.black_player_id
             : "draw";
 
-      const gameRecord = {
-        game_id: game.game_id,
-        ended_at: new Date().toISOString(),
-        room_code: roomCode,
-        white_player_id: game.white_player_id,
-        black_player_id: game.black_player_id,
-        winner: winnerPlayerId,
-        result: result.reason,
-        total_moves: game.moves.length,
-        duration_seconds: Math.floor((Date.now() - game.started_at) / 1000),
-        time_white_remaining: Math.floor(game.time_white),
-        time_black_remaining: Math.floor(game.time_black),
-        pgn_notation: result.pgn || "",
-        started_at: new Date(game.started_at).toISOString()
-      };
+      const gameRecord = buildGameRecord(roomCode, game, result, winnerPlayerId);
+      const reconnectVersion = (game.reconnect_version || 0) + 1;
 
       nextRoom.games_played.push({
         game_id: game.game_id,
@@ -478,12 +633,16 @@ async function handleMakeMove(ws, roomCode, move) {
             gameId: game.game_id,
             winner: winnerPlayerId,
             result: result.reason,
-            pgn: result.pgn || ""
+            pgn: result.pgn || "",
+            reconnectVersion
           },
-          gameRecord,
-          whitePlayerId: game.white_player_id,
-          blackPlayerId: game.black_player_id,
-          winnerPlayerId
+          finalizationJob: buildFinalizationJob({
+            roomCode,
+            gameRecord,
+            whitePlayerId: game.white_player_id,
+            blackPlayerId: game.black_player_id,
+            winnerPlayerId
+          })
         }
       };
     }
@@ -520,13 +679,18 @@ async function handleMakeMove(ws, roomCode, move) {
     return;
   }
 
-  if (mutation.meta.gameRecord) {
-    await saveGameAndUpdateStats(
-      mutation.meta.gameRecord,
-      mutation.meta.whitePlayerId,
-      mutation.meta.blackPlayerId,
-      mutation.meta.winnerPlayerId
-    );
+  if (mutation.meta.finalizationJob) {
+    try {
+      await enqueueFinalizationJob(mutation.meta.finalizationJob);
+    } catch (error) {
+      await emitGamePersistFailed();
+      await emitAppError();
+      log("error", "game_finalization_enqueue_failed", {
+        roomCode,
+        gameId: mutation.meta.finalizationJob.gameId,
+        error: error.message
+      });
+    }
     await emitGameEnded();
   }
 
@@ -657,11 +821,17 @@ async function handleLeaveRoom(ws) {
 
     let reconnectEvent = null;
     let reconnectDeadlineMs = null;
-    if (nextRoom.active_game && connectedIds.length === 1) {
+    if (
+      nextRoom.active_game &&
+      connectedIds.length === 1 &&
+      !nextRoom.active_game.disconnect_deadline_ms
+    ) {
+      nextRoom.active_game.reconnect_version = (nextRoom.active_game.reconnect_version || 0) + 1;
       const pauseState = reconnectPauseState({
         roomCode: connection.roomCode,
         disconnectedUserId: ws.userId,
-        reconnectGraceSeconds: config.app.reconnectGraceSeconds
+        reconnectGraceSeconds: config.app.reconnectGraceSeconds,
+        reconnectVersion: nextRoom.active_game.reconnect_version
       });
       reconnectDeadlineMs = pauseState.reconnectDeadlineMs;
       nextRoom.active_game.disconnect_deadline_ms = reconnectDeadlineMs;
@@ -696,6 +866,13 @@ async function handleLeaveRoom(ws) {
 
     if (mutation.meta?.reconnectEvent) {
       broadcastToRoom(mutation.room, mutation.meta.reconnectEvent);
+      log("info", "reconnect_state_transition", {
+        roomCode: connection.roomCode,
+        transition: "paused",
+        disconnectedUserId: ws.userId,
+        reconnectVersion: mutation.meta.reconnectEvent.reconnectVersion,
+        graceEndsAt: mutation.meta.reconnectEvent.graceEndsAt
+      });
     }
   }
 
@@ -709,20 +886,78 @@ async function handleRoomExpiry(roomCode) {
     return;
   }
 
+  log("info", "room_lifecycle_transition", {
+    roomCode,
+    transition: "room_expiry_detected",
+    hadActiveGame: Boolean(room.active_game)
+  });
+
   if (room.active_game) {
     await endGame(roomCode, { winner: "draw", reason: "room_expired", pgn: "" });
   }
 
-  if (room.chime_meeting?.meetingId) {
-    await deleteMeeting(room.chime_meeting.meetingId).catch(() => null);
+  const meetingMutation = await mutateRoom(roomCode, (nextRoom) => {
+    if (!nextRoom.chime_meeting?.meetingId) {
+      return { room: nextRoom };
+    }
+
+    const meetingId = nextRoom.chime_meeting.meetingId;
+    nextRoom.chime_meeting = null;
+    return {
+      room: nextRoom,
+      meta: {
+        meetingId
+      }
+    };
+  });
+
+  if (!meetingMutation.ok && meetingMutation.reason === "not_found") {
+    await removeRoomFromExpiryIndex(roomCode);
+    return;
+  }
+  if (!meetingMutation.ok) {
+    return;
+  }
+
+  if (meetingMutation.ok && meetingMutation.meta?.meetingId) {
+    await deleteMeeting(meetingMutation.meta.meetingId).catch(() => null);
+    log("info", "room_lifecycle_transition", {
+      roomCode,
+      transition: "meeting_deleted",
+      meetingId: meetingMutation.meta.meetingId
+    });
   }
 
   await deleteRoom(roomCode);
+  log("info", "room_lifecycle_transition", {
+    roomCode,
+    transition: "room_deleted"
+  });
 }
 
 async function handleReconnectTimeout(roomCode) {
   const room = await getRoom(roomCode);
   if (!room?.active_game || !room.active_game.disconnect_deadline_ms) {
+    await clearReconnectDeadline(roomCode);
+    return;
+  }
+
+  const connectedCount = connectedParticipantIds(room).length;
+  if (connectedCount === 2) {
+    const staleMutation = await mutateRoom(roomCode, (nextRoom) => {
+      if (!nextRoom.active_game) {
+        return { room: nextRoom };
+      }
+      nextRoom.active_game.disconnect_deadline_ms = null;
+      nextRoom.active_game.disconnected_user_id = null;
+      return { room: nextRoom };
+    });
+    if (staleMutation.ok) {
+      log("info", "reconnect_state_transition", {
+        roomCode,
+        transition: "stale_deadline_cleared"
+      });
+    }
     await clearReconnectDeadline(roomCode);
     return;
   }
@@ -739,10 +974,18 @@ async function handleReconnectTimeout(roomCode) {
 
   const winner = forfeitWinnerFromDisconnect(room.active_game, disconnectedUserId);
 
+  log("info", "reconnect_state_transition", {
+    roomCode,
+    transition: "forfeit_disconnect",
+    disconnectedUserId,
+    winner
+  });
   await endGame(roomCode, { winner, reason: "forfeit_disconnect", pgn: "" });
 }
 
 export function installWebSocketServer(wss) {
+  startFinalizationWorker();
+
   wss.on("connection", async (ws, req) => {
     const requestUrl = new URL(req.url, "https://placeholder");
     const token = requestUrl.searchParams.get("token");

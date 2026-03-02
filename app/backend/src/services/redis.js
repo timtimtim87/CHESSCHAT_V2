@@ -3,6 +3,8 @@ import { config } from "../config.js";
 
 const ROOM_EXPIRY_ZSET = "room_expiries";
 const ROOM_RECONNECT_DEADLINES_ZSET = "room_reconnect_deadlines";
+const GAME_FINALIZATION_QUEUE = "game_finalization_queue";
+const GAME_FINALIZATION_DEADLETTER = "game_finalization_deadletter";
 
 export const redisClient = new Redis({
   host: config.redis.host,
@@ -144,4 +146,17 @@ export async function clearReconnectDeadline(roomCode) {
 
 export async function getExpiredReconnectDeadlines(untilTimestampMs) {
   return redisClient.zrangebyscore(ROOM_RECONNECT_DEADLINES_ZSET, 0, untilTimestampMs);
+}
+
+export async function enqueueGameFinalizationJob(job) {
+  await redisClient.rpush(GAME_FINALIZATION_QUEUE, JSON.stringify(job));
+}
+
+export async function popGameFinalizationJob() {
+  const raw = await redisClient.lpop(GAME_FINALIZATION_QUEUE);
+  return raw ? JSON.parse(raw) : null;
+}
+
+export async function pushGameFinalizationDeadLetter(entry) {
+  await redisClient.rpush(GAME_FINALIZATION_DEADLETTER, JSON.stringify(entry));
 }

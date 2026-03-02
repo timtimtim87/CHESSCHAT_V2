@@ -45,6 +45,18 @@ export async function emitGameEnded() {
   await publishMetric("GamesEnded");
 }
 
+export async function emitGamePersistSucceeded() {
+  await publishMetric("GamePersistSucceeded");
+}
+
+export async function emitGamePersistRetried() {
+  await publishMetric("GamePersistRetried");
+}
+
+export async function emitGamePersistFailed() {
+  await publishMetric("GamePersistFailed");
+}
+
 export async function emitAppError() {
   await publishMetric("AppErrors");
 }

@@ -50,50 +50,71 @@ function statsDeltaForPlayer(playerId, winner) {
     : { wins: 0, losses: 1, draws: 0 };
 }
 
+export function isDuplicateGameWriteError(error) {
+  if (!error || error.name !== "TransactionCanceledException") {
+    return false;
+  }
+
+  if (Array.isArray(error.CancellationReasons)) {
+    return error.CancellationReasons.some((reason) => reason?.Code === "ConditionalCheckFailed");
+  }
+
+  return typeof error.message === "string" && error.message.includes("ConditionalCheckFailed");
+}
+
 export async function saveGameAndUpdateStats(gameRecord, whitePlayerId, blackPlayerId, winner) {
   const whiteDelta = statsDeltaForPlayer(whitePlayerId, winner);
   const blackDelta = statsDeltaForPlayer(blackPlayerId, winner);
 
-  await ddb.send(
-    new TransactWriteCommand({
-      TransactItems: [
-        {
-          Put: {
-            TableName: config.dynamodb.gamesTable,
-            Item: gameRecord
-          }
-        },
-        {
-          Update: {
-            TableName: config.dynamodb.usersTable,
-            Key: { user_id: whitePlayerId },
-            UpdateExpression:
-              "SET updated_at = :updated ADD wins :wins, losses :losses, draws :draws",
-            ExpressionAttributeValues: {
-              ":updated": new Date().toISOString(),
-              ":wins": whiteDelta.wins,
-              ":losses": whiteDelta.losses,
-              ":draws": whiteDelta.draws
+  try {
+    await ddb.send(
+      new TransactWriteCommand({
+        TransactItems: [
+          {
+            Put: {
+              TableName: config.dynamodb.gamesTable,
+              Item: gameRecord,
+              ConditionExpression: "attribute_not_exists(game_id) AND attribute_not_exists(ended_at)"
+            }
+          },
+          {
+            Update: {
+              TableName: config.dynamodb.usersTable,
+              Key: { user_id: whitePlayerId },
+              UpdateExpression:
+                "SET updated_at = :updated ADD wins :wins, losses :losses, draws :draws",
+              ExpressionAttributeValues: {
+                ":updated": new Date().toISOString(),
+                ":wins": whiteDelta.wins,
+                ":losses": whiteDelta.losses,
+                ":draws": whiteDelta.draws
+              }
+            }
+          },
+          {
+            Update: {
+              TableName: config.dynamodb.usersTable,
+              Key: { user_id: blackPlayerId },
+              UpdateExpression:
+                "SET updated_at = :updated ADD wins :wins, losses :losses, draws :draws",
+              ExpressionAttributeValues: {
+                ":updated": new Date().toISOString(),
+                ":wins": blackDelta.wins,
+                ":losses": blackDelta.losses,
+                ":draws": blackDelta.draws
+              }
             }
           }
-        },
-        {
-          Update: {
-            TableName: config.dynamodb.usersTable,
-            Key: { user_id: blackPlayerId },
-            UpdateExpression:
-              "SET updated_at = :updated ADD wins :wins, losses :losses, draws :draws",
-            ExpressionAttributeValues: {
-              ":updated": new Date().toISOString(),
-              ":wins": blackDelta.wins,
-              ":losses": blackDelta.losses,
-              ":draws": blackDelta.draws
-            }
-          }
-        }
-      ]
-    })
-  );
+        ]
+      })
+    );
+    return { persisted: true };
+  } catch (error) {
+    if (isDuplicateGameWriteError(error)) {
+      return { persisted: false, duplicate: true };
+    }
+    throw error;
+  }
 }
 
 export async function getUserGames(userId) {
