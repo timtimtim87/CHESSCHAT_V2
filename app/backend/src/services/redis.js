@@ -25,9 +25,43 @@ function wsKey(connectionId) {
 }
 
 export async function connectRedis() {
-  if (redisClient.status !== "ready") {
-    await redisClient.connect();
+  if (redisClient.status === "ready") {
+    return;
   }
+
+  if (redisClient.status === "wait") {
+    await redisClient.connect();
+    return;
+  }
+
+  if (redisClient.status === "connecting" || redisClient.status === "connect" || redisClient.status === "reconnecting") {
+    await new Promise((resolve, reject) => {
+      const onReady = () => {
+        cleanup();
+        resolve();
+      };
+      const onError = (error) => {
+        cleanup();
+        reject(error);
+      };
+      const onEnd = () => {
+        cleanup();
+        reject(new Error("Redis connection ended before ready"));
+      };
+      const cleanup = () => {
+        redisClient.off("ready", onReady);
+        redisClient.off("error", onError);
+        redisClient.off("end", onEnd);
+      };
+
+      redisClient.on("ready", onReady);
+      redisClient.on("error", onError);
+      redisClient.on("end", onEnd);
+    });
+    return;
+  }
+
+  await redisClient.connect();
 }
 
 export async function pingRedis() {

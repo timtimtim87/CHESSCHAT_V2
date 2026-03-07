@@ -1,5 +1,18 @@
 # CHESSCHAT - Diagram Guide
 
+## Current Draft Pack (2026-03-07)
+- New Terraform/registry-grounded draft set: `diagrams/chesschat-cloud-architecture-draft.md`
+- Includes:
+  - System context diagram
+  - AWS runtime topology diagram
+  - Delivery + IAM trust diagram
+- Baseline reflected:
+  - Region/account/env: `us-east-1` / `723580627470` / `dev`
+  - VPC CIDR: `10.20.0.0/16` with 3 AZ public/private-app/private-data subnets
+  - NAT mode: `single` (cost-aware portfolio tradeoff)
+  - ECS service desired count: `1`
+  - Redis: replication group with primary + replica (Multi-AZ/failover enabled)
+
 ## Status and Usage Note (2026-02-15)
 - Use this guide for presentation structure and interview storytelling.
 - This guide is aligned to current CHESSCHAT naming and portfolio architecture choices.

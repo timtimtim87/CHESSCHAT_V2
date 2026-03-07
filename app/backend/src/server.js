@@ -32,10 +32,10 @@ app.get("*", (_req, res) => {
 
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server, path: "/ws" });
-installWebSocketServer(wss);
 
 async function start() {
   await connectRedis();
+  installWebSocketServer(wss);
 
   server.listen(config.port, () => {
     log("info", "server_started", {

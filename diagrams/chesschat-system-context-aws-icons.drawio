@@ -1,0 +1,57 @@
+<mxfile host="app.diagrams.net" modified="2026-03-07T18:25:00.000Z" agent="Codex" version="24.7.17">
+  <diagram id="ctxaws1" name="System Context AWS Icons">
+    <mxGraphModel dx="1800" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="2" value="Players / Browsers" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3f4f6;strokeColor=#374151;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="30" y="170" width="180" height="60" as="geometry"/></mxCell>
+        <mxCell id="3" value="GitHub Actions main" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3f4f6;strokeColor=#374151;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="30" y="390" width="180" height="60" as="geometry"/></mxCell>
+
+        <mxCell id="10" value="AWS Account 723580627470 / us-east-1 / dev" style="swimlane;whiteSpace=wrap;html=1;rounded=1;strokeColor=#1f2937;fillColor=#ffffff;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="250" y="40" width="1300" height="600" as="geometry"/></mxCell>
+
+        <mxCell id="11" value="Route 53" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.route_53;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff;pointerEvents=1;" vertex="1" parent="10"><mxGeometry x="50" y="100" width="90" height="90" as="geometry"/></mxCell>
+        <mxCell id="12" value="ACM" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.certificate_manager_3;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff;pointerEvents=1;" vertex="1" parent="10"><mxGeometry x="170" y="100" width="90" height="90" as="geometry"/></mxCell>
+        <mxCell id="13" value="Application Load Balancer" style="shape=mxgraph.aws4.application_load_balancer;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none;pointerEvents=1;" vertex="1" parent="10"><mxGeometry x="300" y="100" width="90" height="90" as="geometry"/></mxCell>
+
+        <mxCell id="14" value="ECS" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.ecs;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff;pointerEvents=1;" vertex="1" parent="10"><mxGeometry x="460" y="100" width="90" height="90" as="geometry"/></mxCell>
+        <mxCell id="15" value="Fargate" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.fargate;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff;pointerEvents=1;" vertex="1" parent="10"><mxGeometry x="580" y="100" width="90" height="90" as="geometry"/></mxCell>
+
+        <mxCell id="16" value="Cognito" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cognito;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff;pointerEvents=1;" vertex="1" parent="10"><mxGeometry x="740" y="100" width="90" height="90" as="geometry"/></mxCell>
+        <mxCell id="17" value="DynamoDB" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.dynamodb;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff;pointerEvents=1;" vertex="1" parent="10"><mxGeometry x="860" y="100" width="90" height="90" as="geometry"/></mxCell>
+        <mxCell id="18" value="ElastiCache" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.elasticache;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff;pointerEvents=1;" vertex="1" parent="10"><mxGeometry x="980" y="100" width="90" height="90" as="geometry"/></mxCell>
+        <mxCell id="19" value="Secrets Manager" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.secrets_manager;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff;pointerEvents=1;" vertex="1" parent="10"><mxGeometry x="1100" y="100" width="90" height="90" as="geometry"/></mxCell>
+
+        <mxCell id="20" value="CloudWatch" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cloudwatch;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff;pointerEvents=1;" vertex="1" parent="10"><mxGeometry x="740" y="280" width="90" height="90" as="geometry"/></mxCell>
+        <mxCell id="21" value="SNS" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.sns;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff;pointerEvents=1;" vertex="1" parent="10"><mxGeometry x="860" y="280" width="90" height="90" as="geometry"/></mxCell>
+        <mxCell id="22" value="Budgets" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.budgets;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff;pointerEvents=1;" vertex="1" parent="10"><mxGeometry x="980" y="280" width="90" height="90" as="geometry"/></mxCell>
+        <mxCell id="23" value="ECR" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.ecr;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff;pointerEvents=1;" vertex="1" parent="10"><mxGeometry x="1100" y="280" width="90" height="90" as="geometry"/></mxCell>
+
+        <mxCell id="24" value="IAM (OIDC provider)" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.identity_and_access_management;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff;pointerEvents=1;" vertex="1" parent="10"><mxGeometry x="300" y="280" width="90" height="90" as="geometry"/></mxCell>
+        <mxCell id="25" value="IAM Deploy Role" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.identity_and_access_management;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff;pointerEvents=1;" vertex="1" parent="10"><mxGeometry x="460" y="280" width="90" height="90" as="geometry"/></mxCell>
+
+        <mxCell id="26" value="Single NAT tradeoff: cost-aware, single-AZ egress dependency" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff7ed;strokeColor=#c2410c;dashed=1;" vertex="1" parent="10"><mxGeometry x="300" y="500" width="430" height="40" as="geometry"/></mxCell>
+        <mxCell id="27" value="Future hardening: WAF, per-AZ NAT, ECS minimum tasks &gt; 1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eff6ff;strokeColor=#1d4ed8;dashed=1;" vertex="1" parent="10"><mxGeometry x="780" y="500" width="520" height="40" as="geometry"/></mxCell>
+
+        <mxCell id="100" value="HTTPS / WSS" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="2" target="11"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="101" value="Alias" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="10" source="11" target="13"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="102" value="TLS cert" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="10" source="12" target="13"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="103" value="Forward" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="10" source="13" target="14"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="104" value="runtime" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="10" source="14" target="15"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="105" value="OAuth/JWT" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="10" source="15" target="16"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="106" value="DynamoDB API" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="10" source="15" target="17"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="107" value="Redis TLS" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="10" source="15" target="18"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="108" value="GetSecretValue" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="10" source="15" target="19"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="109" value="Logs/Metrics" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="10" source="15" target="20"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="110" value="Alarm actions" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="10" source="20" target="21"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="111" value="Budget notifications" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="10" source="22" target="21"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <mxCell id="112" value="AssumeRoleWithWebIdentity" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="3" target="24"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="113" value="federation" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="10" source="24" target="25"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="114" value="Push/Pull" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="10" source="25" target="23"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="115" value="Update ECS" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="10" source="25" target="14"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="116" value="Cognito admin e2e" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="10" source="25" target="16"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
