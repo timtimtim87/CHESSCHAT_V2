@@ -67,6 +67,7 @@ export default function RoomPage() {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const reconnectVersionRef = useRef(0);
+  const autoJoinMeetingIdRef = useRef(null);
   const [clockNowMs, setClockNowMs] = useState(Date.now());
   const [confirmResignOpen, setConfirmResignOpen] = useState(false);
 
@@ -454,6 +455,23 @@ export default function RoomPage() {
     }
   }
 
+  useEffect(() => {
+    const meetingId = state.media_state.credentials?.meetingData?.MeetingId;
+    if (!meetingId) {
+      autoJoinMeetingIdRef.current = null;
+      return;
+    }
+    if (autoJoinMeetingIdRef.current === meetingId) {
+      return;
+    }
+    if (meetingSessionRef.current || state.media_state.started) {
+      return;
+    }
+
+    autoJoinMeetingIdRef.current = meetingId;
+    joinMedia().catch(() => null);
+  }, [state.media_state.credentials, state.media_state.started]);
+
   function toggleMic() {
     const session = meetingSessionRef.current;
     if (!session) {
@@ -581,6 +599,7 @@ export default function RoomPage() {
             connected={whiteConnected}
             isLocalPlayer={whiteIsLocal || (!game && !blackIsLocal)}
             videoRef={whiteIsLocal || (!game && !blackIsLocal) ? localVideoRef : remoteVideoRef}
+            canJoinMedia={Boolean(state.media_state.credentials)}
             mediaStarted={state.media_state.started}
             onJoinMedia={joinMedia}
             onToggleMic={toggleMic}
@@ -664,6 +683,7 @@ export default function RoomPage() {
             connected={blackConnected}
             isLocalPlayer={blackIsLocal}
             videoRef={blackIsLocal ? localVideoRef : remoteVideoRef}
+            canJoinMedia={Boolean(state.media_state.credentials)}
             mediaStarted={state.media_state.started}
             onJoinMedia={joinMedia}
             onToggleMic={toggleMic}

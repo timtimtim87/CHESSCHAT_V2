@@ -34,6 +34,7 @@ function PlayerVideoCard({ name, role, clock, connected, isLocal, videoRef }) {
 }
 
 function MediaControlRow({
+  canJoinMedia,
   mediaStarted,
   onJoinMedia,
   onToggleMic,
@@ -43,7 +44,7 @@ function MediaControlRow({
 }) {
   return (
     <div className="media-control-row">
-      <button className="button-pill" onClick={onJoinMedia} disabled={mediaStarted}>
+      <button className="button-pill" onClick={onJoinMedia} disabled={mediaStarted || !canJoinMedia}>
         {mediaStarted ? "Media Connected" : "Join Media"}
       </button>
       <button className="button-pill" onClick={onToggleMic} disabled={!mediaStarted}>
@@ -63,6 +64,7 @@ export default function VideoPanel({
   connected,
   isLocalPlayer,
   videoRef,
+  canJoinMedia,
   mediaStarted,
   onJoinMedia,
   onToggleMic,
@@ -85,6 +87,7 @@ export default function VideoPanel({
       {isLocalPlayer ? (
         <>
           <MediaControlRow
+            canJoinMedia={canJoinMedia}
             mediaStarted={mediaStarted}
             onJoinMedia={onJoinMedia}
             onToggleMic={onToggleMic}
