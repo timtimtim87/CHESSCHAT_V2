@@ -116,13 +116,13 @@ export default function LobbyPage() {
   const profileName = profile?.display_name || profile?.username || user?.username || "unknown";
 
   return (
-    <main className="lobby-shell">
-      <header className="top-row">
+    <main className="lobby-shell app-shell">
+      <header className="lobby-top-row">
         <div>
           <h1>Lobby</h1>
           <p>Logged in as {profileName}</p>
         </div>
-        <button onClick={logout}>Logout</button>
+        <button className="button-ghost" onClick={logout}>Logout</button>
       </header>
 
       <section className="lobby-grid">
@@ -143,7 +143,7 @@ export default function LobbyPage() {
               placeholder="ABCDE"
               aria-label="Room code"
             />
-            <button className="primary" type="submit" disabled={isJoining || !isRoomCodeValid}>
+            <button className="button-primary" type="submit" disabled={isJoining || !isRoomCodeValid}>
               {isJoining ? "Joining..." : "Start / Join"}
             </button>
           </form>
@@ -152,7 +152,7 @@ export default function LobbyPage() {
           {lastRoomCode ? (
             <div className="resume-card">
               <p>Last room: <strong>{lastRoomCode}</strong></p>
-              <button onClick={resumeRoom}>Resume Last Room</button>
+              <button className="button-secondary" onClick={resumeRoom}>Resume Last Room</button>
             </div>
           ) : null}
         </section>

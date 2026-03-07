@@ -5,9 +5,10 @@ This file defines project-specific operating guidance for AI agents working in t
 ## Mandatory First Reads Each Session
 1. `DOCS/PORTFOLIO_BUILD_PLAYBOOK.md`
 2. `infra/RESOURCE_REGISTRY.md`
-3. `terraform/backend.tf`
-4. `terraform/main.tf`
-5. `terraform/README.md`
+3. `DOCS/UI_DESIGN_GUIDE.md`
+4. `terraform/backend.tf`
+5. `terraform/main.tf`
+6. `terraform/README.md`
 
 ## Working Objective
 - Help Tim build CHESSCHAT as an AWS Solutions Architect portfolio project.
@@ -28,8 +29,17 @@ This file defines project-specific operating guidance for AI agents working in t
 ## Documentation Rule
 - When major decisions are made, update:
   - `DOCS/PORTFOLIO_BUILD_PLAYBOOK.md` (strategy-level decisions)
+  - `DOCS/UI_DESIGN_GUIDE.md` (UI/UX decisions, component behavior, visual system changes)
   - `infra/RESOURCE_REGISTRY.md` (concrete IDs/ARNs/state)
   - `portfolio diary/` (day-by-day build log with what was built, how it was built, and decision/thought process)
+
+## UI/UX Decision Rule
+- Any substantial UI change must document:
+  - What changed (layout, controls, copy, motion, color/typography)
+  - Why it changed (usability, clarity, consistency, performance, accessibility)
+  - Validation method (manual playtest and/or automated tests)
+- Keep MVP UI simple, minimal, and clear unless explicitly overridden.
+- Preserve chessboard-first hierarchy in game room layouts unless explicitly changed.
 
 ## Portfolio Diary Rule
 - Keep daily notes under `portfolio diary/` using one file per day: `YYYY-MM-DD.md`.

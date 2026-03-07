@@ -32,6 +32,19 @@ function formatClock(seconds) {
   return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 }
 
+function formatPlayerName(playerId, currentUserId) {
+  if (!playerId) {
+    return "Waiting...";
+  }
+  if (playerId === currentUserId) {
+    return "You";
+  }
+  if (playerId.length <= 10) {
+    return playerId;
+  }
+  return `${playerId.slice(0, 6)}...${playerId.slice(-4)}`;
+}
+
 export default function RoomPage() {
   const { code } = useParams();
   const roomCode = useMemo(() => (code || "").toUpperCase(), [code]);
@@ -472,11 +485,7 @@ export default function RoomPage() {
   const socketSubtitle =
     state.socket_state.status === "reconnecting"
       ? `Reconnecting (attempt ${state.socket_state.reconnectAttempt})...`
-      : `Socket: ${state.socket_state.status}`;
-
-  const participantsLabel = state.room_state.participants
-    .map((participant) => `${participant.userId}${participant.connected ? "" : " (disconnected)"}`)
-    .join(", ");
+      : `Socket ${state.socket_state.status}`;
 
   const reconnectLabel =
     state.room_state.reconnect.status === "paused"
@@ -510,23 +519,50 @@ export default function RoomPage() {
 
   const moveHistory = game?.moveSans || [];
 
+  const participantsById = new Map(state.room_state.participants.map((participant) => [participant.userId, participant]));
+  const fallbackIds = state.room_state.participants.map((participant) => participant.userId);
+  const whitePlayerId = game?.whitePlayerId || fallbackIds[0] || user?.sub || null;
+  const blackPlayerId =
+    game?.blackPlayerId || fallbackIds.find((playerId) => playerId !== whitePlayerId) || null;
+
+  const whiteIsLocal = whitePlayerId === user?.sub;
+  const blackIsLocal = blackPlayerId === user?.sub;
+  const whiteConnected = whitePlayerId ? (participantsById.get(whitePlayerId)?.connected ?? true) : false;
+  const blackConnected = blackPlayerId ? (participantsById.get(blackPlayerId)?.connected ?? true) : false;
+  const whiteClock = game ? formatClock(derivedClocks.white) : "--:--";
+  const blackClock = game ? formatClock(derivedClocks.black) : "--:--";
+  const statusLabel = game
+    ? `Turn: ${game.turn === "white" ? "White" : "Black"}`
+    : connectedPlayers < 2
+      ? "Waiting for opponent"
+      : "Ready to start";
+
   return (
-    <main className="room-shell">
-      <header className="top-row">
+    <main className="room-shell app-shell">
+      <div className="room-command-bar">
+        <button className="button-ghost" onClick={() => navigate("/lobby")}>
+          Return to Lobby
+        </button>
+      </div>
+
+      <section className="room-status-strip surface-glass">
         <div>
-          <h1>Room {roomCode}</h1>
-          <p>Players: {participantsLabel || "waiting"}</p>
+          <p className="room-code-line">Room {roomCode}</p>
+          <h1>{statusLabel}</h1>
+        </div>
+        <div className="room-status-meta">
           <p className="socket-status">{socketSubtitle}</p>
           {reconnectLabel ? <p className="socket-status">{reconnectLabel}</p> : null}
         </div>
-        <button onClick={() => navigate("/lobby")}>Back to Lobby</button>
-      </header>
+      </section>
 
       {state.blocking_error ? (
-        <section className="error-banner" role="alert">
+        <section className="error-banner surface-danger" role="alert">
           <strong>{state.blocking_error.code}</strong>
           <span>{state.blocking_error.message}</span>
-          <button onClick={() => dispatch({ type: "CLEAR_BLOCKING_ERROR" })}>Dismiss</button>
+          <button className="button-ghost" onClick={() => dispatch({ type: "CLEAR_BLOCKING_ERROR" })}>
+            Dismiss
+          </button>
         </section>
       ) : null}
 
@@ -536,57 +572,76 @@ export default function RoomPage() {
         </section>
       ) : null}
 
-      <section className="room-layout">
-        <VideoPanel
-          status={state.media_state.message}
-          mediaStarted={state.media_state.started}
-          onJoinMedia={joinMedia}
-          onToggleMic={toggleMic}
-          onToggleCamera={toggleCamera}
-          isMicMuted={state.media_state.micMuted}
-          isCameraOn={state.media_state.cameraOn}
-          localVideoRef={localVideoRef}
-          remoteVideoRef={remoteVideoRef}
-          error={state.blocking_error?.code?.startsWith("MEDIA") ? state.blocking_error.message : ""}
-        />
+      <section className="room-grid">
+        <aside className="room-side room-side-left">
+          <VideoPanel
+            playerName={formatPlayerName(whitePlayerId, user?.sub)}
+            playerRole="White"
+            clock={whiteClock}
+            connected={whiteConnected}
+            isLocalPlayer={whiteIsLocal || (!game && !blackIsLocal)}
+            videoRef={whiteIsLocal || (!game && !blackIsLocal) ? localVideoRef : remoteVideoRef}
+            mediaStarted={state.media_state.started}
+            onJoinMedia={joinMedia}
+            onToggleMic={toggleMic}
+            onToggleCamera={toggleCamera}
+            isMicMuted={state.media_state.micMuted}
+            isCameraOn={state.media_state.cameraOn}
+            mediaStatus={state.media_state.message}
+            error={state.blocking_error?.code?.startsWith("MEDIA") ? state.blocking_error.message : ""}
+          />
+        </aside>
 
-        <section className="game-panel">
-          <div className="controls">
-            <button className="primary" onClick={startGame} disabled={Boolean(game) || connectedPlayers < 2}>
+        <section className="game-panel surface-glass">
+          <div className="game-header-row">
+            <p className="turn-pill">{statusLabel}</p>
+          </div>
+
+          <div className="board-wrap">
+            <ChessBoardPanel
+              fen={game?.fen || "start"}
+              myColor={myColor}
+              isMyTurn={isMyTurn}
+              onMove={onMove}
+            />
+          </div>
+
+          <div className="clock-row">
+            <p>
+              <span className="status-dot is-online" />
+              White {whiteClock}
+            </p>
+            <p>
+              <span className="status-dot is-online" />
+              Black {blackClock}
+            </p>
+          </div>
+
+          <div className="room-action-row">
+            <button className="button-primary" onClick={startGame} disabled={Boolean(game) || connectedPlayers < 2}>
               Start Game
             </button>
-            <button onClick={resign} disabled={!game}>
+            <button className="button-danger" onClick={resign} disabled={!game}>
               Resign
             </button>
-            <button onClick={requestRematch} disabled={Boolean(game) || rematchRequestedByMe || connectedPlayers < 2}>
+            <button
+              className="button-secondary"
+              onClick={requestRematch}
+              disabled={Boolean(game) || rematchRequestedByMe || connectedPlayers < 2}
+            >
               {rematchRequestedByMe ? "Rematch Requested" : "Request Rematch"}
             </button>
             {rematchPendingForMe ? (
               <>
-                <button className="primary" onClick={() => respondRematch(true)}>
+                <button className="button-primary" onClick={() => respondRematch(true)}>
                   Accept Rematch
                 </button>
-                <button onClick={() => respondRematch(false)}>
+                <button className="button-secondary" onClick={() => respondRematch(false)}>
                   Decline Rematch
                 </button>
               </>
             ) : null}
           </div>
-
-          <p>
-            {game
-              ? `Turn: ${game.turn} | White ${formatClock(derivedClocks.white)} | Black ${formatClock(
-                  derivedClocks.black
-                )}`
-              : "No active game"}
-          </p>
-
-          <ChessBoardPanel
-            fen={game?.fen || "start"}
-            myColor={myColor}
-            isMyTurn={isMyTurn}
-            onMove={onMove}
-          />
 
           <section className="history-panel">
             <h3>Move History</h3>
@@ -600,16 +655,37 @@ export default function RoomPage() {
             ) : null}
           </section>
         </section>
+
+        <aside className="room-side room-side-right">
+          <VideoPanel
+            playerName={formatPlayerName(blackPlayerId, user?.sub)}
+            playerRole="Black"
+            clock={blackClock}
+            connected={blackConnected}
+            isLocalPlayer={blackIsLocal}
+            videoRef={blackIsLocal ? localVideoRef : remoteVideoRef}
+            mediaStarted={state.media_state.started}
+            onJoinMedia={joinMedia}
+            onToggleMic={toggleMic}
+            onToggleCamera={toggleCamera}
+            isMicMuted={state.media_state.micMuted}
+            isCameraOn={state.media_state.cameraOn}
+            mediaStatus={state.media_state.message}
+            error={state.blocking_error?.code?.startsWith("MEDIA") ? state.blocking_error.message : ""}
+          />
+        </aside>
       </section>
 
       {confirmResignOpen ? (
         <section className="modal-backdrop" role="dialog" aria-modal="true">
-          <div className="modal-card">
+          <div className="modal-card surface-glass">
             <h3>Confirm Resign</h3>
             <p>Are you sure you want to resign this game?</p>
-            <div className="controls">
-              <button onClick={() => setConfirmResignOpen(false)}>Cancel</button>
-              <button className="primary" onClick={confirmResign}>
+            <div className="room-action-row">
+              <button className="button-secondary" onClick={() => setConfirmResignOpen(false)}>
+                Cancel
+              </button>
+              <button className="button-danger" onClick={confirmResign}>
                 Confirm Resign
               </button>
             </div>
@@ -619,28 +695,34 @@ export default function RoomPage() {
 
       {state.game_state.lastResult ? (
         <section className="modal-backdrop" role="dialog" aria-modal="true">
-          <div className="modal-card">
+          <div className="modal-card surface-glass">
             <h3>Game Result</h3>
             <p><strong>Result:</strong> {state.game_state.lastResult.result}</p>
             <p><strong>Winner:</strong> {state.game_state.lastResult.winner}</p>
             {state.game_state.lastResult.pgn ? (
               <p className="result-pgn"><strong>PGN:</strong> {state.game_state.lastResult.pgn}</p>
             ) : null}
-            <div className="controls">
-              <button onClick={requestRematch} disabled={rematchRequestedByMe || connectedPlayers < 2}>
+            <div className="room-action-row">
+              <button
+                className="button-secondary"
+                onClick={requestRematch}
+                disabled={rematchRequestedByMe || connectedPlayers < 2}
+              >
                 {rematchRequestedByMe ? "Rematch Requested" : "Request Rematch"}
               </button>
               {rematchPendingForMe ? (
                 <>
-                  <button className="primary" onClick={() => respondRematch(true)}>
+                  <button className="button-primary" onClick={() => respondRematch(true)}>
                     Accept
                   </button>
-                  <button onClick={() => respondRematch(false)}>
+                  <button className="button-secondary" onClick={() => respondRematch(false)}>
                     Decline
                   </button>
                 </>
               ) : null}
-              <button onClick={() => dispatch({ type: "GAME_ENDED", result: null })}>Close</button>
+              <button className="button-ghost" onClick={() => dispatch({ type: "GAME_ENDED", result: null })}>
+                Close
+              </button>
             </div>
           </div>
         </section>

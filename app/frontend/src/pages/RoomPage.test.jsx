@@ -111,6 +111,13 @@ describe("RoomPage", () => {
     expect(mockSocketSend).toHaveBeenCalledWith("resign", { roomCode: "ABC12" });
   });
 
+  it("renders room command and action controls", async () => {
+    renderRoom();
+    expect(await screen.findByRole("button", { name: "Return to Lobby" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start Game" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Request Rematch" })).toBeInTheDocument();
+  });
+
   it("renders game result modal", async () => {
     renderRoom();
     hoisted.latestSocketConfig.onMessage({

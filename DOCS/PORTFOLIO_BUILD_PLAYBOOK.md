@@ -457,6 +457,28 @@ Goal: implement CI/CD in small, understandable steps.
 - Prefer step-by-step guidance with concrete commands and rationale.
 - Make architecture decisions explicit so Tim can explain them in interviews.
 
+## 8.1) UI/UX Baseline (2026-03-05)
+- Product UX direction for MVP:
+  - Keep UI simple, minimal, and clear.
+  - Chessboard-first visual hierarchy in game room.
+  - Video remains secondary but always visible.
+- Screen strategy:
+  - Auth and lobby should be basic and low-friction.
+  - Gameplay screen carries most design depth and state handling.
+- Visual direction:
+  - Indigo/blue branded gradient background.
+  - Slow moving blurred "lava-lamp" gradient effect is approved when performance and readability guardrails are met.
+- UI decision governance:
+  - `DOCS/UI_DESIGN_GUIDE.md` is now the source of truth for:
+    - layout patterns (desktop/mobile),
+    - control inventory,
+    - motion/accessibility constraints,
+    - design decision logging process.
+- Guardrails:
+  - Prioritize legibility of turn/clocks/reconnect/media states over decorative effects.
+  - Respect `prefers-reduced-motion` for animated backgrounds/transitions.
+  - Keep critical controls explicit (icon + text) and stable in placement.
+
 ## 9) Session Start Checklist for AI Agent
 At the beginning of each session:
 1. Read this file: `DOCS/PORTFOLIO_BUILD_PLAYBOOK.md`
@@ -607,3 +629,19 @@ At the beginning of each session:
   - Decoupling room mutation/broadcast from persistence closes the highest reliability gap with minimal contract churn.
   - Idempotent persistence enables safe replay/retry and supports interview-ready reasoning for distributed consistency under failure.
   - Reconnect versioning plus stale-deadline cleanup makes lifecycle behavior monotonic and easier to debug in production logs.
+
+## UI Delivery Update (2026-03-07)
+- Completed first desktop-first UI implementation pass aligned to approved game-room mockups.
+- Strategy impact:
+  - Moved from basic MVP visuals to a reusable tokenized UI foundation, improving delivery speed for future iterations.
+  - Preserved API/WS contracts and backend behavior; all changes are frontend presentation and interaction-layer only.
+  - Kept board-first hierarchy as the primary game-room design invariant for interview narrative consistency.
+- Implemented scope:
+  - Room-first redesign with 3-column desktop gameplay stage.
+  - Shared visual shell on landing and lobby for coherence.
+  - Mobile safe fallback (functional stacked layout) while prioritizing desktop polish.
+- Validation:
+  - Frontend tests: pass (`vitest`, 11/11 tests).
+  - Frontend build: pass (`vite build`).
+- Follow-up objective:
+  - Collect structured human playtest feedback and tune control labels, spacing, and state messaging without changing core contracts.
