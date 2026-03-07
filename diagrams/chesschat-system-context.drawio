@@ -1,0 +1,50 @@
+<mxfile host="app.diagrams.net" modified="2026-03-07T18:00:00.000Z" agent="Codex" version="24.7.17">
+  <diagram id="ctx1" name="System Context">
+    <mxGraphModel dx="1800" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="2" value="Players / Browsers" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3f4f6;strokeColor=#374151;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="160" width="170" height="60" as="geometry"/></mxCell>
+        <mxCell id="3" value="GitHub Actions&lt;br&gt;main branch" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3f4f6;strokeColor=#374151;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="380" width="170" height="70" as="geometry"/></mxCell>
+
+        <mxCell id="10" value="AWS Account 723580627470 / us-east-1 / dev" style="swimlane;whiteSpace=wrap;html=1;rounded=1;strokeColor=#1f2937;fillColor=#ffffff;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="260" y="40" width="1280" height="560" as="geometry"/></mxCell>
+
+        <mxCell id="11" value="Route53&lt;br&gt;app.chess-chat.com" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dbeafe;strokeColor=#1d4ed8;" vertex="1" parent="10"><mxGeometry x="40" y="120" width="180" height="70" as="geometry"/></mxCell>
+        <mxCell id="12" value="ACM Certificate&lt;br&gt;app.chess-chat.com" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dbeafe;strokeColor=#1d4ed8;" vertex="1" parent="10"><mxGeometry x="40" y="230" width="180" height="70" as="geometry"/></mxCell>
+        <mxCell id="13" value="ALB&lt;br&gt;80 -&gt; 443 redirect" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dbeafe;strokeColor=#1d4ed8;" vertex="1" parent="10"><mxGeometry x="270" y="160" width="180" height="70" as="geometry"/></mxCell>
+        <mxCell id="14" value="ECS Fargate Service&lt;br&gt;desired=1, port 8080" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#15803d;" vertex="1" parent="10"><mxGeometry x="510" y="160" width="210" height="70" as="geometry"/></mxCell>
+        <mxCell id="15" value="Cognito&lt;br&gt;User Pool + Client + Domain" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ede9fe;strokeColor=#6d28d9;" vertex="1" parent="10"><mxGeometry x="770" y="70" width="220" height="70" as="geometry"/></mxCell>
+        <mxCell id="16" value="DynamoDB&lt;br&gt;users + games" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffedd5;strokeColor=#c2410c;" vertex="1" parent="10"><mxGeometry x="770" y="170" width="220" height="70" as="geometry"/></mxCell>
+        <mxCell id="17" value="ElastiCache Redis&lt;br&gt;primary + replica" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffedd5;strokeColor=#c2410c;" vertex="1" parent="10"><mxGeometry x="770" y="270" width="220" height="70" as="geometry"/></mxCell>
+        <mxCell id="18" value="Secrets Manager&lt;br&gt;redis auth token" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffedd5;strokeColor=#c2410c;" vertex="1" parent="10"><mxGeometry x="770" y="370" width="220" height="70" as="geometry"/></mxCell>
+        <mxCell id="19" value="CloudWatch&lt;br&gt;logs + alarms + dashboard" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f2fe;strokeColor=#0369a1;" vertex="1" parent="10"><mxGeometry x="1040" y="120" width="220" height="70" as="geometry"/></mxCell>
+        <mxCell id="20" value="SNS&lt;br&gt;chesschat-dev-alerts" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f2fe;strokeColor=#0369a1;" vertex="1" parent="10"><mxGeometry x="1040" y="230" width="220" height="70" as="geometry"/></mxCell>
+        <mxCell id="21" value="AWS Budgets&lt;br&gt;$100 monthly" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f2fe;strokeColor=#0369a1;" vertex="1" parent="10"><mxGeometry x="1040" y="330" width="220" height="70" as="geometry"/></mxCell>
+        <mxCell id="22" value="ECR&lt;br&gt;chesschat-dev-app" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#15803d;" vertex="1" parent="10"><mxGeometry x="510" y="300" width="210" height="70" as="geometry"/></mxCell>
+        <mxCell id="23" value="IAM OIDC Provider&lt;br&gt;token.actions.githubusercontent.com" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ede9fe;strokeColor=#6d28d9;" vertex="1" parent="10"><mxGeometry x="270" y="400" width="230" height="70" as="geometry"/></mxCell>
+        <mxCell id="24" value="GitHub Deploy Role&lt;br&gt;least privilege" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ede9fe;strokeColor=#6d28d9;" vertex="1" parent="10"><mxGeometry x="540" y="400" width="200" height="70" as="geometry"/></mxCell>
+        <mxCell id="25" value="Tradeoff: single NAT mode&lt;br&gt;(cost-aware, egress AZ dependency)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff7ed;strokeColor=#c2410c;dashed=1;" vertex="1" parent="10"><mxGeometry x="270" y="500" width="300" height="45" as="geometry"/></mxCell>
+        <mxCell id="26" value="Future hardening:&lt;br&gt;WAF, per-AZ NAT, ECS min &gt; 1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eff6ff;strokeColor=#1d4ed8;dashed=1;" vertex="1" parent="10"><mxGeometry x="890" y="500" width="330" height="45" as="geometry"/></mxCell>
+
+        <mxCell id="100" value="HTTPS / WSS" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="2" target="11"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="101" value="Alias" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="10" source="11" target="13"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="102" value="TLS cert" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="10" source="12" target="13"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="103" value="Forward" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="10" source="13" target="14"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="104" value="OAuth/JWT" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="10" source="14" target="15"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="105" value="DynamoDB API" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="10" source="14" target="16"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="106" value="Redis TLS 6379" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="10" source="14" target="17"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="107" value="GetSecretValue" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="10" source="14" target="18"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="108" value="Logs + metrics" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="10" source="14" target="19"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="109" value="Alarm actions" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="10" source="19" target="20"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="110" value="Budget notifications" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="10" source="21" target="20"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <mxCell id="111" value="AssumeRoleWithWebIdentity" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="3" target="23"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="112" value="Federation" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="10" source="23" target="24"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="113" value="Push/Pull" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="10" source="24" target="22"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="114" value="Update ECS" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="10" source="24" target="14"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="115" value="Cognito admin e2e" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;" edge="1" parent="10" source="24" target="15"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

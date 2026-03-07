@@ -1,15 +1,40 @@
 # Diagrams Approach
 
-CHESSCHAT diagrams are maintained in a SaaS diagramming tool (for example, Miro or Brainboard), not with code-first diagram packages.
+CHESSCHAT diagrams are maintained in native Draw.io/diagrams.net formats and can be edited in VS Code with the Draw.io extension or in diagrams.net directly.
 
 ## Decision
-- Code-generated diagram sources and outputs were intentionally removed from this repository.
-- Local diagram-specific package environments and helper scripts were removed.
-- This folder is kept only to document the diagramming approach and repository policy.
+- Keep architecture diagrams as source-controlled `.drawio` files for clean diffs and iterative edits.
+- Avoid code-generated diagram toolchains in this repo (PlantUML/Graphviz/Python diagrams/Inframap scripts).
+- Prefer Draw.io-native artifacts and export to SVG/PNG only when needed for docs/presentations.
 
 ## Repository Rule
 - Do not add PlantUML, Graphviz, Python `diagrams`, or Inframap assets/scripts in this folder.
-- Keep architecture diagrams in the chosen SaaS platform and export final artifacts to portfolio docs only when needed.
+- Add/edit only Draw.io-native sources (`.drawio`) plus optional exported assets.
+
+## Current Draw.io Artifacts (2026-03-07)
+- `diagrams/chesschat-system-context.drawio`
+- `diagrams/chesschat-runtime-topology.drawio`
+- `diagrams/chesschat-delivery-iam.drawio`
+- AWS icon library copies:
+  - `diagrams/chesschat-system-context-aws-icons.drawio`
+  - `diagrams/chesschat-runtime-topology-aws-icons.drawio`
+  - `diagrams/chesschat-delivery-iam-aws-icons.drawio`
+- Supporting markdown draft: `diagrams/chesschat-cloud-architecture-draft.md`
+
+## Editing Workflow (VS Code Draw.io Extension)
+1. Open any `.drawio` file in VS Code.
+2. If prompted, use `View: Reopen Editor With...` and choose Draw.io editor.
+3. Save normally; files stay plain XML for readable git diffs.
+4. Optional exports:
+   - Use Draw.io UI export options, or
+   - Use `Draw.io: Convert To...` to generate `.drawio.svg` / `.drawio.png` when needed.
+
+## Notes
+- `.drawio` is preferred in this repository because diffs are easier to review than embedded XML in image files.
+- `.drawio.svg` is useful when embedding directly into README pages.
+- Naming convention:
+  - base flowchart versions: `*.drawio`
+  - AWS icon-library versions: `*-aws-icons.drawio`
 
 ## Current Diagram Update Checklist (2026-03-01)
 - Infrastructure diagram:
