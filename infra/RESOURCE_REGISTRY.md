@@ -12,7 +12,7 @@ Purpose: single source of truth for human-readable names, IDs, and ARNs as infra
 - AWS CLI named profile retained: `CHESSCHAT_IAM_USER` (mirrors `default`)
 
 ## Status
-- Last updated: 2026-03-02
+- Last updated: 2026-03-07
 - Provisioning state: bootstrap backend configured; Phase A network, Phase B data, Phase 4 identity/IAM, Phase 5 compute, Phase 6/7 edge + DNS, Phase E observability/operations, Phase F app MVP deployment validation, and Phase 10 GitHub OIDC deploy IAM baseline applied in `us-east-1`. Phase 10 validation closure completed with first green `e2e-post-deploy` and `deploy-main` runs on 2026-03-02.
 - Terraform code status:
   - `ecs` module now serves as ECS identity-only IAM foundation.
@@ -216,3 +216,17 @@ Purpose: single source of truth for human-readable names, IDs, and ARNs as infra
     - `terraform -chdir=terraform init -backend=false` failed due DNS/STS resolution (`sts.us-east-1.amazonaws.com`)
     - `terraform -chdir=terraform validate` failed to load provider schemas in sandbox runtime
     - Re-validate Terraform from normal host shell with working AWS/network.
+- UI governance update (2026-03-05, no new AWS resources):
+  - Added `DOCS/UI_DESIGN_GUIDE.md` as UI/UX source-of-truth for:
+    - desktop/mobile game-room layout baseline,
+    - MVP button/control inventory,
+    - motion/performance/accessibility constraints (including reduced-motion handling),
+    - design decision logging process.
+  - Updated project operating rules (`AGENTS.md`) to require UI design documentation updates alongside strategy/diary updates for substantial design changes.
+- UI implementation update (2026-03-07, no new AWS resources):
+  - Implemented desktop-first room UI overhaul and shared visual shell pass in frontend app layer.
+  - Added tokenized design system, animated gradient background with reduced-motion fallback, and composable video card/control components.
+  - Preserved backend/API/WS contracts; no infrastructure provisioning changes.
+  - Validation commands executed in repo:
+    - `npm --prefix app/frontend run test` (pass, 11/11)
+    - `npm --prefix app/frontend run build` (pass)

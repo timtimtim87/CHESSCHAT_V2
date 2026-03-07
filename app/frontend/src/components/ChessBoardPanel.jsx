@@ -66,7 +66,7 @@ export default function ChessBoardPanel({ fen, isMyTurn, myColor, onMove }) {
   }
 
   return (
-    <div className="board-panel">
+    <div className="board-panel" data-testid="board-panel">
       <Chessboard
         position={fen === "start" ? "start" : fen}
         onPieceDrop={onDrop}

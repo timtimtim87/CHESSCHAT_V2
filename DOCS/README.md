@@ -5,6 +5,8 @@ Use this page to know which docs are authoritative for active implementation.
 ## Authoritative (Use First)
 - `PORTFOLIO_BUILD_PLAYBOOK.md`
   - Current architecture goals, tradeoffs, roadmap, and collaboration style.
+- `UI_DESIGN_GUIDE.md`
+  - Current UI/UX direction, MVP control inventory, and design decision logging process.
 - `../infra/RESOURCE_REGISTRY.md`
   - Actual account IDs, backend resources, ARNs, and current state.
 - `ADRS/`
