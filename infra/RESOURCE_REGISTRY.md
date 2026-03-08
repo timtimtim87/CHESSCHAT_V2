@@ -230,3 +230,6 @@ Purpose: single source of truth for human-readable names, IDs, and ARNs as infra
   - Validation commands executed in repo:
     - `npm --prefix app/frontend run test` (pass, 11/11)
     - `npm --prefix app/frontend run build` (pass)
+- UI stability hotfix update (2026-03-08, no new AWS resources):
+  - Frontend-only adjustments for hover visual stability, board sizing, and media auto-join UX.
+  - Deployment intent: same ECS pipeline path via merge-to-main; no infra state changes.

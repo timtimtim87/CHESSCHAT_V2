@@ -53,6 +53,7 @@ body {
   color: var(--color-text-primary);
   position: relative;
   overflow-x: hidden;
+  isolation: isolate;
 }
 
 body::before,
@@ -140,14 +141,16 @@ input {
 button {
   cursor: pointer;
   border: 0;
-  transition: transform var(--duration-fast) var(--ease-standard),
+  transition:
     background var(--duration-fast) var(--ease-standard),
     border-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard),
     opacity var(--duration-fast) var(--ease-standard);
+  -webkit-tap-highlight-color: transparent;
 }
 
 button:hover:not(:disabled) {
-  transform: translateY(-1px);
+  filter: brightness(1.04);
 }
 
 button:disabled {
@@ -177,7 +180,6 @@ input {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-soft);
-  backdrop-filter: blur(16px);
 }
 
 .surface-danger {
@@ -360,7 +362,7 @@ input {
 
 .room-grid {
   display: grid;
-  grid-template-columns: 280px minmax(640px, 1fr) 280px;
+  grid-template-columns: 250px minmax(520px, 1fr) 250px;
   align-items: start;
   gap: var(--space-3);
 }
@@ -387,13 +389,13 @@ input {
 
 .player-video-frame {
   position: relative;
-  min-height: 380px;
+  min-height: 320px;
   background: linear-gradient(145deg, #b9c6ff, #8898f7);
 }
 
 .player-video-frame video {
   width: 100%;
-  min-height: 380px;
+  min-height: 320px;
   object-fit: cover;
   background: #101746;
   display: block;
@@ -482,7 +484,7 @@ input {
 }
 
 .board-panel {
-  width: min(100%, 760px);
+  width: min(100%, clamp(480px, 54vw, 640px));
   border-radius: var(--radius-sm);
   overflow: hidden;
   box-shadow: var(--shadow-hard);

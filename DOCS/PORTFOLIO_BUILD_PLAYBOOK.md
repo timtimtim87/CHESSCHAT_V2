@@ -645,3 +645,12 @@ At the beginning of each session:
   - Frontend build: pass (`vite build`).
 - Follow-up objective:
   - Collect structured human playtest feedback and tune control labels, spacing, and state messaging without changing core contracts.
+
+## UI Stability Hotfix (2026-03-08)
+- Applied post-playtest frontend refinements after production deployment:
+  - hover/interaction visual stability improvements for Safari behavior,
+  - desktop room board size tuning for 15-inch screens,
+  - automatic media join attempt when backend video credentials are available.
+- Architecture/contracts unchanged:
+  - no backend API or WebSocket contract modifications,
+  - no Terraform/infrastructure changes.
