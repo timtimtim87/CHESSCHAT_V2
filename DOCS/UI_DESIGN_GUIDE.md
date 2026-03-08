@@ -234,3 +234,23 @@ Last updated: 2026-03-05
 
 ### Notes
 - Solo room media preview is still gated by backend meeting creation flow (`video_ready` is emitted only when both participants are connected).
+
+## 14) Troubleshooting UI Update (2026-03-09)
+
+### What changed
+- Added a temporary room-status diagnostic line in the game header metadata showing:
+  - connected player count
+  - whether game state is active
+  - local assigned color
+  - whether it is currently local player's turn
+
+### Why
+- Current troubleshooting required faster cross-device verification of move gating and event ordering (`game_started` before first legal move expectation).
+- This reduces ambiguity when validating two-user room state transitions during Safari/mobile repro.
+
+### Validation
+- `npm --prefix app/frontend run test` (pass)
+- `npm --prefix app/frontend run build` (pass)
+
+### Notes
+- This is a temporary diagnostics aid and should be removed or hidden behind a debug flag after incident validation is complete.
