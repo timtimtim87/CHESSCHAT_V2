@@ -9,6 +9,10 @@ import { appStateReducer, initialAppState } from "../state/appState";
 
 const LAST_ROOM_CODE_KEY = "chesschat_last_room_code";
 
+function roomDebug(message, context = {}) {
+  console.info("[room-debug]", message, context);
+}
+
 function normalizeError(payload) {
   return {
     code: payload?.code || "INTERNAL_ERROR",
@@ -63,6 +67,7 @@ export default function RoomPage() {
   const meetingSessionRef = useRef(null);
   const observerRef = useRef(null);
   const audioElementRef = useRef(null);
+  const localTileIdRef = useRef(null);
   const remoteTileIdRef = useRef(null);
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
@@ -87,12 +92,19 @@ export default function RoomPage() {
       session.audioVideo.removeObserver(observerRef.current);
       observerRef.current = null;
     }
+    if (localTileIdRef.current) {
+      session.audioVideo.unbindVideoElement(localTileIdRef.current);
+      localTileIdRef.current = null;
+    }
+    if (remoteTileIdRef.current) {
+      session.audioVideo.unbindVideoElement(remoteTileIdRef.current);
+      remoteTileIdRef.current = null;
+    }
     stopMedia(session.audioVideo);
-    session.audioVideo.unbindVideoElement(localVideoRef.current);
-    session.audioVideo.unbindVideoElement(remoteVideoRef.current);
     remoteTileIdRef.current = null;
     meetingSessionRef.current = null;
     dispatch({ type: "MEDIA_STOPPED" });
+    roomDebug("media_stopped");
   }
 
   useEffect(() => {
@@ -127,6 +139,7 @@ export default function RoomPage() {
     const socket = new ChessChatSocket({
       token: accessToken,
       onStateChange: (socketState) => {
+        roomDebug("socket_state", socketState);
         dispatch({
           type: "SOCKET_STATE",
           status: socketState.status,
@@ -135,10 +148,12 @@ export default function RoomPage() {
         });
       },
       onOpen: () => {
+        roomDebug("socket_open", { roomCode });
         dispatch({ type: "CLEAR_BLOCKING_ERROR" });
         socket.send("join_room", { roomCode });
       },
       onClose: ({ willReconnect }) => {
+        roomDebug("socket_close", { roomCode, willReconnect });
         if (!willReconnect) {
           return;
         }
@@ -155,6 +170,11 @@ export default function RoomPage() {
       onMessage: (payload) => {
         switch (payload.type) {
           case "room_joined":
+            roomDebug("event_room_joined", {
+              roomCode: payload.roomCode,
+              participants: payload.participants?.length || 0,
+              hasActiveGame: Boolean(payload.activeGame)
+            });
             reconnectVersionRef.current = payload.activeGame?.reconnectVersion || reconnectVersionRef.current;
             dispatch({
               type: "ROOM_JOINED",
@@ -164,9 +184,11 @@ export default function RoomPage() {
             });
             break;
           case "participant_joined":
+            roomDebug("event_participant_joined", { participants: payload.participants?.length || 0 });
             dispatch({ type: "PARTICIPANT_JOINED", participants: normalizeParticipants(payload.participants) });
             break;
           case "participant_left":
+            roomDebug("event_participant_left", { participants: payload.participants?.length || 0 });
             dispatch({ type: "PARTICIPANT_LEFT", participants: normalizeParticipants(payload.participants) });
             break;
           case "reconnect_state":
@@ -213,6 +235,9 @@ export default function RoomPage() {
             }
             break;
           case "video_ready":
+            roomDebug("event_video_ready", {
+              meetingId: payload.meetingData?.MeetingId || payload.meetingData?.meetingId
+            });
             dispatch({
               type: "VIDEO_READY",
               credentials: {
@@ -223,6 +248,12 @@ export default function RoomPage() {
             dispatch({ type: "CLEAR_TOAST_ERROR" });
             break;
           case "game_started":
+            roomDebug("event_game_started", {
+              gameId: payload.gameId,
+              whitePlayerId: payload.whitePlayerId,
+              blackPlayerId: payload.blackPlayerId,
+              turn: payload.turn
+            });
             reconnectVersionRef.current += 1;
             dispatch({
               type: "GAME_STARTED",
@@ -243,6 +274,10 @@ export default function RoomPage() {
             dispatch({ type: "CLEAR_TOAST_ERROR" });
             break;
           case "move_made":
+            roomDebug("event_move_made", {
+              move: payload.move || null,
+              turn: payload.turn
+            });
             dispatch({
               type: "MOVE_MADE",
               fen: payload.fen,
@@ -304,6 +339,11 @@ export default function RoomPage() {
             break;
           case "error": {
             const normalized = normalizeError(payload);
+            roomDebug("event_error", {
+              code: normalized.code,
+              message: normalized.message,
+              retryable: normalized.retryable
+            });
             if (normalized.retryable) {
               dispatch({ type: "SET_TOAST_ERROR", error: normalized });
             } else {
@@ -345,6 +385,7 @@ export default function RoomPage() {
   const rematchPendingForMe = Boolean(rematchRequestedBy && rematchRequestedBy !== user?.sub);
 
   function startGame() {
+    roomDebug("action_start_game", { roomCode });
     socketRef.current?.send("start_game", { roomCode });
   }
 
@@ -358,6 +399,12 @@ export default function RoomPage() {
   }
 
   function onMove(move) {
+    roomDebug("action_make_move", {
+      roomCode,
+      move,
+      gameActive: Boolean(game),
+      isMyTurn
+    });
     socketRef.current?.send("make_move", { roomCode, move });
   }
 
@@ -388,11 +435,17 @@ export default function RoomPage() {
 
       const observer = {
         videoTileDidUpdate: (tileState) => {
+          roomDebug("media_video_tile_update", {
+            tileId: tileState.tileId,
+            localTile: Boolean(tileState.localTile),
+            boundAttendeeId: tileState.boundAttendeeId || null
+          });
           if (!tileState.boundAttendeeId || !tileState.tileId) {
             return;
           }
 
           if (tileState.localTile) {
+            localTileIdRef.current = tileState.tileId;
             if (localVideoRef.current) {
               audioVideo.bindVideoElement(tileState.tileId, localVideoRef.current);
             }
@@ -409,13 +462,18 @@ export default function RoomPage() {
           }
         },
         videoTileWasRemoved: (tileId) => {
+          roomDebug("media_video_tile_removed", { tileId });
+          if (localTileIdRef.current === tileId) {
+            localTileIdRef.current = null;
+          }
           if (remoteTileIdRef.current === tileId) {
-            audioVideo.unbindVideoElement(remoteVideoRef.current);
+            audioVideo.unbindVideoElement(tileId);
             remoteTileIdRef.current = null;
             dispatch({ type: "MEDIA_STARTED", message: "Connected. Waiting for remote video..." });
           }
         },
         audioVideoDidStop: (sessionStatus) => {
+          roomDebug("media_audio_video_stopped", { statusCode: sessionStatus.statusCode() });
           dispatch({
             type: "SET_BLOCKING_ERROR",
             error: {
@@ -441,7 +499,12 @@ export default function RoomPage() {
 
       await startMedia(audioVideo, { audioInputDeviceId, videoInputDeviceId });
       dispatch({ type: "MEDIA_STARTED", message: "Connected. Waiting for remote video..." });
+      roomDebug("media_started", {
+        audioInputDeviceId: Boolean(audioInputDeviceId),
+        videoInputDeviceId: Boolean(videoInputDeviceId)
+      });
     } catch (error) {
+      roomDebug("media_start_failed", { message: error.message || "unknown" });
       stopMeetingSession();
       dispatch({
         type: "SET_BLOCKING_ERROR",
@@ -554,6 +617,7 @@ export default function RoomPage() {
     : connectedPlayers < 2
       ? "Waiting for opponent"
       : "Ready to start";
+  const gameplayDebugLabel = `Room connected: ${connectedPlayers}/2 | Game active: ${game ? "yes" : "no"} | My color: ${myColor} | My turn: ${isMyTurn ? "yes" : "no"}`;
 
   return (
     <main className="room-shell app-shell">
@@ -570,6 +634,7 @@ export default function RoomPage() {
         </div>
         <div className="room-status-meta">
           <p className="socket-status">{socketSubtitle}</p>
+          <p className="socket-status">{gameplayDebugLabel}</p>
           {reconnectLabel ? <p className="socket-status">{reconnectLabel}</p> : null}
         </div>
       </section>

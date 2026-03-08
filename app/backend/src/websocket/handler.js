@@ -350,6 +350,12 @@ async function handleJoinRoom(ws, roomCode) {
       }
 
       await setConnection(ws.connectionId, { userId: ws.userId, roomCode });
+      log("info", "room_join_transition", {
+        roomCode,
+        userId: ws.userId,
+        transition: "room_created_waiting",
+        connectedCount: 1
+      });
       send(ws, roomJoinedPayload(initialRoom, roomCode));
       return;
     }
@@ -407,6 +413,15 @@ async function handleJoinRoom(ws, roomCode) {
     const joinedRoom = joinMutation.room;
     await setConnection(ws.connectionId, { userId: ws.userId, roomCode });
     await clearReconnectDeadline(roomCode);
+    const joinedConnectedCount = connectedParticipantIds(joinedRoom).length;
+    log("info", "room_join_transition", {
+      roomCode,
+      userId: ws.userId,
+      transition: "participant_joined",
+      roomStatus: joinedRoom.status,
+      connectedCount: joinedConnectedCount,
+      hasMeeting: Boolean(joinedRoom.chime_meeting)
+    });
 
     broadcastToRoom(joinedRoom, {
       type: OutboundEvent.PARTICIPANT_JOINED,
@@ -430,11 +445,39 @@ async function handleJoinRoom(ws, roomCode) {
       return;
     }
 
-    const meeting = await createMeeting(roomCode);
+    let meeting;
+    let attendees;
     const participants = Object.values(joinedRoom.participants);
-    const attendees = await Promise.all(
-      participants.map((participant) => createAttendee(meeting.MeetingId, participant.userId))
-    );
+    try {
+      log("info", "video_meeting_transition", {
+        roomCode,
+        transition: "meeting_create_started",
+        participantCount: participants.length
+      });
+      meeting = await createMeeting(roomCode);
+      log("info", "video_meeting_transition", {
+        roomCode,
+        transition: "meeting_create_succeeded",
+        meetingId: meeting.MeetingId
+      });
+      attendees = await Promise.all(
+        participants.map((participant) => createAttendee(meeting.MeetingId, participant.userId))
+      );
+      log("info", "video_meeting_transition", {
+        roomCode,
+        transition: "attendees_created",
+        attendeeCount: attendees.length,
+        meetingId: meeting.MeetingId
+      });
+    } catch (error) {
+      log("error", "video_meeting_transition", {
+        roomCode,
+        transition: "meeting_or_attendee_creation_failed",
+        error: error.message
+      });
+      send(ws, buildWsError("INTERNAL_ERROR", { message: "Unable to initialize video meeting right now." }));
+      return;
+    }
 
     const videoMutation = await mutateRoom(roomCode, (nextRoom) => {
       if (nextRoom.chime_meeting || nextRoom.status !== "both_connected") {
@@ -449,6 +492,11 @@ async function handleJoinRoom(ws, roomCode) {
 
     if (!videoMutation.ok) {
       await deleteMeeting(meeting.MeetingId).catch(() => null);
+      log("warn", "video_meeting_transition", {
+        roomCode,
+        transition: "meeting_deleted_after_bind_conflict",
+        meetingId: meeting.MeetingId
+      });
       return;
     }
 
@@ -459,6 +507,12 @@ async function handleJoinRoom(ws, roomCode) {
         meetingData: meeting,
         attendeeData: attendee
       });
+    });
+    log("info", "video_meeting_transition", {
+      roomCode,
+      transition: "video_ready_broadcast",
+      meetingId: meeting.MeetingId,
+      recipientCount: Object.keys(videoMutation.room.participants).length
     });
     return;
   }
@@ -531,6 +585,13 @@ async function handleStartGame(ws, roomCode) {
     return;
   }
 
+  log("info", "game_transition", {
+    roomCode,
+    transition: "game_started",
+    whitePlayerId: mutation.meta.whitePlayerId,
+    blackPlayerId: mutation.meta.blackPlayerId,
+    turn: mutation.meta.turn
+  });
   broadcastToRoom(mutation.room, mutation.meta);
   await emitGameStarted();
 }

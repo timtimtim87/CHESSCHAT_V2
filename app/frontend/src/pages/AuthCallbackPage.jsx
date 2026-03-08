@@ -4,10 +4,14 @@ import { useAuth } from "../context/AuthContext";
 
 export default function AuthCallbackPage() {
   const navigate = useNavigate();
-  const { handleCallback } = useAuth();
+  const { handleCallback, isConfigReady } = useAuth();
   const [error, setError] = useState("");
 
   useEffect(() => {
+    if (!isConfigReady) {
+      return;
+    }
+
     async function run() {
       try {
         const params = new URLSearchParams(window.location.search);
@@ -25,7 +29,7 @@ export default function AuthCallbackPage() {
     }
 
     run();
-  }, [handleCallback, navigate]);
+  }, [handleCallback, isConfigReady, navigate]);
 
   return (
     <main className="auth-shell">
