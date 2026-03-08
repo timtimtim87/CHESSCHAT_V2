@@ -216,3 +216,21 @@ Last updated: 2026-03-05
   - `npm --prefix app/frontend run build` passed.
 - Manual playtest target for next loop:
   - Desktop hierarchy clarity (turn + clocks + board), media-control discoverability, reconnect/rematch state comprehension, and mobile smoke usability.
+
+## 13) Hotfix Update (2026-03-08)
+
+### What changed
+- Stabilized interactive visual behavior to prevent Safari color/contrast flashing during hover interactions.
+- Reduced room-board presentation scale for better fit on 15-inch laptop screens.
+- Updated room media behavior to auto-attempt media join when valid `video_ready` credentials arrive.
+
+### Why
+- Manual testing found occasional visual inversion/flicker on hover and oversized board composition on common laptop displays.
+- Reducing friction for media setup improves first-time room experience when two participants are present.
+
+### Validation
+- `npm --prefix app/frontend run test` (pass)
+- `npm --prefix app/frontend run build` (pass)
+
+### Notes
+- Solo room media preview is still gated by backend meeting creation flow (`video_ready` is emitted only when both participants are connected).
