@@ -107,7 +107,7 @@ Purpose: single source of truth for human-readable names, IDs, and ARNs as infra
     - Effective runtime/domain state:
       - `APP_DOMAIN` in ECS task definition now `https://chess-chat.com`.
       - ECS task definition revision advanced to `chesschat-dev-task:18`.
-      - Cognito app client callback URL: `https://chess-chat.com/auth/callback`.
+      - Cognito app client callback URLs: `https://chess-chat.com/auth/callback` and `https://app.chess-chat.com/auth/callback`.
       - Cognito logout URLs: `https://chess-chat.com/` and `https://app.chess-chat.com/`.
     - Edge/DNS state:
       - ACM certificate replaced with dual-domain cert for `chess-chat.com` + `app.chess-chat.com`.
