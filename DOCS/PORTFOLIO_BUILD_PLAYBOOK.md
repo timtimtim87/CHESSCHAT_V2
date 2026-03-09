@@ -699,3 +699,22 @@ At the beginning of each session:
   - `npm --prefix app/frontend run build` (pass)
   - `terraform -chdir=terraform apply -auto-approve -var-file=environments/dev/terraform.tfvars` (successful after Route53 overwrite guard update)
   - `terraform -chdir=terraform plan -var-file=environments/dev/terraform.tfvars` => `No changes`
+
+## Canonical Host Redirect Update (2026-03-09)
+- Domain strategy correction:
+  - `app.chess-chat.com` is now the canonical app/auth origin.
+  - `chess-chat.com` remains active as an entrypoint but should redirect to `app.chess-chat.com`.
+- Why this changed:
+  - OAuth `state` lives in origin-scoped `sessionStorage`; starting auth on one hostname and completing callback on another caused `OAuth state mismatch`.
+  - A single canonical host removes cross-origin callback ambiguity and simplifies auth troubleshooting.
+- Terraform implementation update:
+  - ALB HTTPS listener now uses host-based rules:
+    - redirect apex host (`chess-chat.com`) to canonical host (`app.chess-chat.com`) with `301`,
+    - forward only canonical host traffic to ECS target group,
+    - default HTTPS action returns `404` for unknown hosts.
+  - Cognito callback/logout derivation now resolves to canonical host only when `use_app_domain_for_cognito_urls = true`.
+  - Runtime app domain env switched to canonical host:
+    - `APP_DOMAIN = https://app.chess-chat.com`
+- Validation plan:
+  - `terraform -chdir=terraform plan -var-file=environments/dev/terraform.tfvars`
+  - start auth from both domains and verify callback lands on canonical domain with no state mismatch.

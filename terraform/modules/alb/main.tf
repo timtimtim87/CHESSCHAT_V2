@@ -4,6 +4,8 @@ locals {
   alb_name          = "${local.name_prefix}-alb"
   alb_sg_name       = "${local.name_prefix}-alb-sg"
   target_group_name = substr("${local.name_prefix}-app-tg", 0, 32)
+  canonical_host    = var.canonical_host
+  redirect_hosts    = local.canonical_host == null ? [] : [for host in var.redirect_hosts : host if host != local.canonical_host]
   certificate_ready = var.enabled && var.route53_zone_id != null && length(var.certificate_domains) > 0
   certificate_validation = local.certificate_ready ? {
     for dvo in aws_acm_certificate.app[0].domain_validation_options : dvo.domain_name => {
@@ -157,7 +159,56 @@ resource "aws_lb_listener" "https" {
   ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
 
   default_action {
+    type = "fixed-response"
+
+    fixed_response {
+      content_type = "text/plain"
+      message_body = "Not Found"
+      status_code  = "404"
+    }
+  }
+}
+
+resource "aws_lb_listener_rule" "redirect_to_canonical" {
+  for_each = local.certificate_ready ? toset(local.redirect_hosts) : toset([])
+
+  listener_arn = aws_lb_listener.https[0].arn
+  priority     = 100 + index(sort(local.redirect_hosts), each.key)
+
+  action {
+    type = "redirect"
+
+    redirect {
+      host        = local.canonical_host
+      path        = "/#{path}"
+      query       = "#{query}"
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
+  }
+
+  condition {
+    host_header {
+      values = [each.key]
+    }
+  }
+}
+
+resource "aws_lb_listener_rule" "forward_canonical" {
+  count = local.certificate_ready && local.canonical_host != null ? 1 : 0
+
+  listener_arn = aws_lb_listener.https[0].arn
+  priority     = 200
+
+  action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.app[0].arn
+  }
+
+  condition {
+    host_header {
+      values = [local.canonical_host]
+    }
   }
 }

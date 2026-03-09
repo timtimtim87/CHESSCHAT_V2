@@ -112,6 +112,15 @@ Purpose: single source of truth for human-readable names, IDs, and ARNs as infra
     - Edge/DNS state:
       - ACM certificate replaced with dual-domain cert for `chess-chat.com` + `app.chess-chat.com`.
       - Route53 aliases active for both apex and app hostnames in zone `Z03927582T9WNB6PUN708`.
+  - Canonical host redirect implementation update (2026-03-09, Terraform code updated; apply pending):
+    - Canonical app/auth origin switched to `app.chess-chat.com`.
+    - ALB HTTPS listener behavior now defined as:
+      - redirect `chess-chat.com` -> `https://app.chess-chat.com` (`301`),
+      - forward only canonical host traffic to ECS target group,
+      - default HTTPS response `404` for unknown hosts.
+    - Runtime and auth desired-state updates:
+      - `APP_DOMAIN` desired value changed to `https://app.chess-chat.com`.
+      - Cognito callback/logout desired values reduced to canonical host only when derived by Terraform.
   - Gameplay completion update (2026-03-02, no new AWS resources):
     - Added app-layer rematch protocol/events and enhanced chess UX (legal move highlights, move history, result modal, resign confirmation).
     - No infrastructure resource IDs/ARNs changed.

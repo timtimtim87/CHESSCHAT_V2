@@ -12,15 +12,19 @@ locals {
 
   primary_app_domain_name   = var.root_domain_name
   secondary_app_domain_name = var.root_domain_name == null ? null : "${var.app_subdomain}.${var.root_domain_name}"
+  canonical_app_domain_name = local.secondary_app_domain_name != null ? local.secondary_app_domain_name : local.primary_app_domain_name
   app_endpoint_domains = distinct(compact([
     local.primary_app_domain_name,
     local.secondary_app_domain_name
   ]))
+  redirect_app_domains = [
+    for domain in local.app_endpoint_domains : domain if domain != local.canonical_app_domain_name
+  ]
   cognito_callback_urls_effective = var.use_app_domain_for_cognito_urls && local.primary_app_domain_name != null ? [
-    for domain in local.app_endpoint_domains : "https://${domain}/auth/callback"
+    "https://${local.canonical_app_domain_name}/auth/callback"
   ] : var.cognito_callback_urls
   cognito_logout_urls_effective = var.use_app_domain_for_cognito_urls && local.primary_app_domain_name != null ? [
-    for domain in local.app_endpoint_domains : "https://${domain}/"
+    "https://${local.canonical_app_domain_name}/"
   ] : var.cognito_logout_urls
   ecs_container_secrets_effective = concat(
     var.ecs_container_secrets,
@@ -61,6 +65,8 @@ module "alb" {
   public_subnet_ids   = module.vpc.public_subnet_ids
   target_port         = var.ecs_container_port
   certificate_domains = local.app_endpoint_domains
+  canonical_host      = local.canonical_app_domain_name
+  redirect_hosts      = local.redirect_app_domains
   route53_zone_id     = var.route53_zone_id
   health_check_path   = var.alb_health_check_path
   tags                = local.common_tags

@@ -36,6 +36,18 @@ variable "certificate_domains" {
   default     = []
 }
 
+variable "canonical_host" {
+  description = "Canonical hostname that should receive forwarded traffic."
+  type        = string
+  default     = null
+}
+
+variable "redirect_hosts" {
+  description = "Hostnames that should be redirected to canonical_host."
+  type        = list(string)
+  default     = []
+}
+
 variable "route53_zone_id" {
   description = "Route53 hosted zone ID used for ACM DNS validation records."
   type        = string

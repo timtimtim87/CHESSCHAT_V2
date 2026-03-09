@@ -301,3 +301,16 @@ Last updated: 2026-03-05
 ### Validation
 - `npm --prefix app/frontend run test` (pass, 15/15)
 - `npm --prefix app/frontend run build` (pass)
+
+## 17) Username Flow Copy Clarification (2026-03-09)
+
+### What changed
+- Added a landing-page helper line: users choose their in-game username after authentication in Lobby.
+
+### Why
+- Cognito Hosted UI sign-up does not collect the app-level username.
+- Explicit copy reduces false expectations and supports the existing post-auth username setup flow.
+
+### Validation
+- `npm --prefix app/frontend run test`
+- `npm --prefix app/frontend run build`

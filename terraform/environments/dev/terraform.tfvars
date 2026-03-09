@@ -34,7 +34,7 @@ ecs_container_environment = {
   COGNITO_REGION             = "us-east-1"
   COGNITO_HOSTED_UI_BASE_URL = "https://chesschat-dev-6c96bb.auth.us-east-1.amazoncognito.com"
   CHIME_REGION               = "us-east-1"
-  APP_DOMAIN                 = "https://chess-chat.com"
+  APP_DOMAIN                 = "https://app.chess-chat.com"
   APP_METRICS_NAMESPACE      = "Chesschat/Dev"
   ROOM_TTL_SECONDS           = "3600"
   GAME_DURATION_SECONDS      = "300"
@@ -55,8 +55,8 @@ root_domain_name    = "chess-chat.com"
 app_subdomain       = "app"
 
 # Derive callback/logout URLs from root_domain_name (+ optional app_subdomain secondary domain).
-cognito_callback_urls           = ["https://chess-chat.com/auth/callback"]
-cognito_logout_urls             = ["https://chess-chat.com/"]
+cognito_callback_urls           = ["https://app.chess-chat.com/auth/callback"]
+cognito_logout_urls             = ["https://app.chess-chat.com/"]
 use_app_domain_for_cognito_urls = true
 
 enable_monitoring = true
