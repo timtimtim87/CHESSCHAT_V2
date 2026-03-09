@@ -314,3 +314,22 @@ Last updated: 2026-03-09
 ### Validation
 - `npm --prefix app/frontend run test`
 - `npm --prefix app/frontend run build`
+
+## 18) Split-Host Program Stage 1 Update (2026-03-09)
+
+### What changed
+- Stage 1 completed infrastructure-only host split:
+  - `https://chess-chat.com` now serves from CloudFront static edge.
+  - `https://app.chess-chat.com` remains ALB/ECS gameplay host.
+- No gameplay UI component/layout changes were introduced in this stage.
+
+### Why
+- Stage 1 is a prerequisite for Stage 2 static-auth UI delivery.
+- Keeping Stage 1 infra-only avoids coupling visual/auth UI work to unresolved edge provisioning risks.
+
+### Validation
+- Terraform apply completed with apex->CloudFront and app->ALB split verified.
+- GitHub Actions variables for static deploy path were provisioned.
+
+### Stage dependencies
+- Stage order is strict: `1 -> 2 -> 3 -> 4`; Stage 5 can run in parallel with Stage 4 after Stage 3 merge.
