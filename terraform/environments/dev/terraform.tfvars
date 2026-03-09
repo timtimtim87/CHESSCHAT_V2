@@ -61,7 +61,7 @@ cognito_callback_urls           = ["https://app.chess-chat.com/auth/callback"]
 cognito_logout_urls             = ["https://app.chess-chat.com/"]
 use_app_domain_for_cognito_urls = true
 
-cognito_enable_google_identity_provider = false
+cognito_enable_google_identity_provider = true
 
 enable_monitoring = true
 
