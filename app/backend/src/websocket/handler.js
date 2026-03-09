@@ -21,7 +21,7 @@ import {
 } from "../services/redis.js";
 import { createAttendee, createMeeting, deleteMeeting } from "../services/chime.js";
 import { applyMove, startNewGame } from "../services/chess.js";
-import { saveGameAndUpdateStats } from "../services/dynamodb.js";
+import { ensureUser, getUser, saveGameAndUpdateStats } from "../services/dynamodb.js";
 import {
   emitAppError,
   emitGameEnded,
@@ -70,8 +70,29 @@ function connectedParticipantIds(room) {
 function participantPresence(room) {
   return Object.values(room.participants).map((participant) => ({
     userId: participant.userId,
-    connected: Boolean(participant.connected)
+    connected: Boolean(participant.connected),
+    username: participant.username || null,
+    displayName: participant.displayName || null
   }));
+}
+
+async function resolveParticipantProfile(ws) {
+  await ensureUser({
+    userId: ws.userId,
+    email: ws.email || "",
+    username: undefined,
+    displayName: undefined
+  });
+  const profile = await getUser(ws.userId);
+  const displayName =
+    profile?.display_name ||
+    profile?.username ||
+    ws.cognitoUsername ||
+    ws.userId.slice(0, 12);
+  return {
+    username: profile?.username || null,
+    displayName
+  };
 }
 
 function activeGameSnapshot(room) {
@@ -321,6 +342,8 @@ async function endGame(roomCode, result) {
 }
 
 async function handleJoinRoom(ws, roomCode) {
+  const profile = await resolveParticipantProfile(ws);
+
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const room = await getRoom(roomCode);
 
@@ -331,6 +354,8 @@ async function handleJoinRoom(ws, roomCode) {
         participants: {
           [ws.userId]: {
             userId: ws.userId,
+            username: profile.username,
+            displayName: profile.displayName,
             connectionId: ws.connectionId,
             joinedAt: Date.now(),
             connected: true
@@ -371,6 +396,8 @@ async function handleJoinRoom(ws, roomCode) {
       const wasConnected = nextRoom.participants[ws.userId]?.connected;
       nextRoom.participants[ws.userId] = {
         userId: ws.userId,
+        username: profile.username,
+        displayName: profile.displayName,
         connectionId: ws.connectionId,
         joinedAt: nextRoom.participants[ws.userId]?.joinedAt || Date.now(),
         connected: true
@@ -1067,6 +1094,8 @@ export function installWebSocketServer(wss) {
     ws.connectionId = uuidv4();
     ws.sessionId = uuidv4();
     ws.userId = auth.sub;
+    ws.cognitoUsername = auth["cognito:username"] || "";
+    ws.email = auth.email || "";
     ws.isAlive = true;
 
     registerSocket(ws.connectionId, ws);

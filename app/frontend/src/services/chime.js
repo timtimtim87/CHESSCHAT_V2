@@ -56,10 +56,22 @@ export async function listDevices(audioVideo) {
 
 export async function startMedia(audioVideo, { audioInputDeviceId, videoInputDeviceId } = {}) {
   if (audioInputDeviceId) {
-    await audioVideo.chooseAudioInputDevice(audioInputDeviceId);
+    if (typeof audioVideo.chooseAudioInputDevice === "function") {
+      await audioVideo.chooseAudioInputDevice(audioInputDeviceId);
+    } else if (typeof audioVideo.startAudioInput === "function") {
+      await audioVideo.startAudioInput(audioInputDeviceId);
+    } else {
+      throw new Error("Audio input selection is not supported by this browser/runtime.");
+    }
   }
   if (videoInputDeviceId) {
-    await audioVideo.chooseVideoInputDevice(videoInputDeviceId);
+    if (typeof audioVideo.chooseVideoInputDevice === "function") {
+      await audioVideo.chooseVideoInputDevice(videoInputDeviceId);
+    } else if (typeof audioVideo.startVideoInput === "function") {
+      await audioVideo.startVideoInput(videoInputDeviceId);
+    } else {
+      throw new Error("Video input selection is not supported by this browser/runtime.");
+    }
   }
   audioVideo.start();
   if (videoInputDeviceId) {

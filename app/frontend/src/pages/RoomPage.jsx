@@ -25,7 +25,9 @@ function normalizeError(payload) {
 function normalizeParticipants(participants) {
   return (participants || []).map((participant) => ({
     userId: participant.userId || participant,
-    connected: typeof participant.connected === "boolean" ? participant.connected : true
+    connected: typeof participant.connected === "boolean" ? participant.connected : true,
+    username: participant.username || null,
+    displayName: participant.displayName || null
   }));
 }
 
@@ -47,6 +49,16 @@ function formatPlayerName(playerId, currentUserId) {
     return playerId;
   }
   return `${playerId.slice(0, 6)}...${playerId.slice(-4)}`;
+}
+
+function displayNameFromParticipant(participant, fallbackPlayerId, currentUserId) {
+  if (!fallbackPlayerId) {
+    return "Waiting...";
+  }
+  if (fallbackPlayerId === currentUserId) {
+    return "You";
+  }
+  return participant?.displayName || participant?.username || formatPlayerName(fallbackPlayerId, currentUserId);
 }
 
 export default function RoomPage() {
@@ -73,6 +85,7 @@ export default function RoomPage() {
   const remoteVideoRef = useRef(null);
   const reconnectVersionRef = useRef(0);
   const autoJoinMeetingIdRef = useRef(null);
+  const audioContextRef = useRef(null);
   const [clockNowMs, setClockNowMs] = useState(Date.now());
   const [confirmResignOpen, setConfirmResignOpen] = useState(false);
 
@@ -278,6 +291,7 @@ export default function RoomPage() {
               move: payload.move || null,
               turn: payload.turn
             });
+            playMoveSound();
             dispatch({
               type: "MOVE_MADE",
               fen: payload.fen,
@@ -414,6 +428,32 @@ export default function RoomPage() {
 
   function respondRematch(accept) {
     socketRef.current?.send("respond_rematch", { roomCode, accept });
+  }
+
+  function playMoveSound() {
+    const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextCtor) {
+      return;
+    }
+    if (!audioContextRef.current) {
+      audioContextRef.current = new AudioContextCtor();
+    }
+    const ctx = audioContextRef.current;
+    if (ctx.state === "suspended") {
+      ctx.resume().catch(() => null);
+    }
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(660, now);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.05, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.14);
   }
 
   async function joinMedia() {
@@ -618,6 +658,16 @@ export default function RoomPage() {
       ? "Waiting for opponent"
       : "Ready to start";
   const gameplayDebugLabel = `Room connected: ${connectedPlayers}/2 | Game active: ${game ? "yes" : "no"} | My color: ${myColor} | My turn: ${isMyTurn ? "yes" : "no"}`;
+  const whiteDisplayName = displayNameFromParticipant(participantsById.get(whitePlayerId), whitePlayerId, user?.sub);
+  const blackDisplayName = displayNameFromParticipant(participantsById.get(blackPlayerId), blackPlayerId, user?.sub);
+  const winnerLabel =
+    !state.game_state.lastResult?.winner || state.game_state.lastResult.winner === "draw"
+      ? "Draw"
+      : displayNameFromParticipant(
+          participantsById.get(state.game_state.lastResult.winner),
+          state.game_state.lastResult.winner,
+          user?.sub
+        );
 
   return (
     <main className="room-shell app-shell">
@@ -658,7 +708,7 @@ export default function RoomPage() {
       <section className="room-grid">
         <aside className="room-side room-side-left">
           <VideoPanel
-            playerName={formatPlayerName(whitePlayerId, user?.sub)}
+            playerName={whiteDisplayName}
             playerRole="White"
             clock={whiteClock}
             connected={whiteConnected}
@@ -742,7 +792,7 @@ export default function RoomPage() {
 
         <aside className="room-side room-side-right">
           <VideoPanel
-            playerName={formatPlayerName(blackPlayerId, user?.sub)}
+            playerName={blackDisplayName}
             playerRole="Black"
             clock={blackClock}
             connected={blackConnected}
@@ -783,7 +833,7 @@ export default function RoomPage() {
           <div className="modal-card surface-glass">
             <h3>Game Result</h3>
             <p><strong>Result:</strong> {state.game_state.lastResult.result}</p>
-            <p><strong>Winner:</strong> {state.game_state.lastResult.winner}</p>
+            <p><strong>Winner:</strong> {winnerLabel}</p>
             {state.game_state.lastResult.pgn ? (
               <p className="result-pgn"><strong>PGN:</strong> {state.game_state.lastResult.pgn}</p>
             ) : null}

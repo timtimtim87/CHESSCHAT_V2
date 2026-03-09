@@ -27,6 +27,10 @@ export default function LobbyPage() {
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [profileError, setProfileError] = useState("");
+  const [needsUsername, setNeedsUsername] = useState(false);
+  const [usernameDraft, setUsernameDraft] = useState("");
+  const [usernameError, setUsernameError] = useState("");
+  const [isSavingUsername, setIsSavingUsername] = useState(false);
   const [historyError, setHistoryError] = useState("");
   const [isJoining, setIsJoining] = useState(false);
   const [lastRoomCode, setLastRoomCode] = useState(() => sessionStorage.getItem(LAST_ROOM_CODE_KEY) || "");
@@ -51,6 +55,8 @@ export default function LobbyPage() {
           throw new Error(payload?.error?.message || "Unable to load profile.");
         }
         setProfile(payload.user || null);
+        setNeedsUsername(Boolean(payload.needs_username));
+        setUsernameDraft(payload.user?.username || "");
       } catch (error) {
         if (error.name !== "AbortError") {
           setProfileError(error.message || "Unable to load profile.");
@@ -94,6 +100,10 @@ export default function LobbyPage() {
 
   function onSubmit(event) {
     event.preventDefault();
+    if (needsUsername) {
+      setRoomCodeError("Set your username first.");
+      return;
+    }
     const normalized = roomCode.toUpperCase().trim();
     if (!/^[A-Z0-9]{5}$/.test(normalized)) {
       setRoomCodeError("Room code must be exactly 5 letters or numbers.");
@@ -106,14 +116,48 @@ export default function LobbyPage() {
   }
 
   function resumeRoom() {
+    if (needsUsername) {
+      return;
+    }
     if (!/^[A-Z0-9]{5}$/.test(lastRoomCode)) {
       return;
     }
     navigate(`/room/${lastRoomCode}`);
   }
 
+  async function submitUsername(event) {
+    event.preventDefault();
+    const nextUsername = usernameDraft.trim().toLowerCase();
+    if (!/^[a-z0-9_]{3,20}$/.test(nextUsername)) {
+      setUsernameError("Username must be 3-20 chars: lowercase letters, numbers, underscore.");
+      return;
+    }
+    setIsSavingUsername(true);
+    setUsernameError("");
+    try {
+      const response = await fetch("/api/profile", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ username: nextUsername })
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload?.error?.message || "Unable to save username.");
+      }
+      setProfile(payload.user || profile);
+      setNeedsUsername(false);
+    } catch (error) {
+      setUsernameError(error.message || "Unable to save username.");
+    } finally {
+      setIsSavingUsername(false);
+    }
+  }
+
   const isRoomCodeValid = /^[A-Z0-9]{5}$/.test(roomCode.trim());
-  const profileName = profile?.display_name || profile?.username || user?.username || "unknown";
+  const profileName = profile?.display_name || profile?.username || "set-username";
 
   return (
     <main className="lobby-shell app-shell">
@@ -130,6 +174,10 @@ export default function LobbyPage() {
           <h2>Start / Join Room</h2>
           <p>Enter a 5-character room code and share it with your friend.</p>
 
+          {needsUsername ? (
+            <p className="inline-error">Create a unique username before joining a room.</p>
+          ) : null}
+
           <form onSubmit={onSubmit} className="code-form">
             <input
               value={roomCode}
@@ -143,7 +191,7 @@ export default function LobbyPage() {
               placeholder="ABCDE"
               aria-label="Room code"
             />
-            <button className="button-primary" type="submit" disabled={isJoining || !isRoomCodeValid}>
+            <button className="button-primary" type="submit" disabled={isJoining || !isRoomCodeValid || needsUsername}>
               {isJoining ? "Joining..." : "Start / Join"}
             </button>
           </form>
@@ -152,7 +200,9 @@ export default function LobbyPage() {
           {lastRoomCode ? (
             <div className="resume-card">
               <p>Last room: <strong>{lastRoomCode}</strong></p>
-              <button className="button-secondary" onClick={resumeRoom}>Resume Last Room</button>
+              <button className="button-secondary" onClick={resumeRoom} disabled={needsUsername}>
+                Resume Last Room
+              </button>
             </div>
           ) : null}
         </section>
@@ -168,6 +218,28 @@ export default function LobbyPage() {
               <p><strong>Losses:</strong> {profile?.losses ?? 0}</p>
               <p><strong>Draws:</strong> {profile?.draws ?? 0}</p>
             </div>
+          ) : null}
+          {!isLoadingProfile && !profileError && needsUsername ? (
+            <form className="code-form" onSubmit={submitUsername}>
+              <label htmlFor="username-input">Create Username</label>
+              <input
+                id="username-input"
+                value={usernameDraft}
+                onChange={(event) => {
+                  setUsernameDraft(event.target.value.toLowerCase());
+                  if (usernameError) {
+                    setUsernameError("");
+                  }
+                }}
+                maxLength={20}
+                placeholder="tim_player"
+                aria-label="Username"
+              />
+              <button className="button-primary" type="submit" disabled={isSavingUsername}>
+                {isSavingUsername ? "Saving..." : "Save Username"}
+              </button>
+              {usernameError ? <p className="inline-error">{usernameError}</p> : null}
+            </form>
           ) : null}
         </section>
 

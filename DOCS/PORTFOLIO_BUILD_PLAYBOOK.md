@@ -218,6 +218,20 @@ Purpose: keep one practical, interview-ready plan for building CHESSCHAT as an A
     - `/healthz` returns app JSON healthy response
     - `/api/public-config` returns runtime Cognito config from app
     - WebSocket ALB/app path sanity-check passed (`open` then expected app auth close `4001` for invalid token)
+
+## 6) App Identity Decision (2026-03-09)
+- Decision:
+  - Introduce app-level unique usernames (independent of raw Cognito subject IDs) as required profile setup for gameplay UX.
+- Why:
+  - Cognito identifiers are implementation artifacts and degrade usability/readability in room/game surfaces.
+  - Unique usernames provide clearer multiplayer identity while preserving Cognito as auth source-of-truth.
+- Implementation direction:
+  - Keep Cognito for authentication and token verification.
+  - Persist username in DynamoDB user profile with uniqueness guard.
+  - Render room participants and game results by display name/username instead of `sub` where available.
+- Tradeoffs:
+  - Adds profile-setup step before gameplay for first-time or legacy-opaque users.
+  - Requires additional backend validation path for uniqueness conflict handling.
   - Two-user live E2E (post-rollout):
     - Executed scripted two-user flow against production endpoint:
       - Cognito auth for two users
