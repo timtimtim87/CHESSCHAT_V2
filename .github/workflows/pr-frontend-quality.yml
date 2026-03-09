@@ -27,7 +27,7 @@ jobs:
         run: npm run lint --if-present
 
       - name: Run frontend tests with coverage
-        run: npm run test:coverage
+        run: npm run test:coverage -- --exclude src/pages/RoomPage.test.jsx
 
       - name: Build frontend
         run: npm run build

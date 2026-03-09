@@ -64,7 +64,7 @@ function displayNameFromParticipant(participant, fallbackPlayerId, currentUserId
 export default function RoomPage() {
   const { code } = useParams();
   const roomCode = useMemo(() => (code || "").toUpperCase(), [code]);
-  const { accessToken, user } = useAuth();
+  const { accessToken, getValidToken, user } = useAuth();
   const navigate = useNavigate();
 
   const [state, dispatch] = useReducer(appStateReducer, {
@@ -165,7 +165,7 @@ export default function RoomPage() {
     dispatch({ type: "ROOM_INIT", roomCode });
 
     const socket = new ChessChatSocket({
-      token: accessToken,
+      getToken: getValidToken,
       onStateChange: (socketState) => {
         roomDebug("socket_state", socketState);
         dispatch({
@@ -357,7 +357,7 @@ export default function RoomPage() {
       }
     });
 
-    socket.connect();
+    void socket.connect();
     socketRef.current = socket;
 
     return () => {
@@ -365,7 +365,7 @@ export default function RoomPage() {
       stopMeetingSession();
       socket.disconnect();
     };
-  }, [accessToken, navigate, roomCode, user?.sub]);
+  }, [accessToken, getValidToken, navigate, roomCode, user?.sub]);
 
   const game = state.game_state.game;
   const myColor = game
