@@ -20,6 +20,21 @@ This file defines project-specific operating guidance for AI agents working in t
 - Prefer incremental delivery with clear next steps.
 - Before edits, summarize intent and expected impact.
 - Keep naming consistent with `chesschat` unless explicitly changed.
+- Only one AI agent should actively work on the repo at a time (no parallel agent sessions).
+
+## Cross-Agent Continuity Rule (Codex <-> Claude Code)
+- Codex and Claude Code must follow the same workflow and leave a clean handoff after each substantial session.
+- At session end, the active agent must:
+  1. Update handover context for the next agent:
+     - Add/update `DOCS/NEXT_AGENT_HANDOVER_YYYY-MM-DD.md` for broad session handoff, and/or
+     - Add/update stage-specific handoff docs when a staged program is active (for example split-host guides).
+  2. Update required decision/state docs when applicable:
+     - `DOCS/PORTFOLIO_BUILD_PLAYBOOK.md`
+     - `DOCS/UI_DESIGN_GUIDE.md`
+     - `infra/RESOURCE_REGISTRY.md`
+  3. Append the day log in `portfolio diary/YYYY-MM-DD.md` with what/how/why and validation evidence.
+  4. Commit, push, and open a PR to `main` so the next agent starts from merge-ready context.
+- Handoffs must include concrete identifiers where relevant (branch name, commit SHA, run IDs, resource IDs/ARNs, pending risks, and exact next step).
 
 ## Architecture Preference Baseline
 - Single final environment with production-style design choices.
