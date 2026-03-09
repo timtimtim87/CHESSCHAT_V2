@@ -254,3 +254,24 @@ Last updated: 2026-03-05
 
 ### Notes
 - This is a temporary diagnostics aid and should be removed or hidden behind a debug flag after incident validation is complete.
+
+## 15) Identity + Feedback UX Update (2026-03-09)
+
+### What changed
+- Lobby now enforces app-level username setup before room join when account username is missing or opaque.
+- Username entry is constrained to a clean gamer-tag format (`a-z`, `0-9`, `_`, 3-20 chars) and validated with backend uniqueness checks.
+- Room participant tiles and game-result winner text now prefer participant display names/usernames instead of raw Cognito subject IDs.
+- Added move sound cue on each `move_made` event for better turn feedback.
+
+### Why
+- Raw Cognito subject identifiers in UI are poor UX and reduce social clarity in head-to-head play.
+- Unique app usernames create stable, shareable identities independent of Cognito internals.
+- Move sound improves board interaction feedback, especially while attention is split between board and video.
+
+### Validation
+- `npm --prefix app/frontend run test` (pass)
+- `npm --prefix app/frontend run build` (pass)
+
+### Notes
+- Username enforcement currently blocks room join until setup is completed.
+- Existing accounts with opaque legacy usernames are prompted to set a new app username.

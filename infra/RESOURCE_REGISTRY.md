@@ -223,6 +223,11 @@ Purpose: single source of truth for human-readable names, IDs, and ARNs as infra
     - motion/performance/accessibility constraints (including reduced-motion handling),
     - design decision logging process.
   - Updated project operating rules (`AGENTS.md`) to require UI design documentation updates alongside strategy/diary updates for substantial design changes.
+- App identity + media UX update (2026-03-09, no new AWS resources):
+  - Added app-level unique username setup path (`/api/profile`) with DynamoDB uniqueness reservation semantics.
+  - Updated websocket room participant payloads to include profile display metadata (`username`, `displayName`) for frontend rendering.
+  - Added frontend move feedback sound and Chime media device-selection compatibility fallback (`choose*` -> `start*` methods).
+  - No infrastructure IDs/ARNs changed.
 - UI implementation update (2026-03-07, no new AWS resources):
   - Implemented desktop-first room UI overhaul and shared visual shell pass in frontend app layer.
   - Added tokenized design system, animated gradient background with reduced-motion fallback, and composable video card/control components.

@@ -41,6 +41,84 @@ export async function ensureUser(user) {
   });
 }
 
+export function normalizeUsernameInput(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase();
+}
+
+export function isValidUsername(value) {
+  return /^[a-z0-9_]{3,20}$/.test(value);
+}
+
+function usernameReservationKey(username) {
+  return `username#${username}`;
+}
+
+export async function setUsername(userId, username, currentUsername = null) {
+  const normalized = normalizeUsernameInput(username);
+  if (!isValidUsername(normalized)) {
+    const error = new Error("Username must be 3-20 chars: lowercase letters, numbers, underscore.");
+    error.code = "INVALID_USERNAME";
+    throw error;
+  }
+
+  const nowIso = new Date().toISOString();
+
+  try {
+    await ddb.send(
+      new TransactWriteCommand({
+        TransactItems: [
+          {
+            Put: {
+              TableName: config.dynamodb.usersTable,
+              Item: {
+                user_id: usernameReservationKey(normalized),
+                owner_user_id: userId,
+                reserved_at: nowIso
+              },
+              ConditionExpression: "attribute_not_exists(user_id) OR owner_user_id = :owner",
+              ExpressionAttributeValues: {
+                ":owner": userId
+              }
+            }
+          },
+          {
+            Update: {
+              TableName: config.dynamodb.usersTable,
+              Key: { user_id: userId },
+              ConditionExpression:
+                "attribute_exists(user_id) AND (attribute_not_exists(username) OR username = :username OR username = :currentUsername)",
+              UpdateExpression: "SET username = :username, display_name = :displayName, updated_at = :updated",
+              ExpressionAttributeValues: {
+                ":username": normalized,
+                ":displayName": normalized,
+                ":updated": nowIso,
+                ":currentUsername": currentUsername || "__none__"
+              }
+            }
+          }
+        ]
+      })
+    );
+  } catch (error) {
+    if (error.name === "TransactionCanceledException") {
+      const conflict = new Error("Username already taken.");
+      conflict.code = "USERNAME_TAKEN";
+      throw conflict;
+    }
+    throw error;
+  }
+
+  return normalized;
+}
+
+export function looksLikeOpaqueUsername(username) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    String(username || "")
+  );
+}
+
 function statsDeltaForPlayer(playerId, winner) {
   if (winner === "draw") {
     return { wins: 0, losses: 0, draws: 1 };
