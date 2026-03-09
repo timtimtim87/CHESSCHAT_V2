@@ -1,12 +1,22 @@
 import { createContext, useContext, useMemo, useState } from "react";
 import { config } from "../config";
 import { parseJwt } from "../utils/auth";
-import { deleteCookie, getCookie } from "../utils/cookies";
+import { deleteCookie, getCookie, setCookie } from "../utils/cookies";
 
 const AuthContext = createContext(null);
 
 const ACCESS_TOKEN_KEY = "chesschat_access_token";
 const ID_TOKEN_KEY = "chesschat_id_token";
+const COGNITO_REGION = "us-east-1";
+const TOKEN_REFRESH_BUFFER_MS = 60_000;
+
+function cookieDomain() {
+  const host = window.location.hostname;
+  if (host === "chess-chat.com" || host.endsWith(".chess-chat.com")) {
+    return ".chess-chat.com";
+  }
+  return undefined;
+}
 
 function readSessionCookie() {
   const raw = getCookie(config.sessionCookieName);
@@ -19,6 +29,37 @@ function readSessionCookie() {
   } catch {
     return null;
   }
+}
+
+function isSessionTokenStale(session) {
+  if (!session?.access_token || !session?.expires_in || !session?.saved_at) {
+    return true;
+  }
+  return session.saved_at + Number(session.expires_in) * 1000 <= Date.now() + TOKEN_REFRESH_BUFFER_MS;
+}
+
+async function refreshAccessToken({ refreshToken, clientId }) {
+  const response = await fetch(`https://cognito-idp.${COGNITO_REGION}.amazonaws.com/`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-amz-json-1.1",
+      "X-Amz-Target": "AWSCognitoIdentityProviderService.InitiateAuth"
+    },
+    body: JSON.stringify({
+      AuthFlow: "REFRESH_TOKEN_AUTH",
+      ClientId: clientId,
+      AuthParameters: {
+        REFRESH_TOKEN: refreshToken
+      }
+    })
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(payload?.message || payload?.__type || "TOKEN_REFRESH_FAILED");
+  }
+
+  return payload?.AuthenticationResult || null;
 }
 
 export function AuthProvider({ children }) {
@@ -56,13 +97,67 @@ export function AuthProvider({ children }) {
     throw new Error("Auth callback is handled on chess-chat.com");
   }
 
+  async function getValidToken() {
+    const session = readSessionCookie();
+    if (!session?.access_token) {
+      if (!fallbackAccessToken) {
+        throw new Error("Missing access token");
+      }
+      return fallbackAccessToken;
+    }
+
+    if (!isSessionTokenStale(session)) {
+      return session.access_token;
+    }
+
+    if (!session.refresh_token) {
+      return session.access_token;
+    }
+
+    const idTokenPayload = parseJwt(session.id_token || "");
+    const clientId = idTokenPayload?.aud;
+    if (!clientId) {
+      return session.access_token;
+    }
+
+    const refreshed = await refreshAccessToken({
+      refreshToken: session.refresh_token,
+      clientId
+    });
+
+    if (!refreshed?.AccessToken) {
+      throw new Error("Missing refreshed access token");
+    }
+
+    const refreshedSession = {
+      access_token: refreshed.AccessToken,
+      id_token: refreshed.IdToken || session.id_token,
+      refresh_token: session.refresh_token,
+      expires_in: refreshed.ExpiresIn || session.expires_in,
+      saved_at: Date.now()
+    };
+
+    setCookie(config.sessionCookieName, JSON.stringify(refreshedSession), {
+      domain: cookieDomain(),
+      maxAgeSeconds: Number(refreshedSession.expires_in || 3600)
+    });
+
+    setFallbackAccessToken(refreshedSession.access_token || "");
+    setFallbackIdToken(refreshedSession.id_token || "");
+    sessionStorage.setItem(ACCESS_TOKEN_KEY, refreshedSession.access_token || "");
+    sessionStorage.setItem(ID_TOKEN_KEY, refreshedSession.id_token || "");
+
+    return refreshedSession.access_token;
+  }
+
   function logout() {
     setFallbackAccessToken("");
     setFallbackIdToken("");
     sessionStorage.removeItem(ACCESS_TOKEN_KEY);
     sessionStorage.removeItem(ID_TOKEN_KEY);
-    deleteCookie(config.sessionCookieName, { domain: ".chess-chat.com" });
-    deleteCookie(config.pendingRoomCookieName, { domain: ".chess-chat.com" });
+    const domain = cookieDomain();
+    deleteCookie(config.sessionCookieName, { domain });
+    deleteCookie(config.pendingRoomCookieName, { domain });
     globalThis.location.assign(`${config.authHost}/?logout=1`);
   }
 
@@ -75,7 +170,8 @@ export function AuthProvider({ children }) {
     login,
     signup,
     logout,
-    handleCallback
+    handleCallback,
+    getValidToken
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

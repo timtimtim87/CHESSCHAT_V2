@@ -1,7 +1,8 @@
 export function getCookie(name) {
   const cookie = document.cookie
     .split("; ")
-    .find((entry) => entry.startsWith(`${name}=`));
+    .filter((entry) => entry.startsWith(`${name}=`))
+    .at(-1);
   return cookie ? decodeURIComponent(cookie.split("=")[1]) : "";
 }
 

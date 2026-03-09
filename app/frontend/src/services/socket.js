@@ -1,6 +1,6 @@
 export class ChessChatSocket {
-  constructor({ token, onMessage, onOpen, onClose, onStateChange }) {
-    this.token = token;
+  constructor({ getToken, onMessage, onOpen, onClose, onStateChange }) {
+    this.getToken = getToken;
     this.onMessage = onMessage;
     this.onOpen = onOpen;
     this.onClose = onClose;
@@ -12,11 +12,28 @@ export class ChessChatSocket {
     this.maxReconnectDelayMs = 10000;
   }
 
-  connect() {
+  async connect() {
     this.notifyState({ status: this.reconnectAttempts > 0 ? "reconnecting" : "connecting" });
 
+    let token = "";
+    try {
+      token = await this.getToken();
+    } catch {
+      this.shouldReconnect = false;
+      if (this.onClose) this.onClose({ willReconnect: false });
+      this.notifyState({ status: "closed" });
+      return;
+    }
+
+    if (!token) {
+      this.shouldReconnect = false;
+      if (this.onClose) this.onClose({ willReconnect: false });
+      this.notifyState({ status: "closed" });
+      return;
+    }
+
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    const wsUrl = `${protocol}://${window.location.host}/ws?token=${encodeURIComponent(this.token)}`;
+    const wsUrl = `${protocol}://${window.location.host}/ws?token=${encodeURIComponent(token)}`;
     this.ws = new WebSocket(wsUrl);
 
     this.ws.onopen = () => {
@@ -48,7 +65,9 @@ export class ChessChatSocket {
           reconnectAttempt: this.reconnectAttempts,
           retryInMs: delayMs
         });
-        this.reconnectTimer = setTimeout(() => this.connect(), delayMs);
+        this.reconnectTimer = setTimeout(() => {
+          void this.connect();
+        }, delayMs);
       } else {
         this.notifyState({ status: "closed" });
       }

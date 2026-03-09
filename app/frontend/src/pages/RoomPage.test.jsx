@@ -44,6 +44,7 @@ vi.mock("../services/socket", () => ({
 vi.mock("../context/AuthContext", () => ({
   useAuth: () => ({
     accessToken: "token-1",
+    getValidToken: async () => "token-1",
     user: { sub: "user-1" }
   })
 }));
