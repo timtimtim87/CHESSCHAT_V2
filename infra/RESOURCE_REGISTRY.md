@@ -121,6 +121,21 @@ Purpose: single source of truth for human-readable names, IDs, and ARNs as infra
     - Runtime and auth desired-state updates:
       - `APP_DOMAIN` desired value changed to `https://app.chess-chat.com`.
       - Cognito callback/logout desired values reduced to canonical host only when derived by Terraform.
+  - Split-host Stage 1 apply completed (2026-03-09):
+    - Terraform apply result: `16 added, 2 changed, 6 destroyed`.
+    - Apex/static edge live:
+      - S3 bucket `chesschat-dev-static-c384ca`
+      - CloudFront distribution `E2W7Q7MB7N2WFT` (`do3ezcm5l4dpu.cloudfront.net`)
+      - Route53 apex alias now targets CloudFront (zone `Z03927582T9WNB6PUN708`)
+    - App host remains ALB-only:
+      - `app.chess-chat.com` -> `chesschat-dev-alb-251000663.us-east-1.elb.amazonaws.com`
+    - ALB certificate rotated to app-host cert:
+      - `arn:aws:acm:us-east-1:723580627470:certificate/2d2c4493-a206-4223-b6a9-d523118db991`
+    - GitHub Actions repository variables set for static deploy stage:
+      - `STATIC_SITE_BUCKET=chesschat-dev-static-c384ca`
+      - `STATIC_CLOUDFRONT_DISTRIBUTION_ID=E2W7Q7MB7N2WFT`
+      - `COGNITO_HOSTED_UI_BASE_URL=https://chesschat-dev-6c96bb.auth.us-east-1.amazoncognito.com`
+      - `APP_HOST=https://app.chess-chat.com`
   - Gameplay completion update (2026-03-02, no new AWS resources):
     - Added app-layer rematch protocol/events and enhanced chess UX (legal move highlights, move history, result modal, resign confirmation).
     - No infrastructure resource IDs/ARNs changed.
@@ -185,16 +200,19 @@ Purpose: single source of truth for human-readable names, IDs, and ARNs as infra
 | compute | ecr | app_repository | `chesschat-dev-app` | `arn:aws:ecr:us-east-1:723580627470:repository/chesschat-dev-app` | us-east-1 | Terraform `module.ecs_compute.aws_ecr_repository.app[0]` | Project=chesschat, Environment=dev | 2026-03-01 | Repository URI `723580627470.dkr.ecr.us-east-1.amazonaws.com/chesschat-dev-app`; bootstrap tag pushed |
 | compute | ecs | cluster | `chesschat-dev-ecs-cluster` | `arn:aws:ecs:us-east-1:723580627470:cluster/chesschat-dev-ecs-cluster` | us-east-1 | Terraform `module.ecs_compute.aws_ecs_cluster.this[0]` | Project=chesschat, Environment=dev | 2026-03-01 | Container Insights enabled |
 | compute | ecs | service | `chesschat-dev-ecs-service` | `arn:aws:ecs:us-east-1:723580627470:service/chesschat-dev-ecs-cluster/chesschat-dev-ecs-service` | us-east-1 | Terraform `module.ecs_compute.aws_ecs_service.app[0]` | Project=chesschat, Environment=dev | 2026-03-01 | Service active in private app subnets; desired=1 |
-| compute | ecs | task_definition | `chesschat-dev-task:18` | `arn:aws:ecs:us-east-1:723580627470:task-definition/chesschat-dev-task:18` | us-east-1 | Terraform `module.ecs_compute.aws_ecs_task_definition.app[0]` + CI deploy workflow revisions | Project=chesschat, Environment=dev | 2026-03-09 | Runtime platform `LINUX/X86_64`; `APP_DOMAIN` set to `https://chess-chat.com`; ECS service drift guard preserves CI-owned revisions (`ignore_changes = [task_definition]`) |
+| compute | ecs | task_definition | `chesschat-dev-task:18` | `arn:aws:ecs:us-east-1:723580627470:task-definition/chesschat-dev-task:18` | us-east-1 | Terraform `module.ecs_compute.aws_ecs_task_definition.app[0]` + CI deploy workflow revisions | Project=chesschat, Environment=dev | 2026-03-09 | Runtime platform `LINUX/X86_64`; `APP_DOMAIN` desired state is `https://app.chess-chat.com`; ECS service drift guard preserves CI-owned revisions (`ignore_changes = [task_definition]`) |
 | compute | ec2_security_group | ecs_service_sg | `sg-0c22505653f5a2167` | n/a | us-east-1 | Terraform `module.ecs_compute.aws_security_group.service[0]` | Project=chesschat, Environment=dev | 2026-03-01 | Name `chesschat-dev-ecs-service-sg`; egress all; ingress managed by edge integration when enabled |
-| edge | acm | app_certificate | `chess-chat.com` | `arn:aws:acm:us-east-1:723580627470:certificate/302acfe9-8786-4fda-91c9-ca15dd668f6f` | us-east-1 | Terraform `module.alb.aws_acm_certificate.app[0]` | Project=chesschat, Environment=dev | 2026-03-09 | DNS-validated; status `ISSUED`; SAN includes `app.chess-chat.com`; type `AMAZON_ISSUED` |
+| edge | acm | app_certificate | `app.chess-chat.com` | `arn:aws:acm:us-east-1:723580627470:certificate/2d2c4493-a206-4223-b6a9-d523118db991` | us-east-1 | Terraform `module.alb.aws_acm_certificate.app[0]` | Project=chesschat, Environment=dev | 2026-03-09 | ALB host certificate scoped to app host; DNS-validated by Terraform validation records. |
 | edge | alb | app_load_balancer | `chesschat-dev-alb` | `arn:aws:elasticloadbalancing:us-east-1:723580627470:loadbalancer/app/chesschat-dev-alb/3f386d7f443ecbd1` | us-east-1 | Terraform `module.alb.aws_lb.this[0]` | Project=chesschat, Environment=dev | 2026-03-01 | DNS `chesschat-dev-alb-251000663.us-east-1.elb.amazonaws.com`; internet-facing; state `active` |
 | edge | alb | app_target_group | `chesschat-dev-app-tg` | `arn:aws:elasticloadbalancing:us-east-1:723580627470:targetgroup/chesschat-dev-app-tg/ab03b244c7e6560f` | us-east-1 | Terraform `module.alb.aws_lb_target_group.app[0]` | Project=chesschat, Environment=dev | 2026-03-01 | Health path `/healthz`; target type `ip`; port `8080` |
 | edge | alb | listener_http | `chesschat-dev-alb:80` | `arn:aws:elasticloadbalancing:us-east-1:723580627470:listener/app/chesschat-dev-alb/3f386d7f443ecbd1/2fd7462833179147` | us-east-1 | Terraform `module.alb.aws_lb_listener.http[0]` | Project=chesschat, Environment=dev | 2026-03-01 | HTTP listener redirects to HTTPS 443 |
 | edge | alb | listener_https | `chesschat-dev-alb:443` | `arn:aws:elasticloadbalancing:us-east-1:723580627470:listener/app/chesschat-dev-alb/3f386d7f443ecbd1/db9a0769cf9be166` | us-east-1 | Terraform `module.alb.aws_lb_listener.https[0]` | Project=chesschat, Environment=dev | 2026-03-01 | HTTPS listener uses ACM cert for `app.chess-chat.com` |
 | edge | ec2_security_group | alb_security_group | `sg-0d04ffe829ce755f0` | n/a | us-east-1 | Terraform `module.alb.aws_security_group.alb[0]` | Project=chesschat, Environment=dev | 2026-03-01 | Ingress `80/443` from internet; egress all |
 | dns | route53 | app_alias_record | `app.chess-chat.com` | n/a | us-east-1 | Terraform `module.route53.aws_route53_record.app_alias["app.chess-chat.com"]` | Project=chesschat, Environment=dev | 2026-03-09 | Type `A` alias to ALB in hosted zone `Z03927582T9WNB6PUN708` |
-| dns | route53 | apex_alias_record | `chess-chat.com` | n/a | us-east-1 | Terraform `module.route53.aws_route53_record.app_alias["chess-chat.com"]` | Project=chesschat, Environment=dev | 2026-03-09 | Type `A` alias to ALB in hosted zone `Z03927582T9WNB6PUN708` |
+| edge | acm | apex_static_certificate | `chess-chat.com` | `arn:aws:acm:us-east-1:723580627470:certificate/2569820f-4b66-433e-9a28-043d2825f98b` | us-east-1 | Terraform `module.static_edge.aws_acm_certificate.apex[0]` | Project=chesschat, Environment=dev | 2026-03-09 | Static-edge certificate for CloudFront apex host. |
+| edge | cloudfront | apex_static_distribution | `E2W7Q7MB7N2WFT` | `arn:aws:cloudfront::723580627470:distribution/E2W7Q7MB7N2WFT` | us-east-1 | Terraform `module.static_edge.aws_cloudfront_distribution.site[0]` | Project=chesschat, Environment=dev | 2026-03-09 | Alias `chess-chat.com`; domain `do3ezcm5l4dpu.cloudfront.net`; auth routes use managed no-cache policy. |
+| edge | s3 | apex_static_bucket | `chesschat-dev-static-c384ca` | `arn:aws:s3:::chesschat-dev-static-c384ca` | us-east-1 | Terraform `module.static_edge.aws_s3_bucket.site[0]` | Project=chesschat, Environment=dev | 2026-03-09 | Private static-auth asset bucket; CloudFront OAC-only read access. |
+| dns | route53 | apex_alias_record | `chess-chat.com` | n/a | us-east-1 | Terraform `module.static_edge.aws_route53_record.apex_alias[0]` | Project=chesschat, Environment=dev | 2026-03-09 | Type `A` alias to CloudFront in hosted zone `Z03927582T9WNB6PUN708`. |
 | observability | sns | monitoring_alerts_topic | `chesschat-dev-alerts` | `arn:aws:sns:us-east-1:723580627470:chesschat-dev-alerts` | us-east-1 | Terraform `module.monitoring.aws_sns_topic.alerts[0]` | Project=chesschat, Environment=dev | 2026-03-01 | Alert fan-out topic for CloudWatch alarms and AWS Budgets notifications |
 | observability | sns_subscription | monitoring_alerts_email_subscription | `tim.antibes+CHESSCHAT_V2@gmail.com` | `arn:aws:sns:us-east-1:723580627470:chesschat-dev-alerts:e641a3ad-5bd3-4797-ac6d-832c6c6afac7` | us-east-1 | Terraform `module.monitoring.aws_sns_topic_subscription.email["tim.antibes+CHESSCHAT_V2@gmail.com"]` | Project=chesschat, Environment=dev | 2026-03-01 | Email subscription confirmed for alert topic |
 | observability | cloudwatch_dashboard | operations_dashboard | `chesschat-dev-operations-dashboard` | `arn:aws:cloudwatch::723580627470:dashboard/chesschat-dev-operations-dashboard` | us-east-1 | Terraform `module.monitoring.aws_cloudwatch_dashboard.operations[0]` | Project=chesschat, Environment=dev | 2026-03-01 | Dashboard widgets for ECS, ALB, Redis, DynamoDB |
@@ -278,3 +296,6 @@ Purpose: single source of truth for human-readable names, IDs, and ARNs as infra
   - `ROOM_CONSUMED_TTL_SECONDS = 2592000` (30 days)
 - Deployment pipeline update:
   - `deploy-main` now publishes `app/static-auth` to static bucket and triggers CloudFront invalidation.
+- Delivery status correction:
+  - Only Stage 1 (Terraform edge split + Cognito provider wiring + variable readiness) is complete.
+  - Stages 2-5 remain pending implementation.

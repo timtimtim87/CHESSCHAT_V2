@@ -719,18 +719,28 @@ At the beginning of each session:
   - `terraform -chdir=terraform plan -var-file=environments/dev/terraform.tfvars`
   - start auth from both domains and verify callback lands on canonical domain with no state mismatch.
 
-## 5.13) Split-Host + Ephemeral Lifecycle Update (2026-03-09)
-- Architecture pivot implemented in codebase:
-  - Apex host (`chess-chat.com`) now targets a static edge stack (CloudFront + private S3 via OAC).
-  - App host (`app.chess-chat.com`) remains ALB/ECS gameplay runtime.
-- Auth UX direction updated:
-  - New static auth frontend added under `app/static-auth` with custom Cognito API forms and Google OAuth callback route (`/auth/callback`).
-  - Shared cookies on `.chess-chat.com` now carry v1 JS-managed session and pending-room handoff (`cc_pending_room`).
-- Gameplay/runtime policy update:
-  - Rematch protocol removed from frontend/backend WS contract.
-  - Room lifecycle now follows phone-call semantics with short reconnect grace (default 12s).
-  - Single-use room code enforcement added via Redis tombstone keys after final teardown.
-- Terraform and delivery updates:
-  - Added `modules/static_edge` and root wiring for apex CloudFront alias + app-only ALB alias.
-  - Cognito module extended for Google IdP provisioning inputs; Apple inputs scaffolded for deferred integration.
-  - Main deploy workflow now publishes static auth assets to S3 and invalidates CloudFront.
+## 5.13) Split-Host + Ephemeral Lifecycle Program (2026-03-09)
+- Program decision:
+  - Deliver split-host auth/app separation and phone-call room lifecycle in staged slices.
+  - Enforce strict dependency order: `Slice 1 -> Slice 2 -> Slice 3 -> Slice 4`.
+  - `Slice 5` can run in parallel with `Slice 4` once `Slice 3` is merged.
+- Stage 1 completed (Terraform edge split + Cognito wiring):
+  - Applied static apex edge:
+    - CloudFront distribution `E2W7Q7MB7N2WFT` (`do3ezcm5l4dpu.cloudfront.net`)
+    - Private static bucket `chesschat-dev-static-c384ca`
+    - Route53 apex alias now targets CloudFront.
+  - App runtime host isolation:
+    - `app.chess-chat.com` remains ALB-backed (`chesschat-dev-alb-251000663.us-east-1.elb.amazonaws.com`).
+    - ALB certificate replaced with app-host certificate (`app.chess-chat.com`).
+  - Cognito wiring:
+    - Google IdP inputs/resources are wired in Terraform module.
+    - Apple Sign In remains variable scaffolding only (deferred).
+  - CI variable readiness:
+    - Added repo vars required by static deploy path:
+      - `STATIC_SITE_BUCKET`
+      - `STATIC_CLOUDFRONT_DISTRIBUTION_ID`
+      - `COGNITO_HOSTED_UI_BASE_URL`
+      - `APP_HOST`
+- Critical implementation guardrail for Slice 4:
+  - Tombstone persistence must be atomic with Redis room-state deletion in teardown step 2.
+  - Do not place tombstone write after Chime delete retry path.
