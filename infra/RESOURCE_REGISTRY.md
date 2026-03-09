@@ -262,3 +262,19 @@ Purpose: single source of truth for human-readable names, IDs, and ARNs as infra
 - UI stability hotfix update (2026-03-08, no new AWS resources):
   - Frontend-only adjustments for hover visual stability, board sizing, and media auto-join UX.
   - Deployment intent: same ECS pipeline path via merge-to-main; no infra state changes.
+
+## Split-Host Implementation Update (2026-03-09)
+- Terraform desired state now includes static apex edge resources:
+  - private S3 bucket for auth/landing assets
+  - CloudFront distribution with OAC and no-cache auth path behaviors
+  - apex Route53 alias target set to CloudFront
+- App DNS target remains ALB-only on `app.chess-chat.com`.
+- Cognito desired state updated for:
+  - apex callback/logout URL ownership in Terraform
+  - Google IdP input support in module wiring
+  - Apple Sign In input scaffolding (deferred resource creation)
+- Runtime desired state updates:
+  - `RECONNECT_GRACE_SECONDS = 12`
+  - `ROOM_CONSUMED_TTL_SECONDS = 2592000` (30 days)
+- Deployment pipeline update:
+  - `deploy-main` now publishes `app/static-auth` to static bucket and triggers CloudFront invalidation.

@@ -1,76 +1,37 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { config, loadPublicConfig } from "../config";
-import { createPkceChallenge, parseJwt } from "../utils/auth";
+import { createContext, useContext, useMemo, useState } from "react";
+import { config } from "../config";
+import { parseJwt } from "../utils/auth";
+import { deleteCookie, getCookie } from "../utils/cookies";
 
 const AuthContext = createContext(null);
 
 const ACCESS_TOKEN_KEY = "chesschat_access_token";
 const ID_TOKEN_KEY = "chesschat_id_token";
-const PKCE_VERIFIER_KEY = "chesschat_pkce_verifier";
-const OAUTH_STATE_KEY = "chesschat_oauth_state";
 
-function authDebug(message, context = {}) {
-  console.info("[auth-debug]", message, context);
-}
-
-async function exchangeCodeForTokens(code, cognito) {
-  const verifier = sessionStorage.getItem(PKCE_VERIFIER_KEY);
-  if (!verifier) {
-    throw new Error("Missing PKCE verifier");
+function readSessionCookie() {
+  const raw = getCookie(config.sessionCookieName);
+  if (!raw) {
+    return null;
   }
 
-  if (!cognito.hostedUiBaseUrl) {
-    throw new Error(
-      "Cognito Hosted UI URL is missing. Refresh and try sign-in again, then check /api/public-config."
-    );
-  }
-
-  const body = new URLSearchParams({
-    grant_type: "authorization_code",
-    client_id: cognito.clientId,
-    code,
-    redirect_uri: cognito.redirectUri,
-    code_verifier: verifier
-  });
-
-  const tokenEndpoint = `${cognito.hostedUiBaseUrl}/oauth2/token`;
-  let tokenEndpointHost = "";
   try {
-    tokenEndpointHost = new URL(tokenEndpoint).host;
+    return JSON.parse(raw);
   } catch {
-    tokenEndpointHost = "invalid";
+    return null;
   }
-  authDebug("token_exchange_request", { tokenEndpointHost });
-
-  const response = await fetch(tokenEndpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded"
-    },
-    body
-  });
-
-  if (!response.ok) {
-    throw new Error("Token exchange failed");
-  }
-
-  return response.json();
 }
 
 export function AuthProvider({ children }) {
-  const [accessToken, setAccessToken] = useState(
+  const [fallbackAccessToken, setFallbackAccessToken] = useState(
     () => sessionStorage.getItem(ACCESS_TOKEN_KEY) || ""
   );
-  const [idToken, setIdToken] = useState(() => sessionStorage.getItem(ID_TOKEN_KEY) || "");
-  const [publicConfig, setPublicConfig] = useState(null);
+  const [fallbackIdToken, setFallbackIdToken] = useState(
+    () => sessionStorage.getItem(ID_TOKEN_KEY) || ""
+  );
 
-  useEffect(() => {
-    loadPublicConfig()
-      .then((loaded) => setPublicConfig(loaded))
-      .catch(() => setPublicConfig({ appDomain: config.appDomain, cognito: config.cognito }));
-  }, []);
-
-  const cognito = publicConfig?.cognito || config.cognito;
+  const cookieSession = readSessionCookie();
+  const accessToken = cookieSession?.access_token || fallbackAccessToken;
+  const idToken = cookieSession?.id_token || fallbackIdToken;
 
   const user = useMemo(() => {
     if (!idToken) return null;
@@ -83,123 +44,33 @@ export function AuthProvider({ children }) {
     };
   }, [idToken]);
 
-  async function startAuth({ screenHint } = {}) {
-    if (!cognito.clientId || !cognito.hostedUiBaseUrl) {
-      throw new Error("Cognito config not loaded.");
-    }
-
-    const { verifier, challenge } = await createPkceChallenge();
-    const state = crypto.randomUUID();
-
-    sessionStorage.setItem(PKCE_VERIFIER_KEY, verifier);
-    sessionStorage.setItem(OAUTH_STATE_KEY, state);
-
-    const params = new URLSearchParams({
-      response_type: "code",
-      client_id: cognito.clientId,
-      redirect_uri: cognito.redirectUri,
-      scope: "openid email profile",
-      state,
-      code_challenge: challenge,
-      code_challenge_method: "S256"
-    });
-    if (screenHint) {
-      params.set("screen_hint", screenHint);
-    }
-
-    globalThis.location.assign(`${cognito.hostedUiBaseUrl}/oauth2/authorize?${params}`);
-  }
-
   async function login() {
-    return startAuth();
+    globalThis.location.assign(`${config.authHost}/login`);
   }
 
   async function signup() {
-    return startAuth({ screenHint: "signup" });
+    globalThis.location.assign(`${config.authHost}/signup`);
   }
 
-  async function resolveCognitoConfig() {
-    if (publicConfig?.cognito?.hostedUiBaseUrl) {
-      return publicConfig.cognito;
-    }
-
-    try {
-      const loaded = await loadPublicConfig();
-      setPublicConfig(loaded);
-      if (loaded?.cognito?.hostedUiBaseUrl) {
-        return loaded.cognito;
-      }
-    } catch {
-      // Fallback handled below.
-    }
-
-    return config.cognito;
-  }
-
-  async function handleCallback(code, state) {
-    const expectedState = sessionStorage.getItem(OAUTH_STATE_KEY);
-    authDebug("callback_received", {
-      configReady: Boolean(publicConfig),
-      stateMatches: Boolean(expectedState && expectedState === state)
-    });
-
-    if (!expectedState || expectedState !== state) {
-      throw new Error("OAuth state mismatch");
-    }
-
-    const callbackCognito = await resolveCognitoConfig();
-    if (!callbackCognito.hostedUiBaseUrl) {
-      throw new Error(
-        "Cognito config is not loaded yet. Refresh and try sign-in again, then verify /api/public-config."
-      );
-    }
-
-    let tokenEndpointHost = "";
-    try {
-      tokenEndpointHost = new URL(`${callbackCognito.hostedUiBaseUrl}/oauth2/token`).host;
-    } catch {
-      tokenEndpointHost = "invalid";
-    }
-    authDebug("callback_token_target", {
-      tokenEndpointHost,
-      hasClientId: Boolean(callbackCognito.clientId)
-    });
-
-    const tokens = await exchangeCodeForTokens(code, callbackCognito);
-    setAccessToken(tokens.access_token || "");
-    setIdToken(tokens.id_token || "");
-
-    sessionStorage.setItem(ACCESS_TOKEN_KEY, tokens.access_token || "");
-    sessionStorage.setItem(ID_TOKEN_KEY, tokens.id_token || "");
-    sessionStorage.removeItem(PKCE_VERIFIER_KEY);
-    sessionStorage.removeItem(OAUTH_STATE_KEY);
+  async function handleCallback() {
+    throw new Error("Auth callback is handled on chess-chat.com");
   }
 
   function logout() {
-    setAccessToken("");
-    setIdToken("");
+    setFallbackAccessToken("");
+    setFallbackIdToken("");
     sessionStorage.removeItem(ACCESS_TOKEN_KEY);
     sessionStorage.removeItem(ID_TOKEN_KEY);
-    sessionStorage.removeItem(PKCE_VERIFIER_KEY);
-    sessionStorage.removeItem(OAUTH_STATE_KEY);
-
-    if (!cognito.clientId || !cognito.hostedUiBaseUrl || !cognito.logoutUri) {
-      globalThis.location.assign("/");
-      return;
-    }
-
-    const params = new URLSearchParams({
-      client_id: cognito.clientId,
-      logout_uri: cognito.logoutUri
-    });
-    globalThis.location.assign(`${cognito.hostedUiBaseUrl}/logout?${params}`);
+    deleteCookie(config.sessionCookieName, { domain: ".chess-chat.com" });
+    deleteCookie(config.pendingRoomCookieName, { domain: ".chess-chat.com" });
+    globalThis.location.assign(`${config.authHost}/?logout=1`);
   }
 
   const value = {
     accessToken,
     idToken,
     user,
-    isConfigReady: Boolean(publicConfig),
+    isConfigReady: true,
     isAuthenticated: Boolean(accessToken),
     login,
     signup,

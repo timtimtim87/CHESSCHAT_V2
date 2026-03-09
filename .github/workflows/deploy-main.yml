@@ -22,6 +22,12 @@ jobs:
       ECS_CLUSTER_NAME: ${{ vars.ECS_CLUSTER_NAME }}
       ECS_SERVICE_NAME: ${{ vars.ECS_SERVICE_NAME }}
       ECS_CONTAINER_NAME: app
+      STATIC_SITE_BUCKET: ${{ vars.STATIC_SITE_BUCKET }}
+      STATIC_CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.STATIC_CLOUDFRONT_DISTRIBUTION_ID }}
+      COGNITO_USER_POOL_ID: ${{ vars.COGNITO_USER_POOL_ID }}
+      COGNITO_CLIENT_ID: ${{ vars.COGNITO_CLIENT_ID }}
+      COGNITO_HOSTED_UI_BASE_URL: ${{ vars.COGNITO_HOSTED_UI_BASE_URL }}
+      APP_HOST: ${{ vars.APP_HOST }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -45,6 +51,41 @@ jobs:
           docker push "${IMAGE_SHA_URI}"
           docker push "${IMAGE_LATEST_URI}"
           echo "IMAGE_SHA_URI=${IMAGE_SHA_URI}" >> "$GITHUB_ENV"
+
+      - name: Publish static auth site
+        run: |
+          set -euo pipefail
+          test -n "${STATIC_SITE_BUCKET}"
+          test -n "${STATIC_CLOUDFRONT_DISTRIBUTION_ID}"
+          test -n "${COGNITO_CLIENT_ID}"
+          test -n "${COGNITO_HOSTED_UI_BASE_URL}"
+          test -n "${APP_HOST}"
+
+          cat > app/static-auth/config.js <<EOF
+          window.__CHESSCHAT_AUTH_CONFIG__ = {
+            region: "${AWS_REGION}",
+            userPoolId: "${COGNITO_USER_POOL_ID}",
+            clientId: "${COGNITO_CLIENT_ID}",
+            hostedUiBaseUrl: "${COGNITO_HOSTED_UI_BASE_URL}",
+            appHost: "${APP_HOST}",
+            pendingRoomCookieName: "cc_pending_room",
+            pendingRoomMaxAgeSeconds: 600,
+            sessionCookieName: "cc_session",
+            sessionMaxAgeSeconds: 3600
+          };
+          EOF
+
+          aws s3 sync app/static-auth/ "s3://${STATIC_SITE_BUCKET}/" \
+            --delete \
+            --cache-control "public,max-age=300,s-maxage=300" \
+            --exclude "config.js"
+
+          aws s3 cp app/static-auth/config.js "s3://${STATIC_SITE_BUCKET}/config.js" \
+            --cache-control "no-store"
+
+          aws cloudfront create-invalidation \
+            --distribution-id "${STATIC_CLOUDFRONT_DISTRIBUTION_ID}" \
+            --paths "/*" >/dev/null
 
       - name: Register task definition revision
         run: |

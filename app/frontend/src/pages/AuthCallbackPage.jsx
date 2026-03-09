@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { config } from "../config";
 
 export default function AuthCallbackPage() {
   const navigate = useNavigate();
-  const { handleCallback, isConfigReady } = useAuth();
+  const { isConfigReady } = useAuth();
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -14,14 +15,10 @@ export default function AuthCallbackPage() {
 
     async function run() {
       try {
-        const params = new URLSearchParams(window.location.search);
-        const code = params.get("code");
-        const state = params.get("state");
-        if (!code || !state) {
-          throw new Error("Missing code or state.");
+        if (window.location.host === "app.chess-chat.com") {
+          window.location.assign(`${config.authHost}/auth/callback${window.location.search}`);
+          return;
         }
-
-        await handleCallback(code, state);
         navigate("/lobby", { replace: true });
       } catch (err) {
         setError(err.message);
@@ -29,7 +26,7 @@ export default function AuthCallbackPage() {
     }
 
     run();
-  }, [handleCallback, isConfigReady, navigate]);
+  }, [isConfigReady, navigate]);
 
   return (
     <main className="auth-shell">

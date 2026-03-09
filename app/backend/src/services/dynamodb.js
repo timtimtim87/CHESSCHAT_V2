@@ -48,7 +48,7 @@ export function normalizeUsernameInput(value) {
 }
 
 export function isValidUsername(value) {
-  return /^[a-z0-9_]{3,20}$/.test(value);
+  return /^[a-z0-9._-]{3,24}$/.test(value);
 }
 
 function usernameReservationKey(username) {
@@ -58,7 +58,7 @@ function usernameReservationKey(username) {
 export async function setUsername(userId, username, currentUsername = null) {
   const normalized = normalizeUsernameInput(username);
   if (!isValidUsername(normalized)) {
-    const error = new Error("Username must be 3-20 chars: lowercase letters, numbers, underscore.");
+    const error = new Error("Username must be 3-24 chars: lowercase letters, numbers, dot, underscore, hyphen.");
     error.code = "INVALID_USERNAME";
     throw error;
   }
@@ -66,39 +66,54 @@ export async function setUsername(userId, username, currentUsername = null) {
   const nowIso = new Date().toISOString();
 
   try {
+    const transactItems = [
+      {
+        Put: {
+          TableName: config.dynamodb.usersTable,
+          Item: {
+            user_id: usernameReservationKey(normalized),
+            owner_user_id: userId,
+            reserved_at: nowIso
+          },
+          ConditionExpression: "attribute_not_exists(user_id) OR owner_user_id = :owner",
+          ExpressionAttributeValues: {
+            ":owner": userId
+          }
+        }
+      },
+      {
+        Update: {
+          TableName: config.dynamodb.usersTable,
+          Key: { user_id: userId },
+          ConditionExpression:
+            "attribute_exists(user_id) AND (attribute_not_exists(username) OR username = :username OR username = :currentUsername)",
+          UpdateExpression: "SET username = :username, display_name = :displayName, updated_at = :updated",
+          ExpressionAttributeValues: {
+            ":username": normalized,
+            ":displayName": normalized,
+            ":updated": nowIso,
+            ":currentUsername": currentUsername || "__none__"
+          }
+        }
+      }
+    ];
+
+    if (currentUsername && currentUsername !== normalized) {
+      transactItems.push({
+        Delete: {
+          TableName: config.dynamodb.usersTable,
+          Key: { user_id: usernameReservationKey(currentUsername) },
+          ConditionExpression: "owner_user_id = :owner",
+          ExpressionAttributeValues: {
+            ":owner": userId
+          }
+        }
+      });
+    }
+
     await ddb.send(
       new TransactWriteCommand({
-        TransactItems: [
-          {
-            Put: {
-              TableName: config.dynamodb.usersTable,
-              Item: {
-                user_id: usernameReservationKey(normalized),
-                owner_user_id: userId,
-                reserved_at: nowIso
-              },
-              ConditionExpression: "attribute_not_exists(user_id) OR owner_user_id = :owner",
-              ExpressionAttributeValues: {
-                ":owner": userId
-              }
-            }
-          },
-          {
-            Update: {
-              TableName: config.dynamodb.usersTable,
-              Key: { user_id: userId },
-              ConditionExpression:
-                "attribute_exists(user_id) AND (attribute_not_exists(username) OR username = :username OR username = :currentUsername)",
-              UpdateExpression: "SET username = :username, display_name = :displayName, updated_at = :updated",
-              ExpressionAttributeValues: {
-                ":username": normalized,
-                ":displayName": normalized,
-                ":updated": nowIso,
-                ":currentUsername": currentUsername || "__none__"
-              }
-            }
-          }
-        ]
+        TransactItems: transactItems
       })
     );
   } catch (error) {

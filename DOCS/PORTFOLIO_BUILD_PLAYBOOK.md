@@ -718,3 +718,19 @@ At the beginning of each session:
 - Validation plan:
   - `terraform -chdir=terraform plan -var-file=environments/dev/terraform.tfvars`
   - start auth from both domains and verify callback lands on canonical domain with no state mismatch.
+
+## 5.13) Split-Host + Ephemeral Lifecycle Update (2026-03-09)
+- Architecture pivot implemented in codebase:
+  - Apex host (`chess-chat.com`) now targets a static edge stack (CloudFront + private S3 via OAC).
+  - App host (`app.chess-chat.com`) remains ALB/ECS gameplay runtime.
+- Auth UX direction updated:
+  - New static auth frontend added under `app/static-auth` with custom Cognito API forms and Google OAuth callback route (`/auth/callback`).
+  - Shared cookies on `.chess-chat.com` now carry v1 JS-managed session and pending-room handoff (`cc_pending_room`).
+- Gameplay/runtime policy update:
+  - Rematch protocol removed from frontend/backend WS contract.
+  - Room lifecycle now follows phone-call semantics with short reconnect grace (default 12s).
+  - Single-use room code enforcement added via Redis tombstone keys after final teardown.
+- Terraform and delivery updates:
+  - Added `modules/static_edge` and root wiring for apex CloudFront alias + app-only ALB alias.
+  - Cognito module extended for Google IdP provisioning inputs; Apple inputs scaffolded for deferred integration.
+  - Main deploy workflow now publishes static auth assets to S3 and invalidates CloudFront.

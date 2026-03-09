@@ -192,6 +192,12 @@ variable "enable_edge" {
   default     = false
 }
 
+variable "enable_static_edge" {
+  description = "Whether to create static apex hosting resources (S3 + CloudFront + apex alias)."
+  type        = bool
+  default     = false
+}
+
 variable "enable_dns" {
   description = "Whether to create Route53 records for the application domain."
   type        = bool
@@ -229,9 +235,66 @@ variable "alb_health_check_path" {
 }
 
 variable "use_app_domain_for_cognito_urls" {
-  description = "Whether to derive Cognito callback/logout URLs from app_subdomain + root_domain_name."
+  description = "Whether to derive Cognito callback/logout URLs from root_domain_name."
   type        = bool
   default     = false
+}
+
+variable "static_auth_no_cache_paths" {
+  description = "CloudFront path patterns on apex host where caching should be disabled."
+  type        = list(string)
+  default = [
+    "/login*",
+    "/signup*",
+    "/verify-email*",
+    "/forgot-password*",
+    "/reset-password*",
+    "/auth/callback*",
+  ]
+}
+
+variable "cognito_enable_google_identity_provider" {
+  description = "Whether to provision Google as a Cognito federated identity provider."
+  type        = bool
+  default     = false
+}
+
+variable "cognito_google_client_id" {
+  description = "Google OAuth client ID used for Cognito Google IdP."
+  type        = string
+  default     = null
+}
+
+variable "cognito_google_client_secret" {
+  description = "Google OAuth client secret used for Cognito Google IdP."
+  type        = string
+  default     = null
+  sensitive   = true
+}
+
+variable "cognito_apple_service_id" {
+  description = "Apple Service ID placeholder for future Apple Sign In integration."
+  type        = string
+  default     = null
+}
+
+variable "cognito_apple_team_id" {
+  description = "Apple Team ID placeholder for future Apple Sign In integration."
+  type        = string
+  default     = null
+}
+
+variable "cognito_apple_key_id" {
+  description = "Apple Key ID placeholder for future Apple Sign In integration."
+  type        = string
+  default     = null
+}
+
+variable "cognito_apple_private_key" {
+  description = "Apple private key placeholder for future Apple Sign In integration."
+  type        = string
+  default     = null
+  sensitive   = true
 }
 
 variable "enable_monitoring" {

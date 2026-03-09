@@ -1,34 +1,23 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { AuthProvider, useAuth } from "./AuthContext";
 
-const hoisted = vi.hoisted(() => ({
-  cognito: {
-    hostedUiBaseUrl: "https://example.auth.us-east-1.amazoncognito.com",
-    clientId: "client-123",
-    redirectUri: "https://chess-chat.com/auth/callback",
-    logoutUri: "https://chess-chat.com/"
+vi.mock("../config", () => ({
+  config: {
+    appDomain: "https://app.chess-chat.com",
+    authHost: "https://chess-chat.com",
+    sessionCookieName: "cc_session",
+    pendingRoomCookieName: "cc_pending_room"
   }
 }));
 
-vi.mock("../config", () => ({
-  config: {
-    appDomain: "https://chess-chat.com",
-    cognito: hoisted.cognito
-  },
-  loadPublicConfig: async () => ({
-    appDomain: "https://chess-chat.com",
-    cognito: hoisted.cognito
-  })
-}));
-
 vi.mock("../utils/auth", () => ({
-  createPkceChallenge: async () => ({
-    verifier: "verifier-123",
-    challenge: "challenge-123"
-  }),
-  parseJwt: () => null
+  parseJwt: () => ({
+    sub: "user-1",
+    email: "user-1@example.com",
+    "cognito:username": "user-1"
+  })
 }));
 
 function AuthHarness() {
@@ -44,36 +33,28 @@ function AuthHarness() {
 
 describe("AuthContext", () => {
   beforeEach(() => {
-    hoisted.cognito.hostedUiBaseUrl = "https://example.auth.us-east-1.amazoncognito.com";
     cleanup();
     sessionStorage.clear();
+    document.cookie = "";
     vi.stubGlobal("location", {
-      assign: vi.fn()
-    });
-    vi.stubGlobal("crypto", {
-      randomUUID: () => "uuid-123"
+      assign: vi.fn(),
+      protocol: "https:",
+      hostname: "app.chess-chat.com"
     });
   });
 
-  it("signup uses Cognito screen_hint=signup", async () => {
+  it("signup redirects to apex signup", async () => {
     render(
       <AuthProvider>
         <AuthHarness />
       </AuthProvider>
     );
 
-    await waitFor(() => expect(screen.getByText("ready")).toBeInTheDocument());
     await userEvent.click(screen.getByRole("button", { name: "Signup" }));
-
-    expect(globalThis.location.assign).toHaveBeenCalledTimes(1);
-    const url = globalThis.location.assign.mock.calls[0][0];
-    expect(url).toContain("/oauth2/authorize?");
-    expect(url).toContain("screen_hint=signup");
+    expect(globalThis.location.assign).toHaveBeenCalledWith("https://chess-chat.com/signup");
   });
 
-  it("logout falls back locally if Cognito config is incomplete", async () => {
-    hoisted.cognito.hostedUiBaseUrl = "";
-
+  it("logout redirects to apex and clears session", async () => {
     render(
       <AuthProvider>
         <AuthHarness />
@@ -81,8 +62,6 @@ describe("AuthContext", () => {
     );
 
     await userEvent.click(screen.getByRole("button", { name: "Logout" }));
-    expect(globalThis.location.assign).toHaveBeenCalledWith("/");
-
-    hoisted.cognito.hostedUiBaseUrl = "https://example.auth.us-east-1.amazoncognito.com";
+    expect(globalThis.location.assign).toHaveBeenCalledWith("https://chess-chat.com/?logout=1");
   });
 });

@@ -37,8 +37,9 @@ ecs_container_environment = {
   APP_DOMAIN                 = "https://app.chess-chat.com"
   APP_METRICS_NAMESPACE      = "Chesschat/Dev"
   ROOM_TTL_SECONDS           = "3600"
+  ROOM_CONSUMED_TTL_SECONDS  = "2592000"
   GAME_DURATION_SECONDS      = "300"
-  RECONNECT_GRACE_SECONDS    = "60"
+  RECONNECT_GRACE_SECONDS    = "12"
   HEARTBEAT_INTERVAL_MS      = "30000"
 }
 ecs_task_cpu              = 256
@@ -48,6 +49,7 @@ ecs_log_retention_days    = 30
 
 # Enable edge and DNS now that domain + hosted zone are ready.
 enable_edge         = true
+enable_static_edge  = true
 enable_dns          = true
 create_route53_zone = false
 route53_zone_id     = "Z03927582T9WNB6PUN708"
@@ -58,6 +60,10 @@ app_subdomain       = "app"
 cognito_callback_urls           = ["https://app.chess-chat.com/auth/callback"]
 cognito_logout_urls             = ["https://app.chess-chat.com/"]
 use_app_domain_for_cognito_urls = true
+
+cognito_enable_google_identity_provider = true
+cognito_google_client_id                = "REPLACE_WITH_GOOGLE_CLIENT_ID"
+cognito_google_client_secret            = "REPLACE_WITH_GOOGLE_CLIENT_SECRET"
 
 enable_monitoring = true
 

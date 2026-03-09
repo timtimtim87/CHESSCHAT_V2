@@ -17,3 +17,10 @@ This folder is the canonical home for CHESSCHAT architecture decisions.
 
 ## Scope
 Store AWS/Terraform/security/observability/HA decisions here as they are made.
+
+## Current ADR Index
+- `0001-single-nat-gateway.md`
+- `0002-split-host-static-auth-and-app-host.md`
+- `0003-v1-js-managed-cross-subdomain-cookie.md`
+- `0004-phone-call-room-lifecycle-and-reconnect-grace.md`
+- `0005-apple-sign-in-deferred.md`

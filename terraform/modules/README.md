@@ -12,3 +12,4 @@ Current split:
 - `ecs` handles IAM identity for ECS tasks.
 - `ecs_compute` handles ECR and ECS runtime resources.
 - This split intentionally prevents dependency cycles with ElastiCache SG allow-list rules.
+- `static_edge` handles apex static hosting with private S3 + CloudFront + OAC.
