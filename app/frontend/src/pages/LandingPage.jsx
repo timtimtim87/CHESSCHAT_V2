@@ -35,6 +35,7 @@ export default function LandingPage() {
             Sign In
           </button>
         </div>
+        <p>Pick your in-game username after sign-in from the Lobby.</p>
         {!isConfigReady ? <p>Loading login configuration...</p> : null}
         {error ? <p className="error">{error}</p> : null}
       </section>
