@@ -6,20 +6,19 @@ import {
   createRoomIfAvailable,
   clearReconnectDeadline,
   deleteConnection,
-  deleteRoom,
   enqueueGameFinalizationJob,
   getExpiredReconnectDeadlines,
   getConnection,
   getExpiringRooms,
   getRoom,
   isRoomCodeConsumed,
-  markRoomCodeConsumed,
   mutateRoom,
   popGameFinalizationJob,
   pushGameFinalizationDeadLetter,
   removeRoomFromExpiryIndex,
   setReconnectDeadline,
-  setConnection
+  setConnection,
+  teardownRoomAndConsumeCode
 } from "../services/redis.js";
 import { createAttendee, createMeeting, deleteMeeting } from "../services/chime.js";
 import { applyMove, startNewGame } from "../services/chess.js";
@@ -387,7 +386,7 @@ async function finalizeRoomTeardown(roomCode, reason = "teardown") {
     return;
   }
 
-  await deleteRoom(roomCode);
+  await teardownRoomAndConsumeCode(roomCode, config.app.roomConsumedTtlSeconds);
 
   if (terminal.meetingId) {
     const meetingResult = await deleteMeetingWithRetry(terminal.meetingId);
@@ -401,7 +400,6 @@ async function finalizeRoomTeardown(roomCode, reason = "teardown") {
     }
   }
 
-  await markRoomCodeConsumed(roomCode, config.app.roomConsumedTtlSeconds);
   log("info", "room_lifecycle_transition", {
     roomCode,
     transition: "room_final_teardown_complete",
