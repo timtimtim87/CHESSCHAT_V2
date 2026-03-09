@@ -4,8 +4,6 @@ export const InboundEvent = {
   START_GAME: "start_game",
   MAKE_MOVE: "make_move",
   RESIGN: "resign",
-  REQUEST_REMATCH: "request_rematch",
-  RESPOND_REMATCH: "respond_rematch",
   HEARTBEAT: "heartbeat"
 };
 
@@ -18,9 +16,6 @@ export const OutboundEvent = {
   GAME_STARTED: "game_started",
   MOVE_MADE: "move_made",
   GAME_ENDED: "game_ended",
-  REMATCH_REQUESTED: "rematch_requested",
-  REMATCH_ACCEPTED: "rematch_accepted",
-  REMATCH_DECLINED: "rematch_declined",
   HEARTBEAT_ACK: "heartbeat_ack",
   ERROR: "error"
 };

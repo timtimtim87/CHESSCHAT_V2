@@ -2,7 +2,7 @@
 
 Purpose: define a clear, minimal, decision-complete UI direction for CHESSCHAT game screens, lobby, and auth flow so design changes remain consistent and interview-ready.
 
-Last updated: 2026-03-05
+Last updated: 2026-03-09
 
 ## 1) Design Principles
 - Keep the UI simple, minimal, and clear.
@@ -102,6 +102,8 @@ Last updated: 2026-03-05
 ### 5.3 Game Room
 - Board + clocks + turn + video + media controls.
 - Reconnect and game-result states handled clearly.
+- Phone-call room lifecycle copy must be explicit:
+  - If a game ends or reconnect grace expires, users create a new room code.
 
 ## 6) MVP Button and Control Requirements
 
@@ -112,9 +114,7 @@ Last updated: 2026-03-05
 - `Camera On / Off`
 - `Start Game`
 - `Resign` (must confirm)
-- `Request Rematch`
-- `Accept Rematch`
-- `Decline Rematch`
+- `New Room` / `Create New Room`
 - `Dismiss/Close` modal actions
 
 ### 6.2 Lobby Buttons

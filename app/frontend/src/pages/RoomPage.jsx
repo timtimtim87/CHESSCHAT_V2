@@ -207,8 +207,7 @@ export default function RoomPage() {
             dispatch({
               type: "ROOM_JOINED",
               participants: normalizeParticipants(payload.participants),
-              activeGame: payload.activeGame || null,
-              rematchRequestedBy: payload.rematchRequestedBy || null
+              activeGame: payload.activeGame || null
             });
             break;
           case "participant_joined":
@@ -298,7 +297,6 @@ export default function RoomPage() {
                 serverTimestampMs: payload.serverTimestampMs || Date.now()
               }
             });
-            dispatch({ type: "REMATCH_CLEARED" });
             dispatch({ type: "CLEAR_TOAST_ERROR" });
             break;
           case "move_made":
@@ -338,33 +336,6 @@ export default function RoomPage() {
                 context: { gameId: payload.gameId }
               }
             });
-            break;
-          case "rematch_requested":
-            dispatch({ type: "REMATCH_REQUESTED", requestedBy: payload.requestedBy });
-            dispatch({
-              type: "SET_TOAST_ERROR",
-              error: {
-                code: "REMATCH_REQUESTED",
-                message: "Rematch requested.",
-                retryable: false,
-                context: { requestedBy: payload.requestedBy }
-              }
-            });
-            break;
-          case "rematch_declined":
-            dispatch({ type: "REMATCH_CLEARED" });
-            dispatch({
-              type: "SET_TOAST_ERROR",
-              error: {
-                code: "REMATCH_DECLINED",
-                message: "Rematch declined.",
-                retryable: false,
-                context: { declinedBy: payload.declinedBy }
-              }
-            });
-            break;
-          case "rematch_accepted":
-            dispatch({ type: "REMATCH_CLEARED" });
             break;
           case "error": {
             const normalized = normalizeError(payload);
@@ -409,9 +380,6 @@ export default function RoomPage() {
     : false;
 
   const connectedPlayers = state.room_state.participants.filter((participant) => participant.connected).length;
-  const rematchRequestedBy = state.room_state.rematch.requestedBy;
-  const rematchRequestedByMe = Boolean(rematchRequestedBy && rematchRequestedBy === user?.sub);
-  const rematchPendingForMe = Boolean(rematchRequestedBy && rematchRequestedBy !== user?.sub);
 
   function startGame() {
     roomDebug("action_start_game", { roomCode });
@@ -435,14 +403,6 @@ export default function RoomPage() {
       isMyTurn
     });
     socketRef.current?.send("make_move", { roomCode, move });
-  }
-
-  function requestRematch() {
-    socketRef.current?.send("request_rematch", { roomCode });
-  }
-
-  function respondRematch(accept) {
-    socketRef.current?.send("respond_rematch", { roomCode, accept });
   }
 
   function playMoveSound() {
@@ -786,23 +746,9 @@ export default function RoomPage() {
             <button className="button-danger" onClick={resign} disabled={!game}>
               Resign
             </button>
-            <button
-              className="button-secondary"
-              onClick={requestRematch}
-              disabled={Boolean(game) || rematchRequestedByMe || connectedPlayers < 2}
-            >
-              {rematchRequestedByMe ? "Rematch Requested" : "Request Rematch"}
+            <button className="button-secondary" onClick={() => navigate("/lobby")}>
+              New Room
             </button>
-            {rematchPendingForMe ? (
-              <>
-                <button className="button-primary" onClick={() => respondRematch(true)}>
-                  Accept Rematch
-                </button>
-                <button className="button-secondary" onClick={() => respondRematch(false)}>
-                  Decline Rematch
-                </button>
-              </>
-              ) : null}
           </div>
         </section>
 
@@ -854,23 +800,9 @@ export default function RoomPage() {
               <p className="result-pgn"><strong>PGN:</strong> {state.game_state.lastResult.pgn}</p>
             ) : null}
             <div className="room-action-row">
-              <button
-                className="button-secondary"
-                onClick={requestRematch}
-                disabled={rematchRequestedByMe || connectedPlayers < 2}
-              >
-                {rematchRequestedByMe ? "Rematch Requested" : "Request Rematch"}
+              <button className="button-secondary" onClick={() => navigate("/lobby")}>
+                Create New Room
               </button>
-              {rematchPendingForMe ? (
-                <>
-                  <button className="button-primary" onClick={() => respondRematch(true)}>
-                    Accept
-                  </button>
-                  <button className="button-secondary" onClick={() => respondRematch(false)}>
-                    Decline
-                  </button>
-                </>
-              ) : null}
               <button className="button-ghost" onClick={() => dispatch({ type: "GAME_ENDED", result: null })}>
                 Close
               </button>

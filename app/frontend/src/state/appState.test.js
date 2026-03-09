@@ -16,7 +16,7 @@ describe("appStateReducer", () => {
     expect(joined.room_state.status).toBe("joining");
   });
 
-  it("updates reconnect and rematch state", () => {
+  it("updates reconnect state", () => {
     const reconnecting = appStateReducer(initialAppState, {
       type: "RECONNECT_STATE",
       status: "paused",
@@ -26,12 +26,6 @@ describe("appStateReducer", () => {
     });
     expect(reconnecting.room_state.reconnect.status).toBe("paused");
     expect(reconnecting.room_state.reconnect.version).toBe(2);
-
-    const rematch = appStateReducer(reconnecting, {
-      type: "REMATCH_REQUESTED",
-      requestedBy: "user-2"
-    });
-    expect(rematch.room_state.rematch.requestedBy).toBe("user-2");
   });
 
   it("ignores stale reconnect events by version", () => {

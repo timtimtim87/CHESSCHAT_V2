@@ -13,9 +13,7 @@ const ROOM_BOUND_EVENTS = new Set([
   InboundEvent.JOIN_ROOM,
   InboundEvent.START_GAME,
   InboundEvent.MAKE_MOVE,
-  InboundEvent.RESIGN,
-  InboundEvent.REQUEST_REMATCH,
-  InboundEvent.RESPOND_REMATCH
+  InboundEvent.RESIGN
 ]);
 
 export function requiresRoomCode(eventType) {

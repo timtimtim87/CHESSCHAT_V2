@@ -128,8 +128,8 @@ export default function LobbyPage() {
   async function submitUsername(event) {
     event.preventDefault();
     const nextUsername = usernameDraft.trim().toLowerCase();
-    if (!/^[a-z0-9_]{3,20}$/.test(nextUsername)) {
-      setUsernameError("Username must be 3-20 chars: lowercase letters, numbers, underscore.");
+    if (!/^[a-z0-9._-]{3,24}$/.test(nextUsername)) {
+      setUsernameError("Username must be 3-24 chars: lowercase letters, numbers, dot, underscore, hyphen.");
       return;
     }
     setIsSavingUsername(true);
@@ -231,7 +231,7 @@ export default function LobbyPage() {
                     setUsernameError("");
                   }
                 }}
-                maxLength={20}
+                maxLength={24}
                 placeholder="tim_player"
                 aria-label="Username"
               />

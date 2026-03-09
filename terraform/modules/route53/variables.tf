@@ -39,7 +39,7 @@ variable "route53_zone_id" {
 }
 
 variable "alias_records" {
-  description = "Fully-qualified DNS records to alias to the ALB (for example apex and app subdomain)."
+  description = "Fully-qualified DNS records to alias to the ALB (typically app subdomain only)."
   type        = list(string)
   default     = []
 }

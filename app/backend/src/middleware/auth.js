@@ -14,7 +14,7 @@ export async function verifyAccessToken(token) {
 }
 
 export async function requireHttpAuth(req, res, next) {
-  if (req.path === "/healthz" || req.path === "/api/public-config") {
+  if (req.path === "/healthz") {
     return next();
   }
 

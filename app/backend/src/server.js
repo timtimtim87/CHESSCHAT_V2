@@ -10,7 +10,6 @@ import { attachCorrelationId, logHttpAccess } from "./middleware/correlation.js"
 import healthRouter from "./routes/health.js";
 import meRouter from "./routes/me.js";
 import historyRouter from "./routes/history.js";
-import publicConfigRouter from "./routes/public-config.js";
 import { installWebSocketServer } from "./websocket/handler.js";
 import { log } from "./utils/logger.js";
 
@@ -23,7 +22,6 @@ app.use(express.json());
 app.use(attachCorrelationId);
 app.use(logHttpAccess);
 app.use(healthRouter);
-app.use(publicConfigRouter);
 app.use("/api", requireHttpAuth, meRouter, historyRouter);
 app.use(express.static(publicDir));
 app.get("*", (_req, res) => {

@@ -10,6 +10,12 @@ locals {
   effective_domain      = coalesce(var.cognito_domain_prefix, local.generated_domain)
   user_pool_name        = "${var.project}-${var.environment}-user-pool"
   user_pool_client_name = "${var.project}-${var.environment}-app-client"
+  supported_identity_providers_effective = distinct(
+    concat(
+      var.supported_identity_providers,
+      var.enable_google_identity_provider ? ["Google"] : []
+    )
+  )
 }
 
 resource "aws_cognito_user_pool" "this" {
@@ -54,7 +60,7 @@ resource "aws_cognito_user_pool_client" "app" {
   allowed_oauth_flows_user_pool_client = true
   allowed_oauth_flows                  = ["code"]
   allowed_oauth_scopes                 = ["openid", "email", "profile"]
-  supported_identity_providers         = var.supported_identity_providers
+  supported_identity_providers         = local.supported_identity_providers_effective
 
   callback_urls = var.callback_urls
   logout_urls   = var.logout_urls
@@ -73,6 +79,28 @@ resource "aws_cognito_user_pool_client" "app" {
     access_token  = "hours"
     id_token      = "hours"
     refresh_token = "days"
+  }
+
+  depends_on = [
+    aws_cognito_identity_provider.google
+  ]
+}
+
+resource "aws_cognito_identity_provider" "google" {
+  count         = var.enable_google_identity_provider ? 1 : 0
+  user_pool_id  = aws_cognito_user_pool.this.id
+  provider_name = "Google"
+  provider_type = "Google"
+
+  provider_details = {
+    authorize_scopes = "openid email profile"
+    client_id        = var.google_client_id
+    client_secret    = var.google_client_secret
+  }
+
+  attribute_mapping = {
+    email    = "email"
+    username = "sub"
   }
 }
 

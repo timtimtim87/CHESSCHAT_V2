@@ -10,21 +10,13 @@ locals {
     Environment = var.environment
   }, var.tags)
 
-  primary_app_domain_name   = var.root_domain_name
-  secondary_app_domain_name = var.root_domain_name == null ? null : "${var.app_subdomain}.${var.root_domain_name}"
-  canonical_app_domain_name = local.secondary_app_domain_name != null ? local.secondary_app_domain_name : local.primary_app_domain_name
-  app_endpoint_domains = distinct(compact([
-    local.primary_app_domain_name,
-    local.secondary_app_domain_name
-  ]))
-  redirect_app_domains = [
-    for domain in local.app_endpoint_domains : domain if domain != local.canonical_app_domain_name
-  ]
-  cognito_callback_urls_effective = var.use_app_domain_for_cognito_urls && local.primary_app_domain_name != null ? [
-    "https://${local.canonical_app_domain_name}/auth/callback"
+  apex_domain_name = var.root_domain_name
+  app_domain_name  = var.root_domain_name == null ? null : "${var.app_subdomain}.${var.root_domain_name}"
+  cognito_callback_urls_effective = var.use_app_domain_for_cognito_urls && local.apex_domain_name != null ? [
+    "https://${local.apex_domain_name}/auth/callback"
   ] : var.cognito_callback_urls
-  cognito_logout_urls_effective = var.use_app_domain_for_cognito_urls && local.primary_app_domain_name != null ? [
-    "https://${local.canonical_app_domain_name}/"
+  cognito_logout_urls_effective = var.use_app_domain_for_cognito_urls && local.apex_domain_name != null ? [
+    "https://${local.apex_domain_name}/"
   ] : var.cognito_logout_urls
   ecs_container_secrets_effective = concat(
     var.ecs_container_secrets,
@@ -64,11 +56,22 @@ module "alb" {
   vpc_id              = module.vpc.vpc_id
   public_subnet_ids   = module.vpc.public_subnet_ids
   target_port         = var.ecs_container_port
-  certificate_domains = local.app_endpoint_domains
-  canonical_host      = local.canonical_app_domain_name
-  redirect_hosts      = local.redirect_app_domains
+  certificate_domains = local.app_domain_name == null ? [] : [local.app_domain_name]
+  canonical_host      = local.app_domain_name
+  redirect_hosts      = []
   route53_zone_id     = var.route53_zone_id
   health_check_path   = var.alb_health_check_path
+  tags                = local.common_tags
+}
+
+module "static_edge" {
+  source              = "./modules/static_edge"
+  project             = var.project
+  environment         = var.environment
+  enabled             = var.enable_static_edge
+  root_domain_name    = local.apex_domain_name
+  route53_zone_id     = var.route53_zone_id
+  auth_no_cache_paths = var.static_auth_no_cache_paths
   tags                = local.common_tags
 }
 
@@ -138,13 +141,20 @@ module "dynamodb" {
 }
 
 module "cognito" {
-  source                = "./modules/cognito"
-  project               = var.project
-  environment           = var.environment
-  cognito_domain_prefix = var.cognito_domain_prefix
-  callback_urls         = local.cognito_callback_urls_effective
-  logout_urls           = local.cognito_logout_urls_effective
-  tags                  = local.common_tags
+  source                          = "./modules/cognito"
+  project                         = var.project
+  environment                     = var.environment
+  cognito_domain_prefix           = var.cognito_domain_prefix
+  callback_urls                   = local.cognito_callback_urls_effective
+  logout_urls                     = local.cognito_logout_urls_effective
+  enable_google_identity_provider = var.cognito_enable_google_identity_provider
+  google_client_id                = var.cognito_google_client_id
+  google_client_secret            = var.cognito_google_client_secret
+  apple_service_id                = var.cognito_apple_service_id
+  apple_team_id                   = var.cognito_apple_team_id
+  apple_key_id                    = var.cognito_apple_key_id
+  apple_private_key               = var.cognito_apple_private_key
+  tags                            = local.common_tags
 }
 
 module "route53" {
@@ -156,7 +166,7 @@ module "route53" {
   create_hosted_zone = var.create_route53_zone
   root_domain_name   = var.root_domain_name
   route53_zone_id    = var.route53_zone_id
-  alias_records      = local.app_endpoint_domains
+  alias_records      = local.app_domain_name == null ? [] : [local.app_domain_name]
   alb_dns_name       = module.alb.alb_dns_name
   alb_zone_id        = module.alb.alb_zone_id
   tags               = local.common_tags

@@ -23,6 +23,13 @@ Own resources for Cognito authentication and hosted login.
 - `callback_urls` (list(string))
 - `logout_urls` (list(string))
 - `supported_identity_providers` (list(string), default `["COGNITO"]`)
+- `enable_google_identity_provider` (bool, default `false`)
+- `google_client_id` / `google_client_secret` (string, optional)
+- Apple placeholder inputs (for deferred implementation):
+  - `apple_service_id`
+  - `apple_team_id`
+  - `apple_key_id`
+  - `apple_private_key`
 - `tags` (map(string))
 
 ## Outputs

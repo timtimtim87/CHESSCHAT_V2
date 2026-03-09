@@ -4,6 +4,7 @@ output "modules_active" {
     module.ecs_identity.ecs_module_status,
     module.ecs_compute.ecs_compute_module_status,
     module.alb.alb_module_status,
+    module.static_edge.static_edge_module_status,
     module.elasticache.elasticache_module_status,
     module.dynamodb.dynamodb_module_status,
     module.cognito.cognito_module_status,
@@ -137,6 +138,31 @@ output "route53_effective_zone_id" {
 output "route53_app_fqdn" {
   value       = module.route53.app_fqdn
   description = "Fully qualified DNS name of the app alias record."
+}
+
+output "static_site_bucket_name" {
+  value       = module.static_edge.bucket_name
+  description = "S3 bucket name storing apex static/auth assets."
+}
+
+output "static_cloudfront_distribution_id" {
+  value       = module.static_edge.cloudfront_distribution_id
+  description = "CloudFront distribution ID for apex static host."
+}
+
+output "static_cloudfront_distribution_domain_name" {
+  value       = module.static_edge.cloudfront_distribution_domain_name
+  description = "CloudFront distribution domain name for apex static host."
+}
+
+output "apex_domain_target" {
+  value       = module.static_edge.cloudfront_distribution_domain_name
+  description = "Effective apex host target (CloudFront)."
+}
+
+output "app_domain_target" {
+  value       = module.alb.alb_dns_name
+  description = "Effective app host target (ALB)."
 }
 
 output "monitoring_sns_topic_arn" {

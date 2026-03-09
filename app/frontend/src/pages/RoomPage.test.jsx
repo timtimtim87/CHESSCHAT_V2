@@ -115,7 +115,7 @@ describe("RoomPage", () => {
     renderRoom();
     expect(await screen.findByRole("button", { name: "Return to Lobby" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Start Game" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Request Rematch" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "New Room" })).toBeInTheDocument();
     expect(screen.queryByText("Move History")).not.toBeInTheDocument();
   });
 

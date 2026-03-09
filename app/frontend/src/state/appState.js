@@ -17,9 +17,6 @@ export const initialAppState = {
       disconnectedUserId: null,
       graceEndsAt: null,
       version: 0
-    },
-    rematch: {
-      requestedBy: null
     }
   },
   game_state: {
@@ -74,9 +71,6 @@ export function appStateReducer(state, action) {
           ...state.room_state,
           participants: action.participants || [],
           status: "joined",
-          rematch: {
-            requestedBy: action.rematchRequestedBy || null
-          },
           reconnect:
             action.activeGame?.disconnectDeadlineMs
               ? {
@@ -110,26 +104,6 @@ export function appStateReducer(state, action) {
               }
             }
           : state.game_state
-      };
-    case "REMATCH_REQUESTED":
-      return {
-        ...state,
-        room_state: {
-          ...state.room_state,
-          rematch: {
-            requestedBy: action.requestedBy || null
-          }
-        }
-      };
-    case "REMATCH_CLEARED":
-      return {
-        ...state,
-        room_state: {
-          ...state.room_state,
-          rematch: {
-            requestedBy: null
-          }
-        }
       };
     case "PARTICIPANT_JOINED":
       return {

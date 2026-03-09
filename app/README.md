@@ -7,8 +7,7 @@ This directory contains the application code that replaces the bootstrap ECS ima
 - `frontend/`: React/Vite client for auth, lobby, and room flow
 
 ## MVP routes
-- `/`: landing (login/signup)
-- `/auth/callback`: Cognito OAuth callback
+- `/`: app-host entry (redirects unauthenticated users to apex auth host)
 - `/lobby`: start/join room using one 5-character code field
 - `/room/:code`: video + chess room
 
