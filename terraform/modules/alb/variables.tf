@@ -30,16 +30,10 @@ variable "target_port" {
   default     = 8080
 }
 
-variable "root_domain_name" {
-  description = "Root DNS domain for ACM certificate and app endpoint."
-  type        = string
-  default     = null
-}
-
-variable "app_subdomain" {
-  description = "Subdomain label for app endpoint."
-  type        = string
-  default     = "app"
+variable "certificate_domains" {
+  description = "Ordered list of DNS names for ACM certificate (first entry is primary CN, remainder are SANs)."
+  type        = list(string)
+  default     = []
 }
 
 variable "route53_zone_id" {

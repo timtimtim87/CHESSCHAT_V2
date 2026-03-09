@@ -275,3 +275,29 @@ Last updated: 2026-03-05
 ### Notes
 - Username enforcement currently blocks room join until setup is completed.
 - Existing accounts with opaque legacy usernames are prompted to set a new app username.
+
+## 16) Apex + Room Layout Simplification Update (2026-03-09)
+
+### What changed
+- Landing page copy simplified to logo/wordmark and two explicit actions only: `Sign Up` and `Sign In`.
+- Added separate signup initiation path (`screen_hint=signup`) while keeping current Hosted UI flow.
+- Removed temporary room diagnostics status line from game header.
+- Removed in-room move history panel from the main game screen to reduce visual clutter.
+- Rebalanced room layout:
+  - Desktop: smaller board footprint and tighter panel padding.
+  - Desktop/tablet/mobile: larger/more legible video tiles relative to board container space.
+- Implemented compact mobile composition so board + both player tiles stay visible in the same screen flow.
+- Added tiny-viewport fallback message: desktop recommended / mobile app coming soon.
+
+### Why
+- Prioritized clarity and speed-to-action in auth entry.
+- Reduced non-essential information density in the room to preserve board/video focus.
+- Addressed usability issue where mobile users could not keep board and both video surfaces visible.
+
+### Tradeoffs / risks
+- Compact mobile constraints require aggressive text-density reduction (some secondary metadata is hidden on smaller screens).
+- Very small devices are intentionally gated to a fallback message to avoid a broken gameplay surface.
+
+### Validation
+- `npm --prefix app/frontend run test` (pass, 15/15)
+- `npm --prefix app/frontend run build` (pass)

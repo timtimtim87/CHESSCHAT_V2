@@ -29,8 +29,13 @@ output "target_group_arn" {
 }
 
 output "app_domain_name" {
-  value       = local.app_domain_name
-  description = "Fully qualified app domain name used by ACM/ALB."
+  value       = try(var.certificate_domains[0], null)
+  description = "Primary app domain name used as ACM common name."
+}
+
+output "app_domain_names" {
+  value       = var.certificate_domains
+  description = "All domain names covered by ACM for app ingress."
 }
 
 output "acm_certificate_arn" {

@@ -17,8 +17,7 @@ Own the edge ingress resources for CHESSCHAT HTTPS entry.
 - `vpc_id` (string)
 - `public_subnet_ids` (list(string))
 - `target_port` (number)
-- `root_domain_name` (string)
-- `app_subdomain` (string)
+- `certificate_domains` (list(string))
 - `route53_zone_id` (string)
 
 ## Notes

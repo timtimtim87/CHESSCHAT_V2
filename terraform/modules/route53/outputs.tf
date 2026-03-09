@@ -9,13 +9,13 @@ output "effective_zone_id" {
 }
 
 output "app_fqdn" {
-  value       = local.app_fqdn
-  description = "Fully qualified app DNS name."
+  value       = try(var.alias_records[0], null)
+  description = "Primary DNS name aliasing to the app ALB."
 }
 
 output "app_alias_fqdn" {
-  value       = try(aws_route53_record.app_alias[0].fqdn, null)
-  description = "FQDN of the Route53 app alias record."
+  value       = [for record in aws_route53_record.app_alias : record.fqdn]
+  description = "FQDNs of Route53 app alias records."
 }
 
 output "name_servers" {

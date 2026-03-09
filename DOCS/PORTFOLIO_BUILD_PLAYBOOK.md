@@ -668,3 +668,34 @@ At the beginning of each session:
 - Architecture/contracts unchanged:
   - no backend API or WebSocket contract modifications,
   - no Terraform/infrastructure changes.
+
+## Apex Domain + Auth/UX Alignment Update (2026-03-09)
+- Domain strategy update:
+  - `chess-chat.com` is now a live app endpoint (not just `app.chess-chat.com`).
+  - `app.chess-chat.com` remains active as a secondary endpoint.
+- Identity callback/logout strategy update:
+  - Cognito callback URL now uses apex: `https://chess-chat.com/auth/callback`.
+  - Cognito logout URLs now allow both:
+    - `https://chess-chat.com/`
+    - `https://app.chess-chat.com/`
+- Edge/DNS implementation update:
+  - ACM certificate replaced to cover both hostnames (`chess-chat.com`, `app.chess-chat.com`).
+  - Route53 alias records now managed as multi-record set in Terraform for both apex and app subdomain.
+  - Route53 alias resources now use `allow_overwrite = true` to avoid migration collisions when switching from `count` to `for_each`.
+- Runtime config alignment:
+  - ECS task environment `APP_DOMAIN` updated to `https://chess-chat.com`.
+  - `/api/public-config` now emits apex-based redirect/logout values.
+- Frontend UX alignment:
+  - Landing page simplified to logo/wordmark + explicit `Sign Up`/`Sign In`.
+  - Added dedicated signup initiation path in auth context (`screen_hint=signup`).
+  - Room UI simplified and resized:
+    - move history removed from main screen,
+    - temporary diagnostics line removed,
+    - desktop board reduced and video presence increased,
+    - compact mobile layout keeps board + both player tiles visible,
+    - tiny-screen fallback message added.
+- Validation:
+  - `npm --prefix app/frontend run test` (pass)
+  - `npm --prefix app/frontend run build` (pass)
+  - `terraform -chdir=terraform apply -auto-approve -var-file=environments/dev/terraform.tfvars` (successful after Route53 overwrite guard update)
+  - `terraform -chdir=terraform plan -var-file=environments/dev/terraform.tfvars` => `No changes`

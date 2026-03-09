@@ -83,7 +83,7 @@ export function AuthProvider({ children }) {
     };
   }, [idToken]);
 
-  async function login() {
+  async function startAuth({ screenHint } = {}) {
     if (!cognito.clientId || !cognito.hostedUiBaseUrl) {
       throw new Error("Cognito config not loaded.");
     }
@@ -103,8 +103,19 @@ export function AuthProvider({ children }) {
       code_challenge: challenge,
       code_challenge_method: "S256"
     });
+    if (screenHint) {
+      params.set("screen_hint", screenHint);
+    }
 
-    window.location.href = `${cognito.hostedUiBaseUrl}/oauth2/authorize?${params}`;
+    globalThis.location.assign(`${cognito.hostedUiBaseUrl}/oauth2/authorize?${params}`);
+  }
+
+  async function login() {
+    return startAuth();
+  }
+
+  async function signup() {
+    return startAuth({ screenHint: "signup" });
   }
 
   async function resolveCognitoConfig() {
@@ -169,12 +180,19 @@ export function AuthProvider({ children }) {
     setIdToken("");
     sessionStorage.removeItem(ACCESS_TOKEN_KEY);
     sessionStorage.removeItem(ID_TOKEN_KEY);
+    sessionStorage.removeItem(PKCE_VERIFIER_KEY);
+    sessionStorage.removeItem(OAUTH_STATE_KEY);
+
+    if (!cognito.clientId || !cognito.hostedUiBaseUrl || !cognito.logoutUri) {
+      globalThis.location.assign("/");
+      return;
+    }
 
     const params = new URLSearchParams({
       client_id: cognito.clientId,
       logout_uri: cognito.logoutUri
     });
-    window.location.href = `${cognito.hostedUiBaseUrl}/logout?${params}`;
+    globalThis.location.assign(`${cognito.hostedUiBaseUrl}/logout?${params}`);
   }
 
   const value = {
@@ -184,6 +202,7 @@ export function AuthProvider({ children }) {
     isConfigReady: Boolean(publicConfig),
     isAuthenticated: Boolean(accessToken),
     login,
+    signup,
     logout,
     handleCallback
   };

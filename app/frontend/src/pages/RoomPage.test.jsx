@@ -116,6 +116,7 @@ describe("RoomPage", () => {
     expect(await screen.findByRole("button", { name: "Return to Lobby" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Start Game" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Request Rematch" })).toBeInTheDocument();
+    expect(screen.queryByText("Move History")).not.toBeInTheDocument();
   });
 
   it("renders game result modal", async () => {

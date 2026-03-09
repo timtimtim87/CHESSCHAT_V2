@@ -10,12 +10,17 @@ locals {
     Environment = var.environment
   }, var.tags)
 
-  app_domain_name = var.root_domain_name == null ? null : "${var.app_subdomain}.${var.root_domain_name}"
-  cognito_callback_urls_effective = var.use_app_domain_for_cognito_urls && local.app_domain_name != null ? [
-    "https://${local.app_domain_name}/auth/callback"
+  primary_app_domain_name   = var.root_domain_name
+  secondary_app_domain_name = var.root_domain_name == null ? null : "${var.app_subdomain}.${var.root_domain_name}"
+  app_endpoint_domains = distinct(compact([
+    local.primary_app_domain_name,
+    local.secondary_app_domain_name
+  ]))
+  cognito_callback_urls_effective = var.use_app_domain_for_cognito_urls && local.primary_app_domain_name != null ? [
+    "https://${local.primary_app_domain_name}/auth/callback"
   ] : var.cognito_callback_urls
-  cognito_logout_urls_effective = var.use_app_domain_for_cognito_urls && local.app_domain_name != null ? [
-    "https://${local.app_domain_name}/logout"
+  cognito_logout_urls_effective = var.use_app_domain_for_cognito_urls && local.primary_app_domain_name != null ? [
+    for domain in local.app_endpoint_domains : "https://${domain}/"
   ] : var.cognito_logout_urls
   ecs_container_secrets_effective = concat(
     var.ecs_container_secrets,
@@ -48,18 +53,17 @@ module "ecs_identity" {
 }
 
 module "alb" {
-  source            = "./modules/alb"
-  project           = var.project
-  environment       = var.environment
-  enabled           = var.enable_edge
-  vpc_id            = module.vpc.vpc_id
-  public_subnet_ids = module.vpc.public_subnet_ids
-  target_port       = var.ecs_container_port
-  app_subdomain     = var.app_subdomain
-  root_domain_name  = var.root_domain_name
-  route53_zone_id   = var.route53_zone_id
-  health_check_path = var.alb_health_check_path
-  tags              = local.common_tags
+  source              = "./modules/alb"
+  project             = var.project
+  environment         = var.environment
+  enabled             = var.enable_edge
+  vpc_id              = module.vpc.vpc_id
+  public_subnet_ids   = module.vpc.public_subnet_ids
+  target_port         = var.ecs_container_port
+  certificate_domains = local.app_endpoint_domains
+  route53_zone_id     = var.route53_zone_id
+  health_check_path   = var.alb_health_check_path
+  tags                = local.common_tags
 }
 
 module "ecs_compute" {
@@ -146,7 +150,7 @@ module "route53" {
   create_hosted_zone = var.create_route53_zone
   root_domain_name   = var.root_domain_name
   route53_zone_id    = var.route53_zone_id
-  app_subdomain      = var.app_subdomain
+  alias_records      = local.app_endpoint_domains
   alb_dns_name       = module.alb.alb_dns_name
   alb_zone_id        = module.alb.alb_zone_id
   tags               = local.common_tags

@@ -2,7 +2,7 @@ import { useAuth } from "../context/AuthContext";
 import { useState } from "react";
 
 export default function LandingPage() {
-  const { login, isConfigReady } = useAuth();
+  const { login, signup, isConfigReady } = useAuth();
   const [error, setError] = useState("");
 
   async function onLogin() {
@@ -14,14 +14,27 @@ export default function LandingPage() {
     }
   }
 
+  async function onSignup() {
+    setError("");
+    try {
+      await signup();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   return (
     <main className="auth-shell">
       <section className="auth-card">
         <h1>ChessChat</h1>
-        <p>Real-time chess and video in private 5-character rooms.</p>
-        <button className="button-primary" onClick={onLogin} disabled={!isConfigReady}>
-          Log In / Sign Up
-        </button>
+        <div className="auth-actions">
+          <button className="button-primary" onClick={onSignup} disabled={!isConfigReady}>
+            Sign Up
+          </button>
+          <button className="button-secondary" onClick={onLogin} disabled={!isConfigReady}>
+            Sign In
+          </button>
+        </div>
         {!isConfigReady ? <p>Loading login configuration...</p> : null}
         {error ? <p className="error">{error}</p> : null}
       </section>
