@@ -4,6 +4,21 @@ moved {
   to   = module.ecs_identity
 }
 
+# ---------------------------------------------------------------------------
+# Google OAuth credentials — pulled from Secrets Manager so they never appear
+# in tfvars or state in plaintext beyond what Terraform already marks sensitive.
+# Secret path: chesschat/dev/google/oauth  (keys: client_id, client_secret)
+# ---------------------------------------------------------------------------
+data "aws_secretsmanager_secret" "google_oauth" {
+  count = var.cognito_enable_google_identity_provider ? 1 : 0
+  name  = "${var.project}/${var.environment}/google/oauth"
+}
+
+data "aws_secretsmanager_secret_version" "google_oauth" {
+  count     = var.cognito_enable_google_identity_provider ? 1 : 0
+  secret_id = data.aws_secretsmanager_secret.google_oauth[0].id
+}
+
 locals {
   common_tags = merge({
     Project     = var.project
@@ -24,6 +39,24 @@ locals {
       name      = "REDIS_AUTH_TOKEN"
       valueFrom = "${module.elasticache.redis_auth_secret_arn}:auth_token::"
     }]
+  )
+
+  # Google OAuth values resolved from Secrets Manager when IdP is enabled;
+  # fall back to null (module ignores them when enable flag is false).
+  google_oauth_secret_string = (
+    var.cognito_enable_google_identity_provider
+    ? data.aws_secretsmanager_secret_version.google_oauth[0].secret_string
+    : null
+  )
+  google_client_id_effective = (
+    local.google_oauth_secret_string != null
+    ? jsondecode(local.google_oauth_secret_string)["client_id"]
+    : var.cognito_google_client_id
+  )
+  google_client_secret_effective = (
+    local.google_oauth_secret_string != null
+    ? jsondecode(local.google_oauth_secret_string)["client_secret"]
+    : var.cognito_google_client_secret
   )
 }
 
@@ -148,8 +181,8 @@ module "cognito" {
   callback_urls                   = local.cognito_callback_urls_effective
   logout_urls                     = local.cognito_logout_urls_effective
   enable_google_identity_provider = var.cognito_enable_google_identity_provider
-  google_client_id                = var.cognito_google_client_id
-  google_client_secret            = var.cognito_google_client_secret
+  google_client_id                = local.google_client_id_effective
+  google_client_secret            = local.google_client_secret_effective
   apple_service_id                = var.cognito_apple_service_id
   apple_team_id                   = var.cognito_apple_team_id
   apple_key_id                    = var.cognito_apple_key_id
