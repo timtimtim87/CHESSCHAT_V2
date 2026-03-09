@@ -91,4 +91,4 @@ Anything non-obvious that bit this agent or could bite the next one.
 
 ## Latest Handover
 
-→ `DOCS/handovers/2026-03-10-002-codex-to-claude.md`
+→ `DOCS/handovers/2026-03-10-003-codex-to-claude.md`
