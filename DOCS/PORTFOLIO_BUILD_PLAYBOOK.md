@@ -470,6 +470,8 @@ Goal: implement CI/CD in small, understandable steps.
 - Teach while implementing (learning-first collaboration).
 - Prefer step-by-step guidance with concrete commands and rationale.
 - Make architecture decisions explicit so Tim can explain them in interviews.
+- Codex and Claude Code may alternate sessions, but only one agent should actively work at a time.
+- End every substantial session with a merge-ready handoff (docs + commit + PR) so the next agent can continue immediately.
 
 ## 8.1) UI/UX Baseline (2026-03-05)
 - Product UX direction for MVP:
@@ -500,6 +502,13 @@ At the beginning of each session:
 3. Read current Terraform baseline: `terraform/backend.tf`, `terraform/main.tf`, `terraform/README.md`
 4. Propose next smallest high-impact step and explain why.
 5. Include learning notes for Tim while making changes.
+
+## 9.1) Session End Handover Checklist (Codex or Claude Code)
+Before ending a substantial session:
+1. Update handover context (`DOCS/NEXT_AGENT_HANDOVER_YYYY-MM-DD.md` and/or active stage handover guide).
+2. Update source-of-truth docs impacted by the change (`DOCS/PORTFOLIO_BUILD_PLAYBOOK.md`, `DOCS/UI_DESIGN_GUIDE.md`, `infra/RESOURCE_REGISTRY.md`, `portfolio diary/YYYY-MM-DD.md`).
+3. Commit all related changes on a `codex/*` branch.
+4. Push branch to `origin` and open a PR to `main`.
 
 ## 10) Milestones 5-8 Implementation Update (2026-03-02)
 - Milestone 5 (API/WS interface freeze):

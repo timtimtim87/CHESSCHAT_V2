@@ -12,8 +12,11 @@ Purpose: single source of truth for human-readable names, IDs, and ARNs as infra
 - AWS CLI named profile retained: `CHESSCHAT_IAM_USER` (mirrors `default`)
 
 ## Status
-- Last updated: 2026-03-09
+- Last updated: 2026-03-10
 - Provisioning state: bootstrap backend configured; Phase A network, Phase B data, Phase 4 identity/IAM, Phase 5 compute, Phase 6/7 edge + DNS, Phase E observability/operations, Phase F app MVP deployment validation, and Phase 10 GitHub OIDC deploy IAM baseline applied in `us-east-1`. Phase 10 validation closure completed with first green `e2e-post-deploy` and `deploy-main` runs on 2026-03-02.
+- Agent continuity governance update (2026-03-10, no AWS resource changes):
+  - Codified cross-agent handoff standard so Codex and Claude Code sessions remain merge-ready and interchangeable.
+  - Session closure now explicitly requires handover doc updates, portfolio diary updates, and PR creation for substantial work.
 - Terraform code status:
   - `ecs` module now serves as ECS identity-only IAM foundation.
   - New `ecs_compute` module implemented (ECR, ECS cluster/task/service, ECS service SG).
