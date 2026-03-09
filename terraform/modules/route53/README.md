@@ -12,7 +12,7 @@ Own public DNS resources for CHESSCHAT application endpoints.
 - `create_hosted_zone` (bool)
 - `root_domain_name` (string)
 - `route53_zone_id` (string)
-- `app_subdomain` (string)
+- `alias_records` (list(string))
 - `alb_dns_name` (string)
 - `alb_zone_id` (string)
 

@@ -38,10 +38,10 @@ variable "route53_zone_id" {
   default     = null
 }
 
-variable "app_subdomain" {
-  description = "Subdomain label for app endpoint."
-  type        = string
-  default     = "app"
+variable "alias_records" {
+  description = "Fully-qualified DNS records to alias to the ALB (for example apex and app subdomain)."
+  type        = list(string)
+  default     = []
 }
 
 variable "alb_dns_name" {

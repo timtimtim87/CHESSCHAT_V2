@@ -99,7 +99,7 @@ variable "cognito_callback_urls" {
   description = "OAuth callback URLs for Cognito app client."
   type        = list(string)
   default = [
-    "https://app.chesschat.example.com/auth/callback"
+    "https://chesschat.example.com/auth/callback"
   ]
 }
 
@@ -107,7 +107,7 @@ variable "cognito_logout_urls" {
   description = "OAuth logout URLs for Cognito app client."
   type        = list(string)
   default = [
-    "https://app.chesschat.example.com/logout"
+    "https://chesschat.example.com/"
   ]
 }
 

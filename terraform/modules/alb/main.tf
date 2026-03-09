@@ -4,8 +4,7 @@ locals {
   alb_name          = "${local.name_prefix}-alb"
   alb_sg_name       = "${local.name_prefix}-alb-sg"
   target_group_name = substr("${local.name_prefix}-app-tg", 0, 32)
-  app_domain_name   = var.root_domain_name == null ? null : "${var.app_subdomain}.${var.root_domain_name}"
-  certificate_ready = var.enabled && var.route53_zone_id != null && local.app_domain_name != null
+  certificate_ready = var.enabled && var.route53_zone_id != null && length(var.certificate_domains) > 0
   certificate_validation = local.certificate_ready ? {
     for dvo in aws_acm_certificate.app[0].domain_validation_options : dvo.domain_name => {
       name  = dvo.resource_record_name
@@ -115,10 +114,11 @@ resource "aws_lb_listener" "http" {
 }
 
 resource "aws_acm_certificate" "app" {
-  count = var.enabled && local.app_domain_name != null ? 1 : 0
+  count = var.enabled && length(var.certificate_domains) > 0 ? 1 : 0
 
-  domain_name       = local.app_domain_name
-  validation_method = "DNS"
+  domain_name               = var.certificate_domains[0]
+  subject_alternative_names = slice(var.certificate_domains, 1, length(var.certificate_domains))
+  validation_method         = "DNS"
 
   lifecycle {
     create_before_destroy = true

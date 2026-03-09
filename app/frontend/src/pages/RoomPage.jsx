@@ -88,6 +88,10 @@ export default function RoomPage() {
   const audioContextRef = useRef(null);
   const [clockNowMs, setClockNowMs] = useState(Date.now());
   const [confirmResignOpen, setConfirmResignOpen] = useState(false);
+  const [viewport, setViewport] = useState(() => ({
+    width: window.innerWidth,
+    height: window.innerHeight
+  }));
 
   useEffect(() => {
     if (/^[A-Z0-9]{5}$/.test(roomCode)) {
@@ -134,6 +138,17 @@ export default function RoomPage() {
       setClockNowMs(Date.now());
     }, 250);
     return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    function onResize() {
+      setViewport({
+        width: window.innerWidth,
+        height: window.innerHeight
+      });
+    }
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
   useEffect(() => {
@@ -638,8 +653,6 @@ export default function RoomPage() {
     };
   }, [game, clockNowMs, state.room_state.reconnect.status]);
 
-  const moveHistory = game?.moveSans || [];
-
   const participantsById = new Map(state.room_state.participants.map((participant) => [participant.userId, participant]));
   const fallbackIds = state.room_state.participants.map((participant) => participant.userId);
   const whitePlayerId = game?.whitePlayerId || fallbackIds[0] || user?.sub || null;
@@ -657,7 +670,6 @@ export default function RoomPage() {
     : connectedPlayers < 2
       ? "Waiting for opponent"
       : "Ready to start";
-  const gameplayDebugLabel = `Room connected: ${connectedPlayers}/2 | Game active: ${game ? "yes" : "no"} | My color: ${myColor} | My turn: ${isMyTurn ? "yes" : "no"}`;
   const whiteDisplayName = displayNameFromParticipant(participantsById.get(whitePlayerId), whitePlayerId, user?.sub);
   const blackDisplayName = displayNameFromParticipant(participantsById.get(blackPlayerId), blackPlayerId, user?.sub);
   const winnerLabel =
@@ -668,6 +680,23 @@ export default function RoomPage() {
           state.game_state.lastResult.winner,
           user?.sub
         );
+
+  const unsupportedMobile = viewport.width < 360 || viewport.height < 640;
+  if (unsupportedMobile) {
+    return (
+      <main className="room-shell app-shell">
+        <div className="room-command-bar">
+          <button className="button-ghost" onClick={() => navigate("/lobby")}>
+            Return to Lobby
+          </button>
+        </div>
+        <section className="mobile-fallback-card surface-glass">
+          <h1>Desktop recommended</h1>
+          <p>ChessChat currently works best on desktop. Mobile app coming soon.</p>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="room-shell app-shell">
@@ -684,7 +713,6 @@ export default function RoomPage() {
         </div>
         <div className="room-status-meta">
           <p className="socket-status">{socketSubtitle}</p>
-          <p className="socket-status">{gameplayDebugLabel}</p>
           {reconnectLabel ? <p className="socket-status">{reconnectLabel}</p> : null}
         </div>
       </section>
@@ -774,20 +802,8 @@ export default function RoomPage() {
                   Decline Rematch
                 </button>
               </>
-            ) : null}
+              ) : null}
           </div>
-
-          <section className="history-panel">
-            <h3>Move History</h3>
-            {moveHistory.length === 0 ? <p>No moves yet.</p> : null}
-            {moveHistory.length > 0 ? (
-              <ol className="move-list">
-                {moveHistory.map((moveSan, index) => (
-                  <li key={`${moveSan}-${index}`}>{moveSan}</li>
-                ))}
-              </ol>
-            ) : null}
-          </section>
         </section>
 
         <aside className="room-side room-side-right">
