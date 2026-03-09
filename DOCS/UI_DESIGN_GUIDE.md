@@ -333,3 +333,21 @@ Last updated: 2026-03-09
 
 ### Stage dependencies
 - Stage order is strict: `1 -> 2 -> 3 -> 4`; Stage 5 can run in parallel with Stage 4 after Stage 3 merge.
+
+## 19) Stage 5 Username Policy Closure (2026-03-10)
+
+### What changed
+- Closed Stage 5 policy alignment for username onboarding:
+  - Canonical username regex is `^[a-z0-9._-]{3,24}$`.
+  - Existing auth/lobby copy remains aligned to this policy and keeps username setup as a post-auth lobby action.
+
+### Why
+- Stage 5 required a final consistency pass to ensure user-facing onboarding language matches backend/frontend validation behavior.
+- Keeping one explicit regex policy avoids drift across static-auth, app lobby, and API validation.
+
+### Validation
+- Source-of-truth policy confirmed in:
+  - backend username validation flow
+  - frontend lobby username form validation
+  - static-auth signup username validation
+- No UI layout/component behavior changes in this stage.
