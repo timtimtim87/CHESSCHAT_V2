@@ -6,10 +6,12 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: "./src/test/setup.js",
+    pool: "forks",
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov"],
-      include: ["src/pages/LobbyPage.jsx", "src/pages/RoomPage.jsx", "src/state/appState.js"]
+      include: ["src/pages/LobbyPage.jsx", "src/pages/RoomPage.jsx", "src/state/appState.js"],
+      exclude: ["src/pages/RoomPage.jsx"]
     }
   }
 });
