@@ -47,3 +47,13 @@ This file defines project-specific operating guidance for AI agents working in t
   - What changed (infra, code, docs)
   - How it was done (commands, Terraform actions, validation checks)
   - Why decisions were made (tradeoffs, risks, interview-ready rationale)
+
+## Git Workflow Rule
+- For any change that requires testing/verification, agents must:
+  - Create a branch (prefix with `codex/`)
+  - Commit all related changes
+  - Push branch to `origin`
+  - Open a PR against `main`
+- Do not leave stale branches:
+  - After a PR is merged, delete the merged branch locally and on remote.
+  - Keep only active branches needed for in-flight work.

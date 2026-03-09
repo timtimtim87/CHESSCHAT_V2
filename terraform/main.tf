@@ -17,7 +17,7 @@ locals {
     local.secondary_app_domain_name
   ]))
   cognito_callback_urls_effective = var.use_app_domain_for_cognito_urls && local.primary_app_domain_name != null ? [
-    "https://${local.primary_app_domain_name}/auth/callback"
+    for domain in local.app_endpoint_domains : "https://${domain}/auth/callback"
   ] : var.cognito_callback_urls
   cognito_logout_urls_effective = var.use_app_domain_for_cognito_urls && local.primary_app_domain_name != null ? [
     for domain in local.app_endpoint_domains : "https://${domain}/"
