@@ -274,7 +274,8 @@ function renderSignup() {
       <label for="password">Password</label>
       <input id="password" type="password" required />
       <label for="username">Username</label>
-      <input id="username" required />
+      <input id="username" required autocomplete="username" />
+      <small>3–24 characters: lowercase letters, numbers, dot, underscore, or hyphen</small>
       <div class="actions">
         <button class="primary" type="submit">Create Account</button>
         <button class="google" type="button" id="google-signup">Continue with Google</button>
@@ -292,6 +293,11 @@ function renderSignup() {
     const email = document.getElementById("email")?.value?.trim();
     const password = document.getElementById("password")?.value;
     const username = document.getElementById("username")?.value?.trim();
+
+    if (!/^[a-z0-9._-]{3,24}$/.test(username)) {
+      setError("Username must be 3–24 characters: lowercase letters, numbers, dot, underscore, or hyphen.");
+      return;
+    }
 
     try {
       await cognitoRequest("SignUp", {
