@@ -17,6 +17,7 @@ This project uses two AI agents. They never work simultaneously. They hand off v
 **Rules for both agents:**
 - One agent works at a time on one branch. The other does not touch code until that PR is merged.
 - Every block of work ends with a PR merged to `main`.
+- At the start of every session, sync with latest `origin/main` and start from a fresh `codex/<topic>` branch. Never continue work from a branch that is behind `main`.
 - Before starting work, **always read the latest handover document** in `DOCS/handovers/`. Read the most recently dated file. This tells you what the previous agent did and what comes next.
 - After completing a PR block, **always write a new handover document** before stopping. See `DOCS/AGENT_HANDOVER_PROTOCOL.md` for the exact format.
 
@@ -77,6 +78,18 @@ This project uses two AI agents. They never work simultaneously. They hand off v
 
 Branch prefix: **`codex/`** — used by **both agents**. This is intentional. The prefix denotes
 a structured unit of work, not the OpenAI Codex product specifically.
+
+### Session Start Sync Rule (Mandatory)
+
+Before any code changes in every session (Codex and Claude Code):
+1. `git fetch origin`
+2. `git checkout main`
+3. `git pull --ff-only origin main`
+4. `git branch --no-merged main` (optional cleanup visibility)
+5. `git checkout -b codex/<topic>`
+
+If the current working branch is behind `main`, the agent must not continue on it.
+Create a new branch from updated `main` and continue there.
 
 For any change that requires testing/verification:
 1. `git checkout -b codex/<stage-or-topic>` — branch off latest `main`
@@ -165,6 +178,7 @@ Then:
 
 ## Consistency Checklist (run before opening any PR)
 
+- [ ] Session started by syncing `main` (`fetch` + `pull --ff-only`) and creating a fresh `codex/<topic>` branch
 - [ ] Branch name follows `codex/<topic>` pattern
 - [ ] Only stage-scoped changes included — no cross-stage drift
 - [ ] All touched test surfaces pass (`npm run test`, `npm run build`, `terraform validate`)
