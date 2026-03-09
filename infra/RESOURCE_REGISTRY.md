@@ -25,6 +25,22 @@ Purpose: single source of truth for human-readable names, IDs, and ARNs as infra
     - `0003` JS cookie v1 risk acceptance,
     - `0004` phone-call room lifecycle,
     - `0005` Apple Sign In deferred rationale.
+- Deploy workflow IAM hotfix (2026-03-10):
+  - Incident:
+    - `Deploy Main to ECS` failed on merge runs at `Publish static auth site`.
+    - Example failing run: `22880168029` (initial attempt).
+    - Root cause: GitHub deploy role missing static-edge publish permissions (`s3:ListBucket` on static bucket).
+  - Terraform remediation applied:
+    - Extended `github_actions_oidc` deploy policy with least-privilege static publish permissions:
+      - `s3:ListBucket` on `arn:aws:s3:::chesschat-dev-static-c384ca`
+      - `s3:GetObject|PutObject|DeleteObject` on `arn:aws:s3:::chesschat-dev-static-c384ca/*`
+      - `cloudfront:CreateInvalidation` on `arn:aws:cloudfront::723580627470:distribution/E2W7Q7MB7N2WFT`
+    - Targeted apply completed:
+      - `terraform -chdir=terraform apply -auto-approve -var-file=environments/dev/terraform.tfvars -target=module.github_actions_oidc.aws_iam_role_policy.deploy_permissions`
+      - Result: `0 added, 1 changed, 0 destroyed`
+  - Validation outcome:
+    - Rerun of previously failing deploy succeeded end-to-end:
+      - Run `22880168029` rerun conclusion: `success`
 - Terraform code status:
   - `ecs` module now serves as ECS identity-only IAM foundation.
   - New `ecs_compute` module implemented (ECR, ECS cluster/task/service, ECS service SG).

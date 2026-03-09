@@ -126,6 +126,50 @@ data "aws_iam_policy_document" "deploy_permissions" {
     ]
     resources = [var.cognito_user_pool_arn]
   }
+
+  dynamic "statement" {
+    for_each = var.static_site_bucket_name != null && trimspace(var.static_site_bucket_name) != "" ? [1] : []
+    content {
+      sid    = "StaticSiteBucketList"
+      effect = "Allow"
+      actions = [
+        "s3:ListBucket"
+      ]
+      resources = [
+        "arn:aws:s3:::${var.static_site_bucket_name}"
+      ]
+    }
+  }
+
+  dynamic "statement" {
+    for_each = var.static_site_bucket_name != null && trimspace(var.static_site_bucket_name) != "" ? [1] : []
+    content {
+      sid    = "StaticSiteObjectWrite"
+      effect = "Allow"
+      actions = [
+        "s3:DeleteObject",
+        "s3:GetObject",
+        "s3:PutObject"
+      ]
+      resources = [
+        "arn:aws:s3:::${var.static_site_bucket_name}/*"
+      ]
+    }
+  }
+
+  dynamic "statement" {
+    for_each = var.static_cloudfront_distribution_id != null && trimspace(var.static_cloudfront_distribution_id) != "" ? [1] : []
+    content {
+      sid    = "StaticSiteCloudFrontInvalidation"
+      effect = "Allow"
+      actions = [
+        "cloudfront:CreateInvalidation"
+      ]
+      resources = [
+        "arn:aws:cloudfront::${data.aws_caller_identity.current.account_id}:distribution/${var.static_cloudfront_distribution_id}"
+      ]
+    }
+  }
 }
 
 resource "aws_iam_role_policy" "deploy_permissions" {
