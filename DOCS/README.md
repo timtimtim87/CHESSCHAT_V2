@@ -3,6 +3,10 @@
 Use this page to know which docs are authoritative for active implementation.
 
 ## Authoritative (Use First)
+- `AGENT_HANDOVER_PROTOCOL.md`
+  - **Start here if you are an AI agent.** Defines the two-agent handover model (Claude Code + Codex) and links to the latest handover document in `handovers/`.
+- `handovers/`
+  - Per-PR handover documents. Always read the most recently dated file before starting any work.
 - `PORTFOLIO_BUILD_PLAYBOOK.md`
   - Current architecture goals, tradeoffs, roadmap, and collaboration style.
 - `UI_DESIGN_GUIDE.md`
