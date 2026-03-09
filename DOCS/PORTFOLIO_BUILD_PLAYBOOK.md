@@ -753,3 +753,18 @@ Before ending a substantial session:
 - Critical implementation guardrail for Slice 4:
   - Tombstone persistence must be atomic with Redis room-state deletion in teardown step 2.
   - Do not place tombstone write after Chime delete retry path.
+
+## 5.14) Split-Host Stage 5 Closure (2026-03-10)
+- Stage 5 scope completed as policy/docs closure (no new AWS resources):
+  - Confirmed username policy is enforced end-to-end with regex `^[a-z0-9._-]{3,24}$`:
+    - backend validation (`setUsername` path),
+    - gameplay frontend lobby username form,
+    - static-auth signup form.
+  - Confirmed stage-required ADR set exists and remains current:
+    - `0002` split-host architecture,
+    - `0003` JS cookie v1 risk acceptance,
+    - `0004` phone-call room lifecycle,
+    - `0005` Apple Sign In defer rationale.
+- Outcome:
+  - Split-host staged program (`1 -> 2 -> 3 -> 4 + 5`) is complete from a repository decision/governance perspective.
+  - No Terraform apply or runtime behavior changes were required in this stage.

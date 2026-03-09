@@ -17,6 +17,14 @@ Purpose: single source of truth for human-readable names, IDs, and ARNs as infra
 - Agent continuity governance update (2026-03-10, no AWS resource changes):
   - Codified cross-agent handoff standard so Codex and Claude Code sessions remain merge-ready and interchangeable.
   - Session closure now explicitly requires handover doc updates, portfolio diary updates, and PR creation for substantial work.
+- Stage 5 username/docs closure update (2026-03-10, no AWS resource changes):
+  - Verified username policy consistency across backend/frontend/static-auth:
+    - Regex `^[a-z0-9._-]{3,24}$` remains enforced in all required surfaces.
+  - Verified required ADR set exists and is current:
+    - `0002` split-host architecture,
+    - `0003` JS cookie v1 risk acceptance,
+    - `0004` phone-call room lifecycle,
+    - `0005` Apple Sign In deferred rationale.
 - Terraform code status:
   - `ecs` module now serves as ECS identity-only IAM foundation.
   - New `ecs_compute` module implemented (ECR, ECS cluster/task/service, ECS service SG).
