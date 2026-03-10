@@ -61,6 +61,18 @@ variable "cognito_user_pool_arn" {
   type        = string
 }
 
+variable "static_site_bucket_name" {
+  description = "Optional static site S3 bucket name for deploy workflow publish permissions."
+  type        = string
+  default     = null
+}
+
+variable "static_cloudfront_distribution_id" {
+  description = "Optional CloudFront distribution ID for static site invalidation permissions."
+  type        = string
+  default     = null
+}
+
 variable "tags" {
   description = "Common tags."
   type        = map(string)
