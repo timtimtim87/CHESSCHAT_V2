@@ -1,3 +1,5 @@
+import { useState, useEffect } from "react";
+
 function initialsFromName(name) {
   if (!name) {
     return "?";
@@ -13,13 +15,31 @@ function initialsFromName(name) {
 }
 
 function PlayerVideoCard({ name, role, clock, connected, isLocal, videoRef }) {
+  const [videoActive, setVideoActive] = useState(false);
+
+  useEffect(() => {
+    const video = videoRef?.current;
+    if (!video) return;
+    function onLoaded() { setVideoActive(true); }
+    function onEmptied() { setVideoActive(false); }
+    video.addEventListener("loadedmetadata", onLoaded);
+    video.addEventListener("emptied", onEmptied);
+    setVideoActive(Boolean(video.srcObject && video.readyState > 0));
+    return () => {
+      video.removeEventListener("loadedmetadata", onLoaded);
+      video.removeEventListener("emptied", onEmptied);
+    };
+  }, [videoRef]);
+
   return (
     <div className="player-video-card">
       <div className="player-video-frame">
         <video ref={videoRef} autoPlay={Boolean(videoRef)} muted={isLocal} playsInline />
-        <div className="player-video-avatar" aria-hidden={Boolean(videoRef)}>
-          {initialsFromName(name)}
-        </div>
+        {!videoActive && (
+          <div className="player-video-avatar" aria-hidden="true">
+            {initialsFromName(name)}
+          </div>
+        )}
       </div>
       <div className="player-video-meta">
         <p className="player-video-name">{name}</p>
