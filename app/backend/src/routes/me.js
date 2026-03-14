@@ -21,7 +21,20 @@ router.get("/me", async (req, res) => {
       displayName: undefined
     });
 
-    const user = await getUser(userId);
+    let user = await getUser(userId);
+
+    // For email/password signups, Cognito sets preferred_username from the signup form.
+    // Auto-claim it on first login so the user doesn't have to pick again.
+    const preferredUsername = req.auth["preferred_username"];
+    if (!user?.username && preferredUsername) {
+      try {
+        await setUsername(userId, preferredUsername, null);
+        user = await getUser(userId);
+      } catch {
+        // conflict or validation error — user will be prompted to pick manually
+      }
+    }
+
     const effectiveUser = user || {
       user_id: userId,
       username: null,
@@ -77,12 +90,19 @@ router.delete("/me", async (req, res) => {
 
     await deleteUser(userId);
 
-    await cognito.send(
-      new AdminDeleteUserCommand({
-        UserPoolId: config.cognito.userPoolId,
-        Username: cognitoUsername
-      })
-    );
+    try {
+      await cognito.send(
+        new AdminDeleteUserCommand({
+          UserPoolId: config.cognito.userPoolId,
+          Username: cognitoUsername
+        })
+      );
+    } catch (cognitoErr) {
+      // DynamoDB records are gone so the username is freed and re-registration works.
+      // Log the failure but don't surface it — a Cognito ghost account without DynamoDB
+      // backing cannot log in and is harmless until IAM or a manual cleanup resolves it.
+      console.error("Cognito AdminDeleteUser failed:", cognitoErr.message);
+    }
 
     res.status(204).end();
   } catch {
