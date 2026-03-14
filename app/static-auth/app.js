@@ -162,18 +162,6 @@ async function exchangeCodeForTokens(code) {
   return response.json();
 }
 
-function nav() {
-  return `
-    <div class="nav">
-      <a class="link-btn" href="/">Home</a>
-      <a class="link-btn" href="/login">Login</a>
-      <a class="link-btn" href="/signup">Sign Up</a>
-      <a class="link-btn" href="/verify-email">Verify Email</a>
-      <a class="link-btn" href="/forgot-password">Forgot Password</a>
-      <a class="link-btn" href="/reset-password">Reset Password</a>
-    </div>
-  `;
-}
 
 function statusHtml() {
   const parts = [];
@@ -189,18 +177,17 @@ function commonFooter() {
 function renderLanding() {
   appEl.innerHTML = `
     <h1>ChessChat</h1>
-    <p>Enter your room code, then sign in to continue.</p>
     ${statusHtml()}
     <form id="join-form">
       <label for="room-code">Room code</label>
-      <input id="room-code" maxlength="5" placeholder="ABCDE" />
+      <input id="room-code" maxlength="5" placeholder="ABCDE" autocomplete="off" />
       <div class="actions">
         <button class="primary" type="submit">Join Room</button>
-        <a class="link-btn" href="/login">Login</a>
-        <a class="link-btn" href="/signup">Sign Up</a>
       </div>
     </form>
-    ${nav()}
+    <p class="text-link">
+      Already have an account? <a href="/login">Log in</a> &middot; New here? <a href="/signup">Sign up</a>
+    </p>
     ${commonFooter()}
   `;
 
@@ -220,19 +207,23 @@ function renderLanding() {
 
 function renderLogin() {
   appEl.innerHTML = `
-    <h2>Login</h2>
+    <h2>Log In</h2>
     ${statusHtml()}
+    <div class="actions">
+      <button class="google" type="button" id="google-login">Continue with Google</button>
+    </div>
+    <div class="divider">or</div>
     <form id="login-form">
       <label for="email">Email</label>
       <input id="email" type="email" required />
       <label for="password">Password</label>
       <input id="password" type="password" required />
+      <div class="forgot-row"><a href="/forgot-password">Forgot password?</a></div>
       <div class="actions">
         <button class="primary" type="submit">Log In</button>
-        <button class="google" type="button" id="google-login">Continue with Google</button>
       </div>
     </form>
-    ${nav()}
+    <p class="text-link">Don't have an account? <a href="/signup">Sign up</a></p>
     ${commonFooter()}
   `;
 
@@ -277,6 +268,10 @@ function renderSignup() {
   appEl.innerHTML = `
     <h2>Sign Up</h2>
     ${statusHtml()}
+    <div class="actions">
+      <button class="google" type="button" id="google-signup">Continue with Google</button>
+    </div>
+    <div class="divider">or</div>
     <form id="signup-form">
       <label for="email">Email</label>
       <input id="email" type="email" required />
@@ -287,10 +282,9 @@ function renderSignup() {
       <small>3–24 characters: lowercase letters, numbers, dot, underscore, or hyphen</small>
       <div class="actions">
         <button class="primary" type="submit">Create Account</button>
-        <button class="google" type="button" id="google-signup">Continue with Google</button>
       </div>
     </form>
-    ${nav()}
+    <p class="text-link">Already have an account? <a href="/login">Log in</a></p>
     ${commonFooter()}
   `;
 
@@ -342,7 +336,7 @@ function renderVerifyEmail() {
         <button class="primary" type="submit">Verify</button>
       </div>
     </form>
-    ${nav()}
+    <p class="text-link"><a href="/login">Back to log in</a></p>
     ${commonFooter()}
   `;
 
@@ -378,7 +372,7 @@ function renderForgotPassword() {
         <button class="primary" type="submit">Send Reset Code</button>
       </div>
     </form>
-    ${nav()}
+    <p class="text-link"><a href="/login">Back to log in</a></p>
     ${commonFooter()}
   `;
 
@@ -416,7 +410,7 @@ function renderResetPassword() {
         <button class="primary" type="submit">Reset Password</button>
       </div>
     </form>
-    ${nav()}
+    <p class="text-link"><a href="/login">Back to log in</a></p>
     ${commonFooter()}
   `;
 
@@ -472,8 +466,7 @@ async function renderAuthCallback() {
 function renderNotFound() {
   appEl.innerHTML = `
     <h2>Page Not Found</h2>
-    <p>Use the links below.</p>
-    ${nav()}
+    <p class="text-link"><a href="/">Go home</a></p>
     ${commonFooter()}
   `;
 }
