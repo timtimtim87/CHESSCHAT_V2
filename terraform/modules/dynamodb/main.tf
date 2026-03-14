@@ -1,7 +1,8 @@
 locals {
-  module_name      = "dynamodb"
-  users_table_name = coalesce(var.users_table_name, "${var.project}-${var.environment}-users")
-  games_table_name = coalesce(var.games_table_name, "${var.project}-${var.environment}-games")
+  module_name           = "dynamodb"
+  users_table_name      = coalesce(var.users_table_name, "${var.project}-${var.environment}-users")
+  games_table_name      = coalesce(var.games_table_name, "${var.project}-${var.environment}-games")
+  pair_rooms_table_name = coalesce(var.pair_rooms_table_name, "${var.project}-${var.environment}-pair-rooms")
 }
 
 resource "aws_dynamodb_table" "users" {
@@ -90,5 +91,29 @@ resource "aws_dynamodb_table" "games" {
 
   tags = merge(var.tags, {
     Name = local.games_table_name
+  })
+}
+
+resource "aws_dynamodb_table" "pair_rooms" {
+  name                        = local.pair_rooms_table_name
+  billing_mode                = var.billing_mode
+  hash_key                    = "pair_id"
+  deletion_protection_enabled = var.deletion_protection_enabled
+
+  attribute {
+    name = "pair_id"
+    type = "S"
+  }
+
+  point_in_time_recovery {
+    enabled = var.enable_pitr
+  }
+
+  server_side_encryption {
+    enabled = true
+  }
+
+  tags = merge(var.tags, {
+    Name = local.pair_rooms_table_name
   })
 }

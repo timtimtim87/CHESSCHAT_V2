@@ -5,7 +5,6 @@ const ROOM_EXPIRY_ZSET = "room_expiries";
 const ROOM_RECONNECT_DEADLINES_ZSET = "room_reconnect_deadlines";
 const GAME_FINALIZATION_QUEUE = "game_finalization_queue";
 const GAME_FINALIZATION_DEADLETTER = "game_finalization_deadletter";
-const ROOM_CONSUMED_PREFIX = "room_consumed:";
 
 export const redisClient = new Redis({
   host: config.redis.host,
@@ -25,9 +24,6 @@ function wsKey(connectionId) {
   return `ws:${connectionId}`;
 }
 
-function roomConsumedKey(roomCode) {
-  return `${ROOM_CONSUMED_PREFIX}${roomCode}`;
-}
 
 export async function connectRedis() {
   if (redisClient.status === "ready") {
@@ -91,11 +87,6 @@ export async function createRoomIfAbsent(roomCode, room, ttlSeconds) {
 }
 
 export async function createRoomIfAvailable(roomCode, room, ttlSeconds) {
-  const consumed = await redisClient.exists(roomConsumedKey(roomCode));
-  if (consumed) {
-    return { created: false, reason: "consumed" };
-  }
-
   const created = await createRoomIfAbsent(roomCode, room, ttlSeconds);
   return { created, reason: created ? null : "exists" };
 }
@@ -163,23 +154,6 @@ export async function deleteRoom(roomCode) {
   await redisClient.zrem(ROOM_RECONNECT_DEADLINES_ZSET, roomCode);
 }
 
-export async function markRoomCodeConsumed(roomCode, ttlSeconds = 30 * 24 * 3600) {
-  await redisClient.set(roomConsumedKey(roomCode), "1", "EX", ttlSeconds);
-}
-
-export async function isRoomCodeConsumed(roomCode) {
-  const exists = await redisClient.exists(roomConsumedKey(roomCode));
-  return exists === 1;
-}
-
-export async function teardownRoomAndConsumeCode(roomCode, ttlSeconds = 30 * 24 * 3600) {
-  const multi = redisClient.multi();
-  multi.set(roomConsumedKey(roomCode), "1", "EX", ttlSeconds);
-  multi.del(roomKey(roomCode));
-  multi.zrem(ROOM_EXPIRY_ZSET, roomCode);
-  multi.zrem(ROOM_RECONNECT_DEADLINES_ZSET, roomCode);
-  await multi.exec();
-}
 
 export async function setConnection(connectionId, value, ttlSeconds) {
   const ttl = ttlSeconds ?? config.app.roomTtlSeconds;

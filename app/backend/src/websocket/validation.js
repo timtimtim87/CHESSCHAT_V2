@@ -6,7 +6,7 @@ export function normalizeRoomCode(raw) {
 }
 
 export function isValidRoomCode(code) {
-  return /^[A-Z0-9]{5}$/.test(code);
+  return /^[A-Z0-9]{8}$/.test(code);
 }
 
 const ROOM_BOUND_EVENTS = new Set([

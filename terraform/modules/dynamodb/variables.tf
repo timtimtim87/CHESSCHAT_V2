@@ -20,6 +20,12 @@ variable "games_table_name" {
   default     = null
 }
 
+variable "pair_rooms_table_name" {
+  description = "DynamoDB table name for persistent player-pair room code mappings."
+  type        = string
+  default     = null
+}
+
 variable "billing_mode" {
   description = "Billing mode for DynamoDB tables."
   type        = string

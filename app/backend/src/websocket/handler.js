@@ -11,14 +11,13 @@ import {
   getConnection,
   getExpiringRooms,
   getRoom,
-  isRoomCodeConsumed,
   mutateRoom,
   popGameFinalizationJob,
   pushGameFinalizationDeadLetter,
   removeRoomFromExpiryIndex,
   setReconnectDeadline,
   setConnection,
-  teardownRoomAndConsumeCode
+  deleteRoom
 } from "../services/redis.js";
 import { createAttendee, createMeeting, deleteMeeting } from "../services/chime.js";
 import { applyMove, startNewGame } from "../services/chess.js";
@@ -386,7 +385,7 @@ async function finalizeRoomTeardown(roomCode, reason = "teardown") {
     return;
   }
 
-  await teardownRoomAndConsumeCode(roomCode, config.app.roomConsumedTtlSeconds);
+  await deleteRoom(roomCode);
 
   if (terminal.meetingId) {
     const meetingResult = await deleteMeetingWithRetry(terminal.meetingId);
@@ -409,16 +408,6 @@ async function finalizeRoomTeardown(roomCode, reason = "teardown") {
 
 async function handleJoinRoom(ws, roomCode) {
   const profile = await resolveParticipantProfile(ws);
-  if (await isRoomCodeConsumed(roomCode)) {
-    send(
-      ws,
-      buildWsError("ROOM_CODE_CONSUMED", {
-        message: "Room code has already been used. Create a new room code."
-      })
-    );
-    return;
-  }
-
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const room = await getRoom(roomCode);
 
@@ -446,15 +435,6 @@ async function handleJoinRoom(ws, roomCode) {
 
       const createResult = await createRoomIfAvailable(roomCode, initialRoom);
       if (!createResult.created) {
-        if (createResult.reason === "consumed") {
-          send(
-            ws,
-            buildWsError("ROOM_CODE_CONSUMED", {
-              message: "Room code has already been used. Create a new room code."
-            })
-          );
-          return;
-        }
         continue;
       }
 

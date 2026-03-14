@@ -2,18 +2,18 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-const LAST_ROOM_CODE_KEY = "chesschat_last_room_code";
+const LAST_OPPONENT_KEY = "chesschat_last_opponent";
 
 export default function LobbyPage() {
-  const [roomCode, setRoomCode] = useState("");
-  const [roomCodeError, setRoomCodeError] = useState("");
+  const [opponentUsername, setOpponentUsername] = useState("");
+  const [opponentError, setOpponentError] = useState("");
   const [profile, setProfile] = useState(null);
   const [needsUsername, setNeedsUsername] = useState(false);
   const [usernameDraft, setUsernameDraft] = useState("");
   const [usernameError, setUsernameError] = useState("");
   const [isSavingUsername, setIsSavingUsername] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
-  const [lastRoomCode] = useState(() => sessionStorage.getItem(LAST_ROOM_CODE_KEY) || "");
+  const [lastOpponent] = useState(() => sessionStorage.getItem(LAST_OPPONENT_KEY) || "");
   const { accessToken, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -43,21 +43,35 @@ export default function LobbyPage() {
     return () => controller.abort();
   }, [accessToken]);
 
-  function onSubmit(event) {
+  async function onSubmit(event) {
     event.preventDefault();
     if (needsUsername) {
-      setRoomCodeError("Set your username first.");
+      setOpponentError("Set your username first.");
       return;
     }
-    const normalized = roomCode.toUpperCase().trim();
-    if (!/^[A-Z0-9]{5}$/.test(normalized)) {
-      setRoomCodeError("Room code must be exactly 5 letters or numbers.");
+    const username = opponentUsername.trim().toLowerCase();
+    if (!/^[a-z0-9._-]{3,24}$/.test(username)) {
+      setOpponentError("Enter a valid username (3–24 chars: lowercase, numbers, dot, underscore, hyphen).");
       return;
     }
     setIsJoining(true);
-    setRoomCodeError("");
-    sessionStorage.setItem(LAST_ROOM_CODE_KEY, normalized);
-    navigate(`/room/${normalized}`);
+    setOpponentError("");
+    try {
+      const res = await fetch(`/api/rooms/pair?username=${encodeURIComponent(username)}`, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      const payload = await res.json();
+      if (!res.ok) {
+        setOpponentError(payload?.error?.message || "Could not start game.");
+        return;
+      }
+      sessionStorage.setItem(LAST_OPPONENT_KEY, username);
+      navigate(`/room/${payload.room_code}`);
+    } catch {
+      setOpponentError("Network error. Please try again.");
+    } finally {
+      setIsJoining(false);
+    }
   }
 
   async function submitUsername(event) {
@@ -90,7 +104,7 @@ export default function LobbyPage() {
   }
 
   const profileName = profile?.display_name || profile?.username || "…";
-  const isRoomCodeValid = /^[A-Z0-9]{5}$/.test(roomCode.trim());
+  const isOpponentValid = /^[a-z0-9._-]{3,24}$/.test(opponentUsername.trim().toLowerCase());
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
@@ -125,27 +139,33 @@ export default function LobbyPage() {
           </>
         ) : (
           <>
-            <p className="lobby-hero-label">Enter or share a room code</p>
+            <p className="lobby-hero-label">Challenge a friend</p>
             <form className="lobby-hero-form" onSubmit={onSubmit}>
               <input
-                value={roomCode}
+                value={opponentUsername}
                 onChange={(e) => {
-                  setRoomCode(e.target.value.toUpperCase());
-                  if (roomCodeError) setRoomCodeError("");
+                  setOpponentUsername(e.target.value.toLowerCase());
+                  if (opponentError) setOpponentError("");
                 }}
-                maxLength={5}
-                placeholder="ABCDE"
-                aria-label="Room code"
+                maxLength={24}
+                placeholder="tim_5ew"
+                aria-label="Opponent username"
               />
-              <button className="button-primary" type="submit" disabled={isJoining || !isRoomCodeValid}>
-                {isJoining ? "Joining…" : "Start / Join"}
+              <button className="button-primary" type="submit" disabled={isJoining || !isOpponentValid}>
+                {isJoining ? "Starting…" : "Start Game"}
               </button>
             </form>
-            {roomCodeError ? <p className="inline-error">{roomCodeError}</p> : null}
-            {lastRoomCode ? (
+            {opponentError ? <p className="inline-error">{opponentError}</p> : null}
+            {lastOpponent ? (
               <p className="lobby-resume-hint">
-                Last room: <strong>{lastRoomCode}</strong> —{" "}
-                <button onClick={() => navigate(`/room/${lastRoomCode}`)}>Resume</button>
+                Last game vs <strong>{lastOpponent}</strong> —{" "}
+                <button
+                  onClick={() => {
+                    setOpponentUsername(lastOpponent);
+                  }}
+                >
+                  Rematch
+                </button>
               </p>
             ) : null}
           </>

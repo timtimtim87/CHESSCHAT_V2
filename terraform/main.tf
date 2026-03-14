@@ -76,7 +76,7 @@ module "ecs_identity" {
   source                = "./modules/ecs"
   project               = var.project
   environment           = var.environment
-  dynamodb_table_arns   = [module.dynamodb.users_table_arn, module.dynamodb.games_table_arn]
+  dynamodb_table_arns   = [module.dynamodb.users_table_arn, module.dynamodb.games_table_arn, module.dynamodb.pair_rooms_table_arn]
   ecr_repository_arns   = var.ecr_repository_arns
   cognito_user_pool_arn = module.cognito.user_pool_arn
   tags                  = local.common_tags
@@ -168,12 +168,13 @@ module "elasticache" {
 }
 
 module "dynamodb" {
-  source           = "./modules/dynamodb"
-  project          = var.project
-  environment      = var.environment
-  users_table_name = var.dynamodb_users_table_name
-  games_table_name = var.dynamodb_games_table_name
-  tags             = local.common_tags
+  source                = "./modules/dynamodb"
+  project               = var.project
+  environment           = var.environment
+  users_table_name      = var.dynamodb_users_table_name
+  games_table_name      = var.dynamodb_games_table_name
+  pair_rooms_table_name = var.dynamodb_pair_rooms_table_name
+  tags                  = local.common_tags
 }
 
 module "cognito" {
