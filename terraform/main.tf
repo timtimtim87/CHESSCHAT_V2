@@ -73,12 +73,13 @@ module "vpc" {
 }
 
 module "ecs_identity" {
-  source              = "./modules/ecs"
-  project             = var.project
-  environment         = var.environment
-  dynamodb_table_arns = [module.dynamodb.users_table_arn, module.dynamodb.games_table_arn]
-  ecr_repository_arns = var.ecr_repository_arns
-  tags                = local.common_tags
+  source                = "./modules/ecs"
+  project               = var.project
+  environment           = var.environment
+  dynamodb_table_arns   = [module.dynamodb.users_table_arn, module.dynamodb.games_table_arn]
+  ecr_repository_arns   = var.ecr_repository_arns
+  cognito_user_pool_arn = module.cognito.user_pool_arn
+  tags                  = local.common_tags
 }
 
 module "alb" {

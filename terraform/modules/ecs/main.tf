@@ -167,6 +167,14 @@ resource "aws_iam_role_policy" "task" {
             "cloudwatch:namespace" = "${title(var.project)}/${title(var.environment)}"
           }
         }
+      },
+      {
+        Sid    = "CognitoAdminDeleteUser"
+        Effect = "Allow"
+        Action = [
+          "cognito-idp:AdminDeleteUser"
+        ]
+        Resource = var.cognito_user_pool_arn != null ? [var.cognito_user_pool_arn] : []
       }
     ]
   })

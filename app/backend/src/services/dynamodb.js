@@ -210,6 +210,31 @@ export async function saveGameAndUpdateStats(gameRecord, whitePlayerId, blackPla
   }
 }
 
+export async function deleteUser(userId) {
+  const user = await getUser(userId);
+  const items = [
+    {
+      Delete: {
+        TableName: config.dynamodb.usersTable,
+        Key: { user_id: userId }
+      }
+    }
+  ];
+
+  if (user?.username && !looksLikeOpaqueUsername(user.username)) {
+    items.push({
+      Delete: {
+        TableName: config.dynamodb.usersTable,
+        Key: { user_id: usernameReservationKey(user.username) },
+        ConditionExpression: "owner_user_id = :owner",
+        ExpressionAttributeValues: { ":owner": userId }
+      }
+    });
+  }
+
+  await ddb.send(new TransactWriteCommand({ TransactItems: items }));
+}
+
 export async function getUserGames(userId) {
   const [white, black] = await Promise.all([
     ddb.send(

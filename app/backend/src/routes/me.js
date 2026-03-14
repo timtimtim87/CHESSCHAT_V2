@@ -1,6 +1,10 @@
+import { CognitoIdentityProviderClient, AdminDeleteUserCommand } from "@aws-sdk/client-cognito-identity-provider";
 import { Router } from "express";
-import { ensureUser, getUser, looksLikeOpaqueUsername, setUsername } from "../services/dynamodb.js";
+import { config } from "../config.js";
+import { deleteUser, ensureUser, getUser, looksLikeOpaqueUsername, setUsername } from "../services/dynamodb.js";
 import { sendHttpError } from "../utils/errors.js";
+
+const cognito = new CognitoIdentityProviderClient({ region: config.cognito.region });
 
 const router = Router();
 
@@ -62,6 +66,26 @@ router.post("/profile", async (req, res) => {
       sendHttpError(res, 409, "INVALID_PAYLOAD", { message: error.message });
       return;
     }
+    sendHttpError(res, 500, "INTERNAL_ERROR");
+  }
+});
+
+router.delete("/me", async (req, res) => {
+  try {
+    const userId = req.auth.sub;
+    const cognitoUsername = req.auth.username || req.auth["cognito:username"] || userId;
+
+    await deleteUser(userId);
+
+    await cognito.send(
+      new AdminDeleteUserCommand({
+        UserPoolId: config.cognito.userPoolId,
+        Username: cognitoUsername
+      })
+    );
+
+    res.status(204).end();
+  } catch {
     sendHttpError(res, 500, "INTERNAL_ERROR");
   }
 });

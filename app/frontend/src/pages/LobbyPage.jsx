@@ -31,6 +31,8 @@ export default function LobbyPage() {
   const [usernameDraft, setUsernameDraft] = useState("");
   const [usernameError, setUsernameError] = useState("");
   const [isSavingUsername, setIsSavingUsername] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [deleteAccountError, setDeleteAccountError] = useState("");
   const [historyError, setHistoryError] = useState("");
   const [isJoining, setIsJoining] = useState(false);
   const [lastRoomCode, setLastRoomCode] = useState(() => sessionStorage.getItem(LAST_ROOM_CODE_KEY) || "");
@@ -156,6 +158,28 @@ export default function LobbyPage() {
     }
   }
 
+  async function deleteAccount() {
+    if (!window.confirm("Permanently delete your account? This cannot be undone.")) {
+      return;
+    }
+    setIsDeletingAccount(true);
+    setDeleteAccountError("");
+    try {
+      const response = await fetch("/api/me", {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload?.error?.message || "Unable to delete account.");
+      }
+      logout();
+    } catch (error) {
+      setDeleteAccountError(error.message || "Unable to delete account.");
+      setIsDeletingAccount(false);
+    }
+  }
+
   const isRoomCodeValid = /^[A-Z0-9]{5}$/.test(roomCode.trim());
   const profileName = profile?.display_name || profile?.username || "set-username";
 
@@ -240,6 +264,14 @@ export default function LobbyPage() {
               </button>
               {usernameError ? <p className="inline-error">{usernameError}</p> : null}
             </form>
+          ) : null}
+          {!isLoadingProfile ? (
+            <div className="danger-zone">
+              <button className="button-danger" onClick={deleteAccount} disabled={isDeletingAccount}>
+                {isDeletingAccount ? "Deleting..." : "Delete Account"}
+              </button>
+              {deleteAccountError ? <p className="inline-error">{deleteAccountError}</p> : null}
+            </div>
           ) : null}
         </section>
 
