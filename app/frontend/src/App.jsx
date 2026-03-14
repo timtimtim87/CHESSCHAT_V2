@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { useEffect } from "react";
 import LandingPage from "./pages/LandingPage";
 import LobbyPage from "./pages/LobbyPage";
+import ProfilePage from "./pages/ProfilePage";
 import RoomPage from "./pages/RoomPage";
 import AuthCallbackPage from "./pages/AuthCallbackPage";
 import { useAuth } from "./context/AuthContext";
@@ -41,6 +42,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <LobbyPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <ProfilePage />
           </ProtectedRoute>
         }
       />

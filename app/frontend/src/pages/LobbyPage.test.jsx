@@ -32,16 +32,11 @@ describe("LobbyPage", () => {
     cleanup();
   });
 
-  it("renders profile and history states", async () => {
-    vi.spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ user: { username: "tim", wins: 3, losses: 1, draws: 2 } })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ games: [] })
-      });
+  it("renders username in nav and room code input after profile loads", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ user: { username: "tim", wins: 3, losses: 1, draws: 2 } })
+    });
 
     render(
       <MemoryRouter>
@@ -50,19 +45,14 @@ describe("LobbyPage", () => {
     );
 
     await waitFor(() => expect(screen.getByText("tim")).toBeInTheDocument());
-    expect(screen.getByText("No completed games yet.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Room code")).toBeInTheDocument();
   });
 
   it("submits valid room code and navigates", async () => {
-    vi.spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ user: { username: "tim", wins: 0, losses: 0, draws: 0 } })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ games: [] })
-      });
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ user: { username: "tim", wins: 0, losses: 0, draws: 0 } })
+    });
 
     render(
       <MemoryRouter>
