@@ -20,6 +20,12 @@ variable "ecr_repository_arns" {
   default     = []
 }
 
+variable "cognito_user_pool_arn" {
+  description = "Cognito user pool ARN — grants the task role AdminDeleteUser for account deletion."
+  type        = string
+  default     = null
+}
+
 variable "tags" {
   description = "Map of common tags applied to all resources in this module."
   type        = map(string)
