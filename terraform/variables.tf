@@ -71,6 +71,12 @@ variable "dynamodb_games_table_name" {
   default     = null
 }
 
+variable "dynamodb_pair_rooms_table_name" {
+  description = "Optional explicit DynamoDB pair rooms table name override."
+  type        = string
+  default     = null
+}
+
 variable "redis_allowed_security_group_ids" {
   description = "Security groups allowed to access Redis on 6379 (for example, ECS service SGs)."
   type        = list(string)

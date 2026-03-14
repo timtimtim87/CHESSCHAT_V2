@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, TransactWriteCommand } from "@aws-sdk/lib-dynamodb";
 import { config } from "../config.js";
@@ -233,6 +234,58 @@ export async function deleteUser(userId) {
   }
 
   await ddb.send(new TransactWriteCommand({ TransactItems: items }));
+}
+
+export async function getUserByUsername(username) {
+  const normalized = normalizeUsernameInput(username);
+  if (!isValidUsername(normalized)) return null;
+  const reservation = await ddb.send(
+    new GetCommand({
+      TableName: config.dynamodb.usersTable,
+      Key: { user_id: `username#${normalized}` }
+    })
+  );
+  if (!reservation.Item?.owner_user_id) return null;
+  return getUser(reservation.Item.owner_user_id);
+}
+
+const PAIR_ROOM_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+export async function getOrCreatePairRoom(userId1, userId2) {
+  const pairId = [userId1, userId2].sort().join(":");
+  const existing = await ddb.send(
+    new GetCommand({
+      TableName: config.dynamodb.pairRoomsTable,
+      Key: { pair_id: pairId }
+    })
+  );
+  if (existing.Item?.room_code) return existing.Item.room_code;
+
+  const roomCode = Array.from(randomBytes(8))
+    .map((b) => PAIR_ROOM_ALPHABET[b % 36])
+    .join("");
+
+  try {
+    await ddb.send(
+      new PutCommand({
+        TableName: config.dynamodb.pairRoomsTable,
+        Item: { pair_id: pairId, room_code: roomCode, created_at: new Date().toISOString() },
+        ConditionExpression: "attribute_not_exists(pair_id)"
+      })
+    );
+    return roomCode;
+  } catch (err) {
+    if (err.name === "ConditionalCheckFailedException") {
+      const retry = await ddb.send(
+        new GetCommand({
+          TableName: config.dynamodb.pairRoomsTable,
+          Key: { pair_id: pairId }
+        })
+      );
+      return retry.Item?.room_code;
+    }
+    throw err;
+  }
 }
 
 export async function getUserGames(userId) {

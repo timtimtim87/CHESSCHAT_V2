@@ -8,6 +8,7 @@ const required = [
   "REDIS_AUTH_TOKEN",
   "DYNAMODB_USERS_TABLE",
   "DYNAMODB_GAMES_TABLE",
+  "DYNAMODB_PAIR_ROOMS_TABLE",
   "COGNITO_USER_POOL_ID",
   "COGNITO_CLIENT_ID",
   "COGNITO_REGION",
@@ -32,7 +33,8 @@ export const config = {
   },
   dynamodb: {
     usersTable: process.env.DYNAMODB_USERS_TABLE,
-    gamesTable: process.env.DYNAMODB_GAMES_TABLE
+    gamesTable: process.env.DYNAMODB_GAMES_TABLE,
+    pairRoomsTable: process.env.DYNAMODB_PAIR_ROOMS_TABLE
   },
   cognito: {
     userPoolId: process.env.COGNITO_USER_POOL_ID,
@@ -46,7 +48,6 @@ export const config = {
   app: {
     domain: process.env.APP_DOMAIN,
     roomTtlSeconds: Number(process.env.ROOM_TTL_SECONDS || 3600),
-    roomConsumedTtlSeconds: Number(process.env.ROOM_CONSUMED_TTL_SECONDS || 2592000),
     gameDurationSeconds: Number(process.env.GAME_DURATION_SECONDS || 300),
     heartbeatIntervalMs: Number(process.env.HEARTBEAT_INTERVAL_MS || 30000),
     reconnectGraceSeconds: Number(process.env.RECONNECT_GRACE_SECONDS || 12),

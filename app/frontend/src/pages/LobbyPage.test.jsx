@@ -32,7 +32,7 @@ describe("LobbyPage", () => {
     cleanup();
   });
 
-  it("renders username in nav and room code input after profile loads", async () => {
+  it("renders username in nav and opponent username input after profile loads", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
       ok: true,
       json: async () => ({ user: { username: "tim", wins: 3, losses: 1, draws: 2 } })
@@ -45,14 +45,24 @@ describe("LobbyPage", () => {
     );
 
     await waitFor(() => expect(screen.getByText("tim")).toBeInTheDocument());
-    expect(screen.getByLabelText("Room code")).toBeInTheDocument();
+    expect(screen.getByLabelText("Opponent username")).toBeInTheDocument();
   });
 
-  it("submits valid room code and navigates", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ user: { username: "tim", wins: 0, losses: 0, draws: 0 } })
-    });
+  it("submits opponent username, calls pair API and navigates", async () => {
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          user: { user_id: "user-1", username: "tim", wins: 0, losses: 0, draws: 0 }
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          room_code: "ABCD1234",
+          opponent: { user_id: "user-2", username: "tim_5ew", display_name: "tim_5ew" }
+        })
+      });
 
     render(
       <MemoryRouter>
@@ -60,9 +70,9 @@ describe("LobbyPage", () => {
       </MemoryRouter>
     );
 
-    const input = await screen.findByLabelText("Room code");
-    await userEvent.type(input, "abc12");
-    await userEvent.click(screen.getByRole("button", { name: "Start / Join" }));
-    expect(mockNavigate).toHaveBeenCalledWith("/room/ABC12");
+    const input = await screen.findByLabelText("Opponent username");
+    await userEvent.type(input, "tim_5ew");
+    await userEvent.click(screen.getByRole("button", { name: "Start Game" }));
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/room/ABCD1234"));
   });
 });

@@ -9,6 +9,7 @@ function seedEnv() {
   process.env.REDIS_AUTH_TOKEN = process.env.REDIS_AUTH_TOKEN || "token";
   process.env.DYNAMODB_USERS_TABLE = process.env.DYNAMODB_USERS_TABLE || "users";
   process.env.DYNAMODB_GAMES_TABLE = process.env.DYNAMODB_GAMES_TABLE || "games";
+  process.env.DYNAMODB_PAIR_ROOMS_TABLE = process.env.DYNAMODB_PAIR_ROOMS_TABLE || "pair-rooms";
   process.env.COGNITO_USER_POOL_ID = process.env.COGNITO_USER_POOL_ID || "us-east-1_123456789";
   process.env.COGNITO_CLIENT_ID = process.env.COGNITO_CLIENT_ID || "client";
   process.env.COGNITO_REGION = process.env.COGNITO_REGION || "us-east-1";

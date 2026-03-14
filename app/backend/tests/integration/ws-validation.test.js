@@ -22,8 +22,8 @@ test("make_move with invalid room code fails validation", () => {
 test("join_room with valid room code succeeds validation", () => {
   const result = validateRoomCodeForEvent({
     type: "join_room",
-    roomCode: "abc12"
+    roomCode: "abc12345"
   });
   assert.equal(result.ok, true);
-  assert.equal(result.roomCode, "ABC12");
+  assert.equal(result.roomCode, "ABC12345");
 });

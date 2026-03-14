@@ -27,6 +27,7 @@ ecs_container_environment = {
   REDIS_TLS                  = "true"
   DYNAMODB_USERS_TABLE       = "chesschat-dev-users"
   DYNAMODB_GAMES_TABLE       = "chesschat-dev-games"
+  DYNAMODB_PAIR_ROOMS_TABLE  = "chesschat-dev-pair-rooms"
   COGNITO_USER_POOL_ID       = "replace-with-user-pool-id"
   COGNITO_CLIENT_ID          = "replace-with-app-client-id"
   COGNITO_REGION             = "us-east-1"
