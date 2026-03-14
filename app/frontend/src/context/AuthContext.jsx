@@ -9,6 +9,7 @@ const ACCESS_TOKEN_KEY = "chesschat_access_token";
 const ID_TOKEN_KEY = "chesschat_id_token";
 const COGNITO_REGION = "us-east-1";
 const TOKEN_REFRESH_BUFFER_MS = 60_000;
+const REFRESH_COOKIE_NAME = "cc_refresh";
 
 function cookieDomain() {
   const host = window.location.hostname;
@@ -110,7 +111,11 @@ export function AuthProvider({ children }) {
       return session.access_token;
     }
 
-    if (!session.refresh_token) {
+    // refresh_token lives in its own cc_refresh cookie (kept separate to avoid
+    // pushing cc_session over the 4 KB browser cookie limit). Fall back to the
+    // embedded field for sessions written by older code.
+    const refreshToken = getCookie(REFRESH_COOKIE_NAME) || session.refresh_token;
+    if (!refreshToken) {
       return session.access_token;
     }
 
@@ -121,7 +126,7 @@ export function AuthProvider({ children }) {
     }
 
     const refreshed = await refreshAccessToken({
-      refreshToken: session.refresh_token,
+      refreshToken,
       clientId
     });
 
@@ -132,7 +137,6 @@ export function AuthProvider({ children }) {
     const refreshedSession = {
       access_token: refreshed.AccessToken,
       id_token: refreshed.IdToken || session.id_token,
-      refresh_token: session.refresh_token,
       expires_in: refreshed.ExpiresIn || session.expires_in,
       saved_at: Date.now()
     };
@@ -157,6 +161,7 @@ export function AuthProvider({ children }) {
     sessionStorage.removeItem(ID_TOKEN_KEY);
     const domain = cookieDomain();
     deleteCookie(config.sessionCookieName, { domain });
+    deleteCookie(REFRESH_COOKIE_NAME, { domain });
     deleteCookie(config.pendingRoomCookieName, { domain });
     globalThis.location.assign(`${config.authHost}/?logout=1`);
   }

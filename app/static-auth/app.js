@@ -76,7 +76,6 @@ function setSession(tokens) {
   const payload = {
     access_token: tokens.access_token,
     id_token: tokens.id_token,
-    refresh_token: tokens.refresh_token || "",
     expires_in: tokens.expires_in,
     saved_at: Date.now()
   };
@@ -86,6 +85,16 @@ function setSession(tokens) {
     JSON.stringify(payload),
     Number(config.sessionMaxAgeSeconds || 3600)
   );
+
+  // Store refresh token separately to keep cc_session well under the 4 KB
+  // browser cookie limit (access + id JWTs alone can approach that limit).
+  if (tokens.refresh_token) {
+    setCookie(
+      config.refreshCookieName || "cc_refresh",
+      tokens.refresh_token,
+      30 * 24 * 3600 // 30 days — matches Cognito refresh_token validity
+    );
+  }
 }
 
 function redirectToApp() {
@@ -448,7 +457,15 @@ async function renderAuthCallback() {
     setSession(tokens);
     redirectToApp();
   } catch (error) {
-    setError(error.message || "AuthCallbackFailed");
+    // Render the error directly instead of calling setError()/render() —
+    // render() on this route would call renderAuthCallback() again, and auth
+    // codes are single-use so every retry would immediately fail (infinite loop).
+    state.error = error.message || "AuthCallbackFailed";
+    appEl.innerHTML = `
+      <h2>Sign-in Failed</h2>
+      ${statusHtml()}
+      <p><a href="/login">Return to login</a></p>
+    `;
   }
 }
 
