@@ -351,3 +351,35 @@ Last updated: 2026-03-09
   - frontend lobby username form validation
   - static-auth signup username validation
 - No UI layout/component behavior changes in this stage.
+
+## 20) Template-Driven UI Rebuild + Stub Routes (2026-03-22)
+
+### Decision
+- Rebuilt frontend visuals using `screen_templates` HTML + PNG screens as the north-star reference, while preserving existing backend/API/WS behavior.
+- Added UI-only stub routes for future features:
+  - `/friends`
+  - `/history`
+
+### What changed
+- Introduced a shared Obsidian-Slate-inspired design layer in frontend CSS:
+  - typography, color tokens, glass surfaces, status chips, button variants, app shell patterns.
+- Added shared authenticated app shell (`AppChrome`) with top bar + side nav for app routes.
+- Reworked existing app routes to align with template styling while retaining current logic:
+  - `/` landing/auth entry
+  - `/lobby` room challenge + username setup
+  - `/profile` profile stats + delete-account workflow
+  - `/room/:code` kept functional behavior, updated visual system via shared styles.
+- Added UI-to-feature backlog map tags in-app (`UI_READY`, `API_MISSING`) to mark elements awaiting implementation.
+
+### Split-host alignment
+- Confirmed host boundaries for UI delivery:
+  - `chess-chat.com` static edge landing only.
+  - `app.chess-chat.com` containerized app routes and authenticated product surfaces.
+- Auth callback/logout remain app-host aligned to avoid cross-origin session ambiguity.
+
+### Validation
+- `npm --prefix app/frontend run build` passed.
+- `npm --prefix app/frontend run test` reported all suites passing; process did not terminate cleanly in this environment after result output.
+
+### Notes
+- Friends/history controls are intentionally non-functional in this pass and are tagged as API-dependent in UI.

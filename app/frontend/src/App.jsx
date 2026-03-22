@@ -4,6 +4,9 @@ import LandingPage from "./pages/LandingPage";
 import LobbyPage from "./pages/LobbyPage";
 import ProfilePage from "./pages/ProfilePage";
 import RoomPage from "./pages/RoomPage";
+import FriendsPage from "./pages/FriendsPage";
+import HistoryPage from "./pages/HistoryPage";
+import RoomPreviewPage from "./pages/RoomPreviewPage";
 import AuthCallbackPage from "./pages/AuthCallbackPage";
 import { useAuth } from "./context/AuthContext";
 import { config } from "./config";
@@ -19,7 +22,12 @@ function ProtectedRoute({ children }) {
 
 export default function App() {
   const { isAuthenticated } = useAuth();
+  const isPreviewPath = window.location.pathname.startsWith("/ui-preview");
+
   useEffect(() => {
+    if (isPreviewPath) {
+      return;
+    }
     if (!isAuthenticated) {
       return;
     }
@@ -31,11 +39,18 @@ export default function App() {
 
     deleteCookie(config.pendingRoomCookieName, { domain: ".chess-chat.com" });
     window.location.replace(`/room/${pendingRoom}`);
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isPreviewPath]);
 
   return (
     <Routes>
       <Route path="/" element={isAuthenticated ? <Navigate to="/lobby" replace /> : <LandingPage />} />
+      <Route path="/ui-preview" element={<Navigate to="/ui-preview/lobby" replace />} />
+      <Route path="/ui-preview/landing" element={<LandingPage preview />} />
+      <Route path="/ui-preview/lobby" element={<LobbyPage preview />} />
+      <Route path="/ui-preview/profile" element={<ProfilePage preview />} />
+      <Route path="/ui-preview/friends" element={<FriendsPage preview />} />
+      <Route path="/ui-preview/history" element={<HistoryPage preview />} />
+      <Route path="/ui-preview/room" element={<RoomPreviewPage />} />
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
       <Route
         path="/lobby"
@@ -50,6 +65,22 @@ export default function App() {
         element={
           <ProtectedRoute>
             <ProfilePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/friends"
+        element={
+          <ProtectedRoute>
+            <FriendsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/history"
+        element={
+          <ProtectedRoute>
+            <HistoryPage />
           </ProtectedRoute>
         }
       />

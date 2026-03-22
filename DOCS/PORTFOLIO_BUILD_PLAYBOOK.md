@@ -768,3 +768,18 @@ Before ending a substantial session:
 - Outcome:
   - Split-host staged program (`1 -> 2 -> 3 -> 4 + 5`) is complete from a repository decision/governance perspective.
   - No Terraform apply or runtime behavior changes were required in this stage.
+
+## UI Host Boundary + Template Rebuild Update (2026-03-22)
+- Product host boundary clarified and adopted in implementation:
+  - `chess-chat.com` serves static landing/marketing UX only.
+  - `app.chess-chat.com` serves containerized app routes for authenticated and gameplay surfaces.
+- Frontend delivery update:
+  - Implemented template-driven UI rebuild pass using local HTML + PNG references.
+  - Added app-shell navigation and stub product routes (`/friends`, `/history`) with clear API dependency tags.
+- Strategy impact:
+  - Keeps split-host architecture interview narrative clean: static edge plane separated from runtime app plane.
+  - Reduces auth/session ambiguity by keeping callback/logout and app routing on a single canonical app host.
+  - Enables phased feature roadmap execution: visual parity first, then API/event wiring for friends/history/profile extensions.
+- Validation:
+  - `npm --prefix app/frontend run build` passed.
+  - `npm --prefix app/frontend run test` suites pass by output; process exit remains unstable in local environment.
