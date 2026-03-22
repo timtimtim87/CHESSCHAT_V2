@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ChessChat - Game History</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "secondary-container": "#0f172a",
+              "surface-variant": "#33343c",
+              "on-tertiary-fixed-variant": "#2f3aa3",
+              "on-primary-fixed-variant": "#005047",
+              "on-secondary-fixed-variant": "#38485d",
+              "error-container": "#93000a",
+              "on-secondary-fixed": "#0b1c30",
+              "on-error": "#690005",
+              "tertiary-fixed-dim": "#bdc2ff",
+              "inverse-on-surface": "#2e3038",
+              "on-surface-variant": "#bacac5",
+              "on-primary": "#003731",
+              "surface": "#11131a",
+              "secondary-fixed": "#d3e4fe",
+              "tertiary-container": "#b3b9ff",
+              "surface-bright": "#373941",
+              "on-primary-fixed": "#00201c",
+              "on-primary-container": "#00574d",
+              "surface-container-low": "#191b22",
+              "error": "#f87171",
+              "secondary-fixed-dim": "#b7c8e1",
+              "surface-container-highest": "#33343c",
+              "on-secondary-container": "#a9bad3",
+              "secondary": "#b7c8e1",
+              "on-secondary": "#213145",
+              "surface-container-lowest": "#0c0e15",
+              "on-surface": "#e2e2ec",
+              "tertiary-fixed": "#e0e0ff",
+              "background": "#11131a",
+              "surface-tint": "#2dd4bf",
+              "on-error-container": "#ffdad6",
+              "primary-fixed-dim": "#2dd4bf",
+              "primary-fixed": "#5eead4",
+              "on-tertiary-fixed": "#000767",
+              "primary-container": "#14b8a6",
+              "outline-variant": "#3c4a46",
+              "surface-container-high": "#282a31",
+              "surface-container": "#1d1f26",
+              "on-background": "#e2e2ec",
+              "on-tertiary-container": "#3641a9",
+              "inverse-primary": "#0d9488",
+              "tertiary": "#d5d7ff",
+              "on-tertiary": "#131e8c",
+              "primary": "#2dd4bf",
+              "outline": "#859490",
+              "inverse-surface": "#e2e2ec",
+              "surface-dim": "#11131a"
+            },
+            fontFamily: {
+              "headline": ["Plus Jakarta Sans"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, .font-headline { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .glass-panel {
+            background: rgba(29, 31, 38, 0.6);
+            backdrop-filter: blur(24px);
+        }
+    </style>
+</head>
+<body class="text-on-surface selection:bg-primary/30 min-h-screen flex" style="background-color: #11131a;">
+<!-- SideNavBar (Minimal) -->
+<aside class="w-20 fixed left-0 top-0 h-screen border-r flex flex-col items-center py-8 z-50" style="background-color: #0c0e15; border-color: rgba(60, 74, 70, 0.15);">
+<nav class="flex flex-col gap-8">
+<a class="w-12 h-12 flex items-center justify-center rounded-xl text-slate-400 hover:text-primary hover:bg-surface-container transition-all group" href="#">
+<span class="material-symbols-outlined text-2xl">account_circle</span>
+<span class="absolute left-20 bg-[#1d1f26] px-3 py-1.5 rounded-md text-xs font-bold text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">Profile</span>
+</a>
+<a class="w-12 h-12 flex items-center justify-center rounded-xl text-slate-400 hover:text-primary hover:bg-surface-container transition-all group" href="#">
+<span class="material-symbols-outlined text-2xl">group</span>
+<span class="absolute left-20 bg-[#1d1f26] px-3 py-1.5 rounded-md text-xs font-bold text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">Friends</span>
+</a>
+<a class="w-12 h-12 flex items-center justify-center rounded-xl bg-primary/10 text-primary transition-all group border border-primary/20" href="#">
+<span class="material-symbols-outlined text-2xl">history</span>
+<span class="absolute left-20 bg-[#1d1f26] px-3 py-1.5 rounded-md text-xs font-bold text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">History</span>
+</a>
+</nav>
+<div class="mt-auto flex flex-col gap-6">
+<button class="w-10 h-10 rounded-full overflow-hidden border-2 border-outline-variant/30 group relative">
+<img alt="User" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBVGfvjwcse69Cx8cXn9U5sqJcMa9jLsz5bJtrl-Tcdg8xFvGXQfEv2yejAwo9ubEgVJPWgFtwjJplVO5sJ1MoBY6xoA9HDymPvj5nXTuvUSAKSYVWLo4_rQNIpdp17eroqtUtHeOBVC8HMffcMCKRpTPvubnsoPXFcGbFtSJbkavmDRGJOAhMGkMM3fopXBUtfVTqxV8REdaiwcGfaXEXTfZ32x2PslMRW_eAFhx-5D4rlwAg7VZth9bWE9vK57CSGwQPs0DMRVDzZ"/>
+</button>
+<button class="w-12 h-12 flex items-center justify-center rounded-xl text-slate-400 hover:text-error transition-all group">
+<span class="material-symbols-outlined text-2xl">logout</span>
+</button>
+</div>
+</aside>
+<div class="flex-1 ml-20">
+<!-- TopNavBar (Icon-only Navigation) -->
+<header class="sticky top-0 w-full z-40 flex justify-between items-center px-10 h-20 backdrop-blur-md border-b" style="background-color: rgba(17, 19, 26, 0.8); border-color: rgba(60, 74, 70, 0.15);">
+<div class="text-2xl font-black tracking-tighter text-primary font-headline">
+                ChessChat
+            </div>
+<div class="flex items-center gap-2">
+<button class="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:text-primary hover:bg-surface-container rounded-lg transition-colors">
+<span class="material-symbols-outlined">search</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:text-primary hover:bg-surface-container rounded-lg transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:text-primary hover:bg-surface-container rounded-lg transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+</header>
+<!-- Main Content -->
+<main class="max-w-7xl mx-auto px-8 py-12">
+<!-- Header Section -->
+<header class="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-8">
+<div>
+<h1 class="text-5xl font-extrabold tracking-tight text-on-surface mb-3">Game History</h1>
+<p class="text-on-surface-variant max-w-xl text-lg font-medium leading-relaxed">Analyze your moves and track your ELO progress through your recent match performances.</p>
+</div>
+<div class="flex gap-4">
+<div class="px-8 py-5 bg-surface-container border border-outline-variant/15 rounded-2xl flex flex-col justify-center items-center">
+<span class="text-[10px] text-primary font-bold uppercase tracking-widest mb-1">Win Rate</span>
+<span class="text-3xl font-black text-on-surface">68.4%</span>
+</div>
+<div class="px-8 py-5 bg-surface-container border border-outline-variant/15 rounded-2xl flex flex-col justify-center items-center">
+<span class="text-[10px] text-primary font-bold uppercase tracking-widest mb-1">Peak ELO</span>
+<span class="text-3xl font-black text-on-surface">2510</span>
+</div>
+</div>
+</header>
+<!-- Table Filters -->
+<div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+<div class="relative flex-1 max-w-md">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl py-3 pl-12 pr-4 text-on-surface focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-on-surface-variant/40 font-medium" placeholder="Search opponent..." type="text"/>
+</div>
+<div class="flex gap-3">
+<button class="px-5 py-3 bg-surface-container-low border border-outline-variant/20 rounded-xl flex items-center gap-2 text-sm font-bold text-on-surface-variant hover:text-primary hover:border-primary/30 transition-all">
+<span class="material-symbols-outlined text-sm">filter_list</span> Filters
+                    </button>
+<button class="px-5 py-3 bg-surface-container-low border border-outline-variant/20 rounded-xl flex items-center gap-2 text-sm font-bold text-on-surface-variant hover:text-primary hover:border-primary/30 transition-all">
+<span class="material-symbols-outlined text-sm">download</span> Export
+                    </button>
+</div>
+</div>
+<!-- Game Table -->
+<section class="border border-outline-variant/15 rounded-3xl overflow-hidden shadow-2xl bg-surface-container/30 backdrop-blur-md">
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead>
+<tr class="bg-surface-container-high/40 border-b border-outline-variant/15 text-on-surface-variant text-[10px] uppercase tracking-widest font-black">
+<th class="px-8 py-6">Opponent</th>
+<th class="px-8 py-6">Result</th>
+<th class="px-8 py-6">Type</th>
+<th class="px-8 py-6">Date</th>
+<th class="px-8 py-6 text-right">Analysis</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/10">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container/40 transition-colors group">
+<td class="px-8 py-7">
+<div class="flex items-center gap-4">
+<div class="w-11 h-11 rounded-full bg-surface-container-highest flex items-center justify-center text-primary group-hover:scale-110 transition-transform border border-outline-variant/20">
+<span class="material-symbols-outlined">person</span>
+</div>
+<div>
+<p class="font-bold text-on-surface">Alex_The_Great</p>
+<p class="text-xs text-on-surface-variant font-medium">ELO 2415</p>
+</div>
+</div>
+</td>
+<td class="px-8 py-7">
+<span class="inline-flex items-center px-3.5 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-black tracking-widest border border-primary/20">WIN</span>
+</td>
+<td class="px-8 py-7">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-primary text-sm">bolt</span>
+<span class="text-sm font-semibold text-on-surface-variant">Blitz (3+2)</span>
+</div>
+</td>
+<td class="px-8 py-7 text-sm font-medium text-on-surface-variant/80">Today, 14:20</td>
+<td class="px-8 py-7 text-right">
+<a class="inline-flex items-center gap-2 px-5 py-2.5 bg-surface-container-highest hover:bg-primary text-on-surface hover:text-on-primary text-xs font-bold rounded-xl transition-all border border-outline-variant/20 hover:border-primary" href="#">
+                                        Review <span class="material-symbols-outlined text-xs">arrow_forward</span>
+</a>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-container/40 transition-colors group">
+<td class="px-8 py-7">
+<div class="flex items-center gap-4">
+<div class="w-11 h-11 rounded-full bg-surface-container-highest flex items-center justify-center text-primary group-hover:scale-110 transition-transform border border-outline-variant/20">
+<span class="material-symbols-outlined">person</span>
+</div>
+<div>
+<p class="font-bold text-on-surface">Checkmate_Queen</p>
+<p class="text-xs text-on-surface-variant font-medium">ELO 2530</p>
+</div>
+</div>
+</td>
+<td class="px-8 py-7">
+<span class="inline-flex items-center px-3.5 py-1 rounded-full bg-error/10 text-error text-[10px] font-black tracking-widest border border-error/20">LOSS</span>
+</td>
+<td class="px-8 py-7">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-primary text-sm">timer</span>
+<span class="text-sm font-semibold text-on-surface-variant">Rapid (10+5)</span>
+</div>
+</td>
+<td class="px-8 py-7 text-sm font-medium text-on-surface-variant/80">Yesterday, 09:15</td>
+<td class="px-8 py-7 text-right">
+<a class="inline-flex items-center gap-2 px-5 py-2.5 bg-surface-container-highest hover:bg-primary text-on-surface hover:text-on-primary text-xs font-bold rounded-xl transition-all border border-outline-variant/20 hover:border-primary" href="#">
+                                        Review <span class="material-symbols-outlined text-xs">arrow_forward</span>
+</a>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container/40 transition-colors group">
+<td class="px-8 py-7">
+<div class="flex items-center gap-4">
+<div class="w-11 h-11 rounded-full bg-surface-container-highest flex items-center justify-center text-primary group-hover:scale-110 transition-transform border border-outline-variant/20">
+<span class="material-symbols-outlined">person</span>
+</div>
+<div>
+<p class="font-bold text-on-surface">GrandMaster_P</p>
+<p class="text-xs text-on-surface-variant font-medium">ELO 2490</p>
+</div>
+</div>
+</td>
+<td class="px-8 py-7">
+<span class="inline-flex items-center px-3.5 py-1 rounded-full bg-outline-variant/20 text-on-surface-variant text-[10px] font-black tracking-widest border border-outline-variant/30">DRAW</span>
+</td>
+<td class="px-8 py-7">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-primary text-sm">bolt</span>
+<span class="text-sm font-semibold text-on-surface-variant">Blitz (5+0)</span>
+</div>
+</td>
+<td class="px-8 py-7 text-sm font-medium text-on-surface-variant/80">Aug 24, 21:05</td>
+<td class="px-8 py-7 text-right">
+<a class="inline-flex items-center gap-2 px-5 py-2.5 bg-surface-container-highest hover:bg-primary text-on-surface hover:text-on-primary text-xs font-bold rounded-xl transition-all border border-outline-variant/20 hover:border-primary" href="#">
+                                        Review <span class="material-symbols-outlined text-xs">arrow_forward</span>
+</a>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination -->
+<div class="px-8 py-6 bg-surface-container/30 border-t border-outline-variant/15 flex items-center justify-between">
+<p class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Page 1 of 82</p>
+<div class="flex gap-2">
+<button class="w-9 h-9 rounded-lg flex items-center justify-center bg-surface-container-highest text-on-surface-variant hover:text-primary transition-all border border-outline-variant/20">
+<span class="material-symbols-outlined text-sm">chevron_left</span>
+</button>
+<button class="w-9 h-9 rounded-lg flex items-center justify-center bg-primary text-on-primary font-black text-xs">1</button>
+<button class="w-9 h-9 rounded-lg flex items-center justify-center bg-surface-container-highest text-on-surface-variant hover:text-primary font-black text-xs border border-outline-variant/20">2</button>
+<button class="w-9 h-9 rounded-lg flex items-center justify-center bg-surface-container-highest text-on-surface-variant hover:text-primary transition-all border border-outline-variant/20">
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+</button>
+</div>
+</div>
+</section>
+</main>
+</div>
+<!-- FAB -->
+<button class="fixed bottom-10 right-10 w-16 h-16 bg-primary text-on-primary rounded-2xl shadow-2xl shadow-primary/40 flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-50">
+<span class="material-symbols-outlined text-3xl font-bold">add</span>
+</button>
+</body></html>

@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ChessChat - Friends Hub</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "secondary-container": "#0f172a",
+                        "surface-variant": "#1e293b",
+                        "on-tertiary-fixed-variant": "#2f3aa3",
+                        "on-primary-fixed-variant": "#005047",
+                        "on-secondary-fixed-variant": "#38485d",
+                        "error-container": "#93000a",
+                        "on-secondary-fixed": "#0b1c30",
+                        "on-error": "#690005",
+                        "tertiary-fixed-dim": "#bdc2ff",
+                        "inverse-on-surface": "#2e3038",
+                        "on-surface-variant": "#94a3b8",
+                        "on-primary": "#003731",
+                        "surface": "#11131a",
+                        "secondary-fixed": "#d3e4fe",
+                        "tertiary-container": "#b3b9ff",
+                        "surface-bright": "#1e293b",
+                        "on-primary-fixed": "#00201c",
+                        "on-primary-container": "#00574d",
+                        "surface-container-low": "#1a1c23",
+                        "error": "#f87171",
+                        "secondary-fixed-dim": "#b7c8e1",
+                        "surface-container-highest": "#1e293b",
+                        "on-secondary-container": "#a9bad3",
+                        "secondary": "#b7c8e1",
+                        "on-secondary": "#213145",
+                        "surface-container-lowest": "#0c0e15",
+                        "on-surface": "#f1f5f9",
+                        "tertiary-fixed": "#e0e0ff",
+                        "background": "#11131a",
+                        "surface-tint": "#2dd4bf",
+                        "on-error-container": "#ffdad6",
+                        "primary-fixed-dim": "#2dd4bf",
+                        "primary-fixed": "#5eead4",
+                        "on-tertiary-fixed": "#000767",
+                        "primary-container": "#14b8a6",
+                        "outline-variant": "#334155",
+                        "surface-container-high": "#282a31",
+                        "surface-container": "#1d1f26",
+                        "on-background": "#f1f5f9",
+                        "on-tertiary-container": "#3641a9",
+                        "inverse-primary": "#0d9488",
+                        "tertiary": "#d5d7ff",
+                        "on-tertiary": "#131e8c",
+                        "primary": "#2dd4bf",
+                        "outline": "#475569",
+                        "inverse-surface": "#f1f5f9",
+                        "surface-dim": "#11131a"
+                    },
+                    fontFamily: {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #11131a; }
+        h1, h2, h3, .font-headline { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .bg-glass {
+            background-color: rgba(29, 31, 38, 0.4);
+            backdrop-filter: blur(24px);
+        }
+    </style>
+</head>
+<body class="text-on-surface selection:bg-primary/30 min-h-screen flex">
+<!-- SideNavBar (Minimal - From SCREEN_42) -->
+<aside class="w-20 fixed left-0 top-0 h-screen border-r border-slate-800/20 flex flex-col items-center py-8 z-50" style="background-color: #0c0e15;">
+<nav class="flex flex-col gap-8">
+<a class="w-12 h-12 flex items-center justify-center rounded-xl text-slate-400 hover:text-primary hover:bg-slate-900 transition-all group" href="#">
+<span class="material-symbols-outlined text-2xl">account_circle</span>
+<span class="absolute left-20 bg-slate-900 px-3 py-1.5 rounded-md text-xs font-bold text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">Profile</span>
+</a>
+<a class="w-12 h-12 flex items-center justify-center rounded-xl bg-primary/10 text-primary transition-all group border border-primary/20" href="#">
+<span class="material-symbols-outlined text-2xl">group</span>
+<span class="absolute left-20 bg-slate-900 px-3 py-1.5 rounded-md text-xs font-bold text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">Friends Hub</span>
+</a>
+<a class="w-12 h-12 flex items-center justify-center rounded-xl text-slate-400 hover:text-primary hover:bg-slate-900 transition-all group" href="#">
+<span class="material-symbols-outlined text-2xl">history</span>
+<span class="absolute left-20 bg-slate-900 px-3 py-1.5 rounded-md text-xs font-bold text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">History</span>
+</a>
+</nav>
+<div class="mt-auto flex flex-col gap-6">
+<button class="w-10 h-10 rounded-full overflow-hidden border-2 border-slate-800 group relative">
+<img alt="User" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBVGfvjwcse69Cx8cXn9U5sqJcMa9jLsz5bJtrl-Tcdg8xFvGXQfEv2yejAwo9ubEgVJPWgFtwjJplVO5sJ1MoBY6xoA9HDymPvj5nXTuvUSAKSYVWLo4_rQNIpdp17eroqtUtHeOBVC8HMffcMCKRpTPvubnsoPXFcGbFtSJbkavmDRGJOAhMGkMM3fopXBUtfVTqxV8REdaiwcGfaXEXTfZ32x2PslMRW_eAFhx-5D4rlwAg7VZth9bWE9vK57CSGwQPs0DMRVDzZ"/>
+</button>
+<button class="w-12 h-12 flex items-center justify-center rounded-xl text-slate-400 hover:text-error transition-all group">
+<span class="material-symbols-outlined text-2xl">logout</span>
+</button>
+</div>
+</aside>
+<div class="flex-1 ml-20">
+<!-- TopNavBar (Icon-only - From SCREEN_42) -->
+<header class="sticky top-0 w-full z-40 flex justify-between items-center px-10 h-20 backdrop-blur-md border-b border-slate-800/10" style="background-color: rgba(17, 19, 26, 0.6);">
+<div class="text-2xl font-black tracking-tighter text-primary font-headline">
+            ChessChat
+        </div>
+<div class="flex items-center gap-2">
+<button class="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-primary hover:bg-slate-800/50 rounded-lg transition-colors">
+<span class="material-symbols-outlined">search</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-primary hover:bg-slate-800/50 rounded-lg transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-primary hover:bg-slate-800/50 rounded-lg transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+</header>
+<!-- Main Content -->
+<main class="max-w-7xl mx-auto px-8 py-12">
+<!-- Header Section -->
+<header class="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-8">
+<div>
+<h1 class="text-5xl font-extrabold tracking-tight text-on-surface mb-3">Friends Hub</h1>
+<p class="text-on-surface-variant max-w-xl text-lg font-medium leading-relaxed opacity-80">Challenge your peers and track active rivals.</p>
+</div>
+<div class="w-full md:w-80">
+<div class="relative flex-1">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">search</span>
+<input class="w-full bg-[#0c0e15] border border-slate-800/30 rounded-xl py-3.5 pl-12 pr-4 text-on-surface focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-slate-600 font-medium" placeholder="Search friends..." type="text"/>
+</div>
+</div>
+</header>
+<!-- Content Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+<!-- Online Friends -->
+<section class="lg:col-span-8">
+<div class="flex items-center justify-between mb-6 px-2">
+<h2 class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
+                        Online Friends
+                        <span class="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(45,212,191,0.6)]"></span>
+</h2>
+<span class="text-xs font-bold text-slate-600">12 currently active</span>
+</div>
+<div class="border border-slate-800/20 rounded-3xl overflow-hidden shadow-2xl bg-glass">
+<div class="divide-y divide-slate-800/20">
+<!-- Friend Item 1 -->
+<div class="p-6 hover:bg-slate-800/20 transition-all flex items-center justify-between group">
+<div class="flex items-center gap-5">
+<div class="relative">
+<div class="w-14 h-14 rounded-2xl overflow-hidden ring-1 ring-slate-800 group-hover:scale-105 transition-transform">
+<img alt="Avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCMM2voTs-J8AwBQdy6wLVtc_8Cl8jr3aFv0e8Ht1naf07k7hb50pMmp7vH8HmaxkVZ5oGmKtNCJ8Jbk8AEH32ImLsPrtM6ev2jbaqNbF0q7E4h6j_O0xAQu0e7wETc0Z583FkaRCt4eRi4DjT6pbk7mT3S_YF_577es17sDPgadJ2bPe3xjv_ZRuhnbOafxcwW5ZIpu1USNznnViDdsychxgktOMEDXPvO4uKoPmZOUJbN7fL_rlGOVyCvAoWvfHMRrXumNbNYWrEj"/>
+</div>
+<div class="absolute -bottom-1 -right-1 w-4 h-4 bg-primary border-[3px] border-[#11131a] rounded-full shadow-lg"></div>
+</div>
+<div>
+<h3 class="font-bold text-lg text-on-surface">KnightRider_04</h3>
+<p class="text-xs font-medium text-slate-500">Rating: 1840 • Playing Blitz</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<button class="w-11 h-11 flex items-center justify-center rounded-xl bg-slate-900/50 border border-slate-800/50 text-slate-400 hover:text-primary hover:border-primary/30 transition-all">
+<span class="material-symbols-outlined text-xl">chat</span>
+</button>
+<button class="px-7 py-3 rounded-xl bg-primary text-slate-950 font-black text-xs uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all">
+                                    Play Now
+                                </button>
+</div>
+</div>
+<!-- Friend Item 2 -->
+<div class="p-6 hover:bg-slate-800/20 transition-all flex items-center justify-between group">
+<div class="flex items-center gap-5">
+<div class="relative">
+<div class="w-14 h-14 rounded-2xl overflow-hidden ring-1 ring-slate-800 group-hover:scale-105 transition-transform">
+<img alt="Avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC41Vee9-ghMwjh8Vo-zP3Nvz8SCvHny79LbZ_lRm1Sb_rskS9QaNSIUJHhRD52uch-WXi65vj6k6879EVFgrAt2HanVLTHjJNJSFBXKU9wdMNvv5NrAyMOcwcZCyBM-vRAbKpDZ8JOKbHd5Oi_f_5_ulgJ_YTIPg0ILjCHdQQovDTG68q1PQxnmaJ5rJyPMYOagqcxEpxvCkCiQvabcqkV5kx0oTLNqpDOkInUfz9WHCXK04yXmIpN98oU_0F-06InaXpXyIJ2Nw7i"/>
+</div>
+<div class="absolute -bottom-1 -right-1 w-4 h-4 bg-primary border-[3px] border-[#11131a] rounded-full shadow-lg"></div>
+</div>
+<div>
+<h3 class="font-bold text-lg text-on-surface">QueenGambit_X</h3>
+<p class="text-xs font-medium text-slate-500">Rating: 2105 • Idle</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<button class="w-11 h-11 flex items-center justify-center rounded-xl bg-slate-900/50 border border-slate-800/50 text-slate-400 hover:text-primary hover:border-primary/30 transition-all">
+<span class="material-symbols-outlined text-xl">chat</span>
+</button>
+<button class="px-7 py-3 rounded-xl bg-primary text-slate-950 font-black text-xs uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all">
+                                    Play Now
+                                </button>
+</div>
+</div>
+<!-- Friend Item 3 (In Game) -->
+<div class="p-6 hover:bg-slate-800/20 transition-all flex items-center justify-between group">
+<div class="flex items-center gap-5">
+<div class="relative">
+<div class="w-14 h-14 rounded-2xl overflow-hidden ring-1 ring-slate-800 group-hover:scale-105 transition-transform">
+<img alt="Avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBGKA8TzrnipUeZpucd2bsghl6Ez04XFXqaWJf-6edsPApe6e6NxiMfNJJmW2rWQhPvd3HA6dUJFNgtPkIRN9aIlbhRhqHY2HccP7klsxJwIRgonS0svmTym0MpY-tL8ASrfY53cFseaidCzg87AH0zdQD68GW8g7wCv3lv0TPE4z1v9Fbjmwzyi6joBxUq24cPJrokZT9BKp2wPpfw5EUMH2LRtrDPYf9GZA-_VoC181iNn248NMd5WeZcKhRq9pvBfuXhD6s8l30I"/>
+</div>
+<div class="absolute -bottom-1 -right-1 w-4 h-4 bg-amber-500 border-[3px] border-[#11131a] rounded-full shadow-lg"></div>
+</div>
+<div>
+<h3 class="font-bold text-lg text-on-surface">BishopBlunder</h3>
+<p class="text-xs font-medium text-slate-500">Rating: 1420 • In Game</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<button class="w-11 h-11 flex items-center justify-center rounded-xl bg-slate-900/50 border border-slate-800/50 text-slate-400 hover:text-primary hover:border-primary/30 transition-all">
+<span class="material-symbols-outlined text-xl">visibility</span>
+</button>
+<button class="px-7 py-3 rounded-xl bg-[#0c0e15] border border-slate-800/50 text-slate-300 font-black text-xs uppercase tracking-widest hover:bg-slate-800/50 transition-all active:scale-95">
+                                    Watch
+                                </button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Sidebar Content -->
+<aside class="lg:col-span-4 space-y-8">
+<!-- Pending Requests -->
+<section class="bg-glass border border-slate-800/20 rounded-3xl p-8 shadow-xl">
+<div class="flex items-center justify-between mb-8">
+<h2 class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Pending</h2>
+<span class="text-[10px] font-black text-primary bg-primary/10 px-2.5 py-1 rounded-full border border-primary/20">3 NEW</span>
+</div>
+<div class="space-y-6">
+<!-- Request 1 -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-4">
+<img alt="Request" class="w-11 h-11 rounded-xl object-cover ring-1 ring-slate-800" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCS6x1lwCvy2r2ko_e_-U2Mq3GOR9KilMHA7CgrN3x2eEx01V45bJ5L-Q4vnGatThRd5a-J8TK2YsYLGmIQMHAReJU95viJILjlB1r-eFM48I3LPs8t8zkBPPpDneIAFtVzDJ-K_P0G25rDAzU466VwoGHy_EtFSXaZf2628ENmhrqvRGe5yhDzfcCfEky4JVdd_jbcuzodroyD3N3ItuECt6LYPSv-24PGtuNPy4avD0EmpR2GVw0l-QCVvYzg4Kj3HiO8rtxs-j_g"/>
+<div>
+<p class="text-sm font-bold text-on-surface">RooknRoll</p>
+<p class="text-[10px] font-black text-slate-600 uppercase tracking-widest">ELO 1200</p>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="w-9 h-9 flex items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20 hover:bg-primary hover:text-slate-950 transition-all">
+<span class="material-symbols-outlined text-sm font-bold">check</span>
+</button>
+<button class="w-9 h-9 flex items-center justify-center rounded-lg bg-[#0c0e15] border border-slate-800/50 text-slate-500 hover:text-rose-500 hover:border-rose-500/30 transition-all">
+<span class="material-symbols-outlined text-sm font-bold">close</span>
+</button>
+</div>
+</div>
+<!-- Request 2 -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-4">
+<img alt="Request" class="w-11 h-11 rounded-xl object-cover ring-1 ring-slate-800" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBRnsGZrrvpr3R4yqHNkQ1OJXoKE_Y-dQq20vi89tEqDA775OAdDKJqp9BJysfGcjmBFajfGCFx4Cy05I3DsmvQ_QhKa1hzPor-ziLCXRqEQQvpOMzP_o9x9QWDyQal4RGU93Ud7vkErgXm0GGnzVjCvhYdHZWO3SwvhXiyua2fzvZj76nXirgFwQgZgUd2jDMGcoGtk8YJrLGl2rKf9PNrHFUenXWc4J94wW_EBVYzuHf6JZRuArAO3qd0-fDsYVjwyPgAhlsaEPJf"/>
+<div>
+<p class="text-sm font-bold text-on-surface">CheckMatey</p>
+<p class="text-[10px] font-black text-slate-600 uppercase tracking-widest">ELO 1950</p>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="w-9 h-9 flex items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20 hover:bg-primary hover:text-slate-950 transition-all">
+<span class="material-symbols-outlined text-sm font-bold">check</span>
+</button>
+<button class="w-9 h-9 flex items-center justify-center rounded-lg bg-[#0c0e15] border border-slate-800/50 text-slate-500 hover:text-rose-500 hover:border-rose-500/30 transition-all">
+<span class="material-symbols-outlined text-sm font-bold">close</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Invite (Styled like Pro Card in SCREEN_37) -->
+<section class="relative overflow-hidden bg-gradient-to-br from-[#1d1f26] to-[#0c0e15] border border-primary/20 rounded-3xl p-8 shadow-xl">
+<div class="absolute -right-12 -top-12 w-32 h-32 bg-primary/5 rounded-full blur-3xl"></div>
+<h3 class="font-extrabold text-xl text-primary mb-3">Expand Your Circle</h3>
+<p class="text-sm font-medium text-slate-400 mb-8 leading-relaxed">Invite friends from other platforms to earn exclusive rewards and new themes.</p>
+<button class="w-full py-4 bg-[#0c0e15] hover:bg-primary text-slate-300 hover:text-on-primary font-black text-xs uppercase tracking-[0.2em] rounded-xl flex items-center justify-center gap-3 transition-all border border-slate-800/50 hover:border-primary active:scale-95">
+<span class="material-symbols-outlined text-lg">share</span>
+                        Invite Friends
+                    </button>
+</section>
+</aside>
+</div>
+</main>
+</div>
+<!-- FAB (From SCREEN_42) -->
+<button class="fixed bottom-10 right-10 w-16 h-16 bg-primary text-on-primary rounded-2xl shadow-2xl shadow-primary/40 flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-50">
+<span class="material-symbols-outlined text-3xl font-bold">add</span>
+</button>
+</body></html>
