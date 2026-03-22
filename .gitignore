@@ -56,3 +56,13 @@ crash.*.log
 terraform.rc
 *.tfplan
 *.tflock
+
+# Local-only workspace artifacts (keep repo clean)
+.local/*
+!.local/.gitkeep
+!.local/README.md
+
+# Existing local artifact locations
+infra/diagrams/
+screen_templates/screen_png/
+DOCS/AGENT_HANDOVER_*.md
