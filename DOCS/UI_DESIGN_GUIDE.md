@@ -383,3 +383,30 @@ Last updated: 2026-03-09
 
 ### Notes
 - Friends/history controls are intentionally non-functional in this pass and are tagged as API-dependent in UI.
+
+## 21) No-Auth UI Preview Mode (2026-03-22)
+
+### Decision
+- Added dedicated UI preview routes for rapid UX iteration without requiring Cognito auth or live game backend services.
+
+### What changed
+- Introduced preview route set under `/ui-preview/*`:
+  - `/ui-preview/landing`
+  - `/ui-preview/lobby`
+  - `/ui-preview/profile`
+  - `/ui-preview/friends`
+  - `/ui-preview/history`
+  - `/ui-preview/room`
+- Preview routes render mock data and click-through navigation for design feedback.
+- Production routes and auth-protected behavior remain unchanged.
+
+### Why
+- Improves design iteration speed by removing auth/session/setup friction during UI reviews.
+- Enables focused visual/usability feedback before feature/API wiring is complete.
+
+### Validation
+- `npm --prefix app/frontend run build` (pass)
+- `npm --prefix app/frontend run test -- src/pages/LandingPage.test.jsx src/pages/LobbyPage.test.jsx` (pass)
+
+### Notes
+- Preview mode is not a substitute for end-to-end validation against real auth, WS, and game services.

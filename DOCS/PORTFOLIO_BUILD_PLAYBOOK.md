@@ -783,3 +783,14 @@ Before ending a substantial session:
 - Validation:
   - `npm --prefix app/frontend run build` passed.
   - `npm --prefix app/frontend run test` suites pass by output; process exit remains unstable in local environment.
+
+## UI Iteration Operations Update (2026-03-22)
+- Added no-auth UI preview operating mode to accelerate design feedback loops:
+  - `/ui-preview/*` routes with mock data and click-through navigation.
+- Operational guardrails:
+  - Preview mode is scoped to UI/UX iteration and does not change runtime auth/security boundaries.
+  - Production and interview narrative remain split-host consistent:
+    - static edge landing (`chess-chat.com`)
+    - containerized app runtime (`app.chess-chat.com`).
+- Repository hygiene update:
+  - Local artifact convention established via `.local/` for non-committed UI assets/exports.

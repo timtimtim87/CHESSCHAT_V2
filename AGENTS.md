@@ -66,6 +66,28 @@ When major decisions are made, update:
 
 ---
 
+## UI Preview Workflow (Local)
+
+- For frontend-only iteration, use no-auth preview routes served by the app frontend dev server:
+  - `/ui-preview/landing`
+  - `/ui-preview/lobby`
+  - `/ui-preview/profile`
+  - `/ui-preview/friends`
+  - `/ui-preview/history`
+  - `/ui-preview/room`
+- Preview mode is for UI/UX feedback only; it uses mock data and does not validate real auth/gameplay behavior.
+- Keep production/authenticated routes unchanged while using preview routes for design iteration.
+
+---
+
+## Local Artifact Hygiene
+
+- Put local-only files in `.local/` (screenshots, drafts, temporary exports, ad-hoc notes).
+- `.local/` is git-ignored except `.local/README.md` and `.local/.gitkeep`.
+- `infra/diagrams/` and `screen_templates/screen_png/` are local artifact sources and should not be committed unless explicitly required.
+
+---
+
 ## Terraform Workflow
 
 After any `terraform apply`:
