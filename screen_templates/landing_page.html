@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ChessChat | Play with Friends</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "inverse-primary": "#006b5f",
+              "surface": "#1A1C23",
+              "on-tertiary-container": "#3641a9",
+              "tertiary": "#d5d7ff",
+              "on-error": "#690005",
+              "on-tertiary-fixed": "#000767",
+              "on-error-container": "#ffdad6",
+              "tertiary-container": "#b3b9ff",
+              "on-surface-variant": "#bacac5",
+              "outline-variant": "#3c4a46",
+              "on-secondary-fixed": "#0b1c30",
+              "surface-tint": "#2DD4BF",
+              "error-container": "#93000a",
+              "surface-container-highest": "#33343c",
+              "tertiary-fixed-dim": "#bdc2ff",
+              "error": "#ffb4ab",
+              "surface-container": "#242731",
+              "surface-container-high": "#2d313d",
+              "on-tertiary-fixed-variant": "#2f3aa3",
+              "on-primary-fixed-variant": "#005047",
+              "inverse-surface": "#e2e2ec",
+              "on-secondary-container": "#a9bad3",
+              "secondary-container": "#3a4a5f",
+              "on-tertiary": "#131e8c",
+              "secondary": "#b7c8e1",
+              "on-surface": "#e2e2ec",
+              "primary-fixed": "#62fae3",
+              "surface-variant": "#33343c",
+              "on-primary": "#003731",
+              "surface-container-low": "#1e2129",
+              "surface-bright": "#373941",
+              "primary-fixed-dim": "#2DD4BF",
+              "on-primary-container": "#00574d",
+              "outline": "#859490",
+              "on-primary-fixed": "#00201c",
+              "on-background": "#e2e2ec",
+              "surface-dim": "#1A1C23",
+              "surface-container-lowest": "#14161c",
+              "on-secondary": "#213145",
+              "primary-container": "#2dd4bf",
+              "inverse-on-surface": "#2e3038",
+              "background": "#1A1C23",
+              "primary": "#2DD4BF",
+              "on-secondary-fixed-variant": "#38485d",
+              "tertiary-fixed": "#e0e0ff",
+              "secondary-fixed": "#d3e4fe",
+              "secondary-fixed-dim": "#b7c8e1"
+            },
+            fontFamily: {
+              "headline": ["Plus Jakarta Sans"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "0.75rem", "xl": "1rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #1A1C23;
+            color: #e2e2ec;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+        .glass-panel {
+            background: rgba(26, 28, 35, 0.8);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+        }
+        .text-gradient {
+            background: linear-gradient(135deg, #2DD4BF 0%, #00bfa5 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+<body class="bg-surface h-screen flex flex-col overflow-hidden">
+<!-- TopNavBar -->
+<nav class="shrink-0 w-full z-50 bg-[#1A1C23]/60 backdrop-blur-xl border-b border-outline-variant/10">
+<div class="flex justify-between items-center px-8 py-4 w-full max-w-[1440px] mx-auto font-['Plus_Jakarta_Sans'] tracking-tight">
+<div class="text-2xl font-bold tracking-tighter text-primary">
+            ChessChat
+        </div>
+<div class="flex items-center space-x-4">
+<button class="bg-primary/10 text-primary hover:bg-primary/20 px-6 py-2 rounded-lg font-medium transition-all text-sm border border-primary/20">Log In</button>
+</div>
+</div>
+</nav>
+<main class="flex-grow relative flex items-center overflow-hidden">
+<!-- Hero Section -->
+<section class="relative px-8 w-full max-w-[1440px] mx-auto">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+<div class="z-10 py-8">
+<span class="inline-block py-1 px-3 rounded-full bg-primary/10 text-primary text-xs font-bold tracking-widest mb-6 uppercase">
+                    Chess with a Smile
+                </span>
+<h1 class="font-headline text-6xl md:text-7xl lg:text-8xl font-extrabold tracking-tighter leading-[1.1] mb-8 text-on-surface">
+                    Play, Chat, and <br/>
+<span class="text-gradient">Checkmate</span><br/>
+<span class="text-on-surface/80">with friends.</span>
+</h1>
+<p class="font-body text-lg md:text-xl text-on-surface-variant leading-relaxed max-w-lg mb-10">
+                    Experience the joy of a real-life chess match with your best friends. High-quality video, instant invites, and zero stress.
+                </p>
+<div class="flex flex-wrap gap-6 mb-12">
+<button class="bg-primary text-on-primary font-bold px-10 py-4 rounded-xl shadow-[0_20px_40px_-10px_rgba(45,212,191,0.3)] hover:scale-[1.02] transition-transform duration-300">
+                        Join Now
+                    </button>
+<button class="outline-variant border border-primary/30 text-primary font-bold px-10 py-4 rounded-xl hover:bg-primary/5 transition-colors duration-300">
+                        See How it Works
+                    </button>
+</div>
+<div class="flex items-center gap-8">
+<div class="flex -space-x-4">
+<img class="w-12 h-12 rounded-full border-4 border-surface object-cover" data-alt="Profile of a friend" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC5FtaSFliFSNDYfXC4xuPNP0BMKBFDX0VrgoKJ54WR2N9_-1jGXGp8KnMQzlgPjblVS3Yg1w8rWv3DEgOjPnrQ7skiat_x-pCxnAvOu9jeklz9lqNtN4YhKs4lFAxdHhVsMtv6tPl7bBvHpCvNdTexCypp_0TTb9dTNRxhfmYKPkr59i3w3qE-JTbLZfC3serlda6fkjWz1B7rZBbtfqydw06Edl70pUzkzkZtVHENdMdtIVXllQXcH6wiOWKJSr9MroqLLW7KTIPt"/>
+<img class="w-12 h-12 rounded-full border-4 border-surface object-cover" data-alt="Profile of a friend" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC_uVmcTDIb7gUdqyeXT0aA-DO2dRFDSRp-RdpZQh4BoXgLsvjfDVfNq5KouMxQ1wg6-7sMrQTHkANlgUkOGcaHJ9G5Je6bpyCMyuAY5mTN1-S78tZGB6xTZoWe0wypIzVlxp8IMVCL2xGAgwHflkDWJ31ewuW4NP6XnAJBISPHp3bWn_1D_GtK-7hjO7Ger2qDgcsSItWdP7N1q_N0EY_s4aL2jo0MLbHZYhUZFuXruy4GvKxhxMS1u_FUR3he7WhwKE0tgSnp54Op"/>
+<img class="w-12 h-12 rounded-full border-4 border-surface object-cover" data-alt="Profile of a friend" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDSZJ7JJhD2NQf-p41iGI_I0W9CIei1_QNG9-g9gTyUpPbcnJXczSnSnbZDSI9OJcpVnI62prvEYV0V7mH4g0col_5BPz1FTP_ghF-kyJ3xhhDZuMQwA-6aT79iuTI2Ij-4eIMHCILed0p9hlAK7vEbQlh22oSdKzjWXBsAaSwHqNtWmwngX079QL5EHq43Es5jSKG5DnNqELcactXPhHtTxcelfJZE1wcrv8pKlr4iqpsGTmXyqsu4MN1SFHi6W4WWHBYBu-kj03gj"/>
+</div>
+<p class="text-sm font-label text-on-surface-variant">
+                        Join <span class="text-on-surface font-bold">12,000+</span> people playing together today
+                    </p>
+</div>
+</div>
+<!-- Visual Representation: Active Game Room Preview -->
+<div class="relative hidden lg:block">
+<div class="absolute -top-20 -right-20 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px]"></div>
+<div class="relative glass-panel rounded-3xl p-8 shadow-2xl border border-outline-variant/10">
+<!-- Preview Header -->
+<div class="flex items-center justify-between mb-8">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">videocam</span>
+</div>
+<div>
+<h3 class="font-bold text-lg">Game vs. Chloe</h3>
+<div class="text-[11px] text-primary flex items-center gap-1.5 font-bold uppercase tracking-wider">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+                                    Live Connection Active
+                                </div>
+</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant/10 px-6 py-2.5 rounded-xl font-mono text-primary font-bold shadow-sm">
+                            Your Turn
+                        </div>
+</div>
+<!-- Video Feeds -->
+<div class="grid grid-cols-2 gap-4 mb-8">
+<div class="aspect-[4/3] rounded-2xl overflow-hidden relative border border-outline-variant/20 group">
+<img class="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 transition-all duration-500" data-alt="Female player video feed" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBSZ8F0YvW5mZ7O_Vv7k0nO2z8e_l9mH8_mQ9B4J9w8-z6c8X5h2P4Q3L0V1U2N3M4L5K6J7I8H9G0F1E2D3C4B5A6"/>
+<div class="absolute bottom-3 left-3 bg-surface/80 backdrop-blur-md px-3 py-1 rounded-lg text-xs font-medium border border-outline-variant/10">Chloe W.</div>
+<div class="absolute top-3 right-3">
+<span class="material-symbols-outlined text-primary text-lg">mic</span>
+</div>
+</div>
+<div class="aspect-[4/3] rounded-2xl overflow-hidden relative border border-outline-variant/20 group">
+<img class="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 transition-all duration-500" data-alt="Male player video feed" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAixf_-M1xkIorr5N6pZJVyaje4pwxSP8NosqeKC-qX0j-C9Yxj7lkcZnbWjvsohboJXcZWaXPpmG0QofzqQ8A503N6UFNXh7B96iMG3tRSbIHxUuAAU0Eg4v4G3R9pDwVMj_Prm06IFlcfxOGc-lEwE710C3BDv4jNlmV8wpuZTWxaY2YrOQYNWCyeyWn6_k7fAdIm8eAloGC0SUajJQhAZJr6VGcraSUSu2CKwm2t_aB-KtrVfti8uJKuIex_i9-We1TONYKOkON_"/>
+<div class="absolute bottom-3 left-3 bg-surface/80 backdrop-blur-md px-3 py-1 rounded-lg text-xs font-medium border border-outline-variant/10">You (Alex)</div>
+<div class="absolute top-3 right-3">
+<span class="material-symbols-outlined text-primary text-lg">mic</span>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-12 gap-6 items-start">
+<!-- Left Stats -->
+<div class="col-span-4 space-y-4">
+<!-- Win Probability Component -->
+<div class="rounded-2xl overflow-hidden border border-outline-variant/10 shadow-lg bg-surface-container-lowest">
+<img alt="Win Probability Chart" class="w-full h-auto" src="https://lh3.googleusercontent.com/aida/ADBb0ugcLlKKes-lxiJ0fC-MrYcLoxnNtErAJaaFxYz9hSt0F0eXak7TyLCWeVbAQO5GFxocBbnXMEedFUSkXk8yDypL3-5vXzOzZpsTBTppxwsyhcsprgwsQwZThxoYwbgQbcmkq4JPNTsFhG77UIubJ7wgcMs8s0lEmnDF4qwj7bapCiUHUIIS7gNOmLzOdt8-jDibZowpADXvZdEzgZuXG2QicKo4AWh94nPst_Yehtmbz3eKV_rE39MJ3JIgZnanbhZI8n6bSfrw4Q"/>
+</div>
+<div class="bg-surface-container-low p-4 rounded-2xl border border-outline-variant/10">
+<div class="text-[10px] text-on-surface-variant uppercase font-bold tracking-widest mb-2">Game Info</div>
+<div class="flex justify-between items-center mb-1">
+<span class="text-xs text-on-surface/60">Time Control</span>
+<span class="text-xs font-bold">10 | 0</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-xs text-on-surface/60">Moves</span>
+<span class="text-xs font-bold">24</span>
+</div>
+</div>
+</div>
+<!-- Central Board -->
+<div class="col-span-8">
+<div class="bg-surface-container-highest p-4 rounded-2xl border border-outline-variant/20 shadow-inner">
+<div class="grid grid-cols-8 gap-0.5 aspect-square rounded-lg overflow-hidden border border-outline-variant/30">
+<!-- Simplified Board Pattern -->
+<div class="bg-surface/50 aspect-square"></div><div class="bg-primary/10 aspect-square"></div><div class="bg-surface/50 aspect-square"></div><div class="bg-primary/10 aspect-square"></div><div class="bg-surface/50 aspect-square"></div><div class="bg-primary/10 aspect-square"></div><div class="bg-surface/50 aspect-square"></div><div class="bg-primary/10 aspect-square"></div>
+<div class="bg-primary/10 aspect-square"></div><div class="bg-surface/50 aspect-square"></div><div class="bg-primary/10 aspect-square"></div><div class="bg-surface/50 aspect-square"></div><div class="bg-primary/10 aspect-square"></div><div class="bg-surface/50 aspect-square"></div><div class="bg-primary/10 aspect-square"></div><div class="bg-surface/50 aspect-square"></div>
+<div class="bg-surface/50 aspect-square"></div><div class="bg-primary/10 aspect-square"></div><div class="bg-surface/50 aspect-square"></div><div class="bg-primary/30 aspect-square flex items-center justify-center"><span class="material-symbols-outlined text-primary text-base">change_history</span></div><div class="bg-surface/50 aspect-square"></div><div class="bg-primary/10 aspect-square"></div><div class="bg-surface/50 aspect-square"></div><div class="bg-primary/10 aspect-square"></div>
+<div class="bg-primary/10 aspect-square"></div><div class="bg-surface/50 aspect-square"></div><div class="bg-primary/10 aspect-square"></div><div class="bg-surface/50 aspect-square"></div><div class="bg-primary/10 aspect-square"></div><div class="bg-surface/50 aspect-square"></div><div class="bg-primary/10 aspect-square"></div><div class="bg-surface/50 aspect-square"></div>
+<div class="bg-surface/50 aspect-square"></div><div class="bg-primary/10 aspect-square"></div><div class="bg-surface/50 aspect-square"></div><div class="bg-primary/10 aspect-square"></div><div class="bg-primary/50 aspect-square flex items-center justify-center shadow-[0_0_15px_rgba(45,212,191,0.5)]"><span class="material-symbols-outlined text-surface text-base">radio_button_checked</span></div><div class="bg-primary/10 aspect-square"></div><div class="bg-surface/50 aspect-square"></div><div class="bg-primary/10 aspect-square"></div>
+<div class="bg-primary/10 aspect-square"></div><div class="bg-surface/50 aspect-square"></div><div class="bg-primary/10 aspect-square"></div><div class="bg-surface/50 aspect-square"></div><div class="bg-primary/10 aspect-square"></div><div class="bg-surface/50 aspect-square"></div><div class="bg-primary/10 aspect-square"></div><div class="bg-surface/50 aspect-square"></div>
+<div class="bg-surface/50 aspect-square"></div><div class="bg-primary/10 aspect-square"></div><div class="bg-surface/50 aspect-square"></div><div class="bg-primary/10 aspect-square"></div><div class="bg-surface/50 aspect-square"></div><div class="bg-primary/10 aspect-square"></div><div class="bg-surface/50 aspect-square"></div><div class="bg-primary/10 aspect-square"></div>
+<div class="bg-primary/10 aspect-square"></div><div class="bg-surface/50 aspect-square"></div><div class="bg-primary/10 aspect-square"></div><div class="bg-surface/50 aspect-square"></div><div class="bg-primary/10 aspect-square"></div><div class="bg-surface/50 aspect-square"></div><div class="bg-primary/10 aspect-square"></div><div class="bg-surface/50 aspect-square"></div>
+</div>
+<div class="mt-4 flex items-center justify-center gap-2 text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">
+<span class="material-symbols-outlined text-sm">link</span>
+                                    Private Game Room Link Shared
+                                </div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<footer class="shrink-0 bg-surface-container-lowest border-t border-outline-variant/10 py-8">
+<div class="max-w-[1440px] mx-auto px-8 flex flex-col md:flex-row justify-between items-center gap-8">
+<div class="text-xl font-bold tracking-tighter text-primary">
+            ChessChat
+        </div>
+<div class="flex gap-12 text-sm text-on-surface-variant">
+<a class="hover:text-primary transition-colors" href="#">Privacy</a>
+<a class="hover:text-primary transition-colors" href="#">Terms</a>
+<a class="hover:text-primary transition-colors" href="#">Help</a>
+</div>
+<div class="text-xs text-on-surface-variant/50">
+            © 2024 ChessChat Collective. Let's play together.
+        </div>
+</div>
+</footer>
+</body></html>

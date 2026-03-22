@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "outline-variant": "#3c4a46",
+              "tertiary": "#d5d7ff",
+              "on-surface": "#e2e2ec",
+              "on-error": "#690005",
+              "tertiary-container": "#b3b9ff",
+              "on-secondary-container": "#a9bad3",
+              "on-primary-fixed": "#00201c",
+              "surface-container": "#181a21",
+              "primary-fixed-dim": "#2dd4bf",
+              "on-tertiary-container": "#3641a9",
+              "on-primary": "#003731",
+              "primary-fixed": "#2dd4bf",
+              "inverse-on-surface": "#2e3038",
+              "surface-dim": "#0c0e12",
+              "primary-container": "#2dd4bf",
+              "secondary": "#b7c8e1",
+              "inverse-primary": "#006b5f",
+              "on-secondary": "#213145",
+              "tertiary-fixed": "#e0e0ff",
+              "outline": "#3c4a46",
+              "surface-variant": "#33343c",
+              "secondary-fixed-dim": "#b7c8e1",
+              "primary": "#2dd4bf",
+              "tertiary-fixed-dim": "#bdc2ff",
+              "surface-container-high": "#282a31",
+              "secondary-container": "#3a4a5f",
+              "surface-container-highest": "#33343c",
+              "secondary-fixed": "#d3e4fe",
+              "on-tertiary-fixed": "#000767",
+              "on-surface-variant": "#bacac5",
+              "on-primary-fixed-variant": "#005047",
+              "error-container": "#93000a",
+              "background": "#0c0e12",
+              "error": "#ffb4ab",
+              "inverse-surface": "#e2e2ec",
+              "surface-container-lowest": "#080a0f",
+              "surface-container-low": "#15171d",
+              "on-primary-container": "#003731",
+              "on-background": "#e2e2ec",
+              "on-secondary-fixed": "#0b1c30",
+              "on-tertiary-fixed-variant": "#2f3aa3",
+              "surface-tint": "#2dd4bf",
+              "surface": "#0c0e12",
+              "surface-bright": "#373941",
+              "on-tertiary": "#131e8c",
+              "on-secondary-fixed-variant": "#38485d",
+              "on-error-container": "#ffdad6"
+            },
+            fontFamily: {
+              "headline": ["Plus Jakarta Sans", "sans-serif"],
+              "body": ["Inter", "sans-serif"],
+              "label": ["Inter", "sans-serif"]
+            },
+            borderRadius: {
+              "DEFAULT": "0.5rem",
+              "lg": "0.5rem",
+              "xl": "0.5rem",
+              "full": "9999px"
+            },
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .glass-effect {
+            background: rgba(24, 26, 33, 0.6);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+        }
+        .mint-glow-button:hover {
+            box-shadow: 0 0 30px -5px rgba(45, 212, 191, 0.4);
+        }
+        body {
+            background: radial-gradient(circle at top center, #15171d 0%, #0c0e12 100%);
+        }
+    </style>
+</head>
+<body class="bg-background font-body text-on-surface selection:bg-primary/30 min-h-screen flex flex-col">
+<!-- Top Navigation -->
+<header class="w-full">
+<div class="flex items-center justify-between py-8 px-8 w-full max-w-7xl mx-auto">
+<div class="font-headline text-2xl font-bold tracking-tighter text-primary">
+                Checkmate
+            </div>
+<div>
+<a class="text-on-surface-variant hover:text-primary transition-colors duration-300 font-medium" href="#">Support</a>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-grow flex items-center justify-center px-6 py-12 relative overflow-hidden">
+<!-- Atmospheric Glows -->
+<div class="absolute top-1/4 -left-20 w-96 h-96 bg-primary/10 rounded-full blur-[120px] pointer-events-none opacity-40"></div>
+<div class="absolute bottom-1/4 -right-20 w-80 h-80 bg-primary/5 rounded-full blur-[100px] pointer-events-none opacity-30"></div>
+<div class="w-full max-w-md relative z-10">
+<!-- Identity -->
+<div class="text-center mb-10">
+<h1 class="font-headline text-5xl font-extrabold tracking-tight mb-4 text-on-background">Welcome back</h1>
+<p class="text-on-surface-variant font-body text-lg">The Digital Curator for your next move.</p>
+</div>
+<!-- Login Card -->
+<div class="bg-surface-container-high/40 backdrop-blur-xl p-10 rounded-lg shadow-2xl ring-1 ring-white/10">
+<!-- Social Login Buttons -->
+<div class="space-y-3 mb-8">
+<button class="w-full flex items-center justify-center gap-3 bg-white/5 hover:bg-white/10 text-on-surface font-semibold py-3.5 px-4 rounded-lg transition-all duration-300 border border-white/5">
+<svg class="w-5 h-5" viewbox="0 0 24 24">
+<path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path>
+<path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path>
+<path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"></path>
+<path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"></path>
+</svg>
+                        Continue with Google
+                    </button>
+<button class="w-full flex items-center justify-center gap-3 bg-[#77963C] hover:bg-[#86aa44] text-white font-semibold py-3.5 px-4 rounded-lg transition-all duration-300 border border-white/5">
+<svg class="w-5 h-5" fill="currentColor" viewbox="0 0 24 24">
+<path d="M13.67 1.33L12 0l-1.67 1.33H13.67zM12 24l1.67-1.33H10.33L12 24zM0 10.33l1.33 1.67L0 13.67V10.33zM24 13.67l-1.33-1.67L24 10.33v3.34zM12 4.67C7.95 4.67 4.67 7.95 4.67 12s3.28 7.33 7.33 7.33 7.33-3.28 7.33-7.33-3.28-7.33-7.33-7.33zm0 13.33c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6zm1.33-8.66h-2.66v2.66h2.66V9.34z"></path>
+</svg>
+                        Log in with Chess.com
+                    </button>
+</div>
+<!-- Divider -->
+<div class="relative flex items-center mb-8">
+<div class="flex-grow border-t border-white/10"></div>
+<span class="flex-shrink mx-4 text-[10px] font-bold text-on-surface-variant/60 tracking-[0.2em] uppercase">or email</span>
+<div class="flex-grow border-t border-white/10"></div>
+</div>
+<!-- Form -->
+<form class="space-y-6">
+<div class="space-y-2">
+<label class="block text-sm font-medium text-on-surface-variant ml-1" for="identifier">Email or Username</label>
+<div class="relative">
+<input class="w-full bg-[#0c0e15] border-0 rounded-lg py-3.5 px-4 text-on-surface placeholder:text-slate-700 focus:ring-2 focus:ring-primary/40 transition-all outline-none" id="identifier" name="identifier" placeholder="name@example.com" type="text"/>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between items-center ml-1">
+<label class="block text-sm font-medium text-on-surface-variant" for="password">Password</label>
+<a class="text-xs font-semibold text-primary/80 hover:text-primary transition-colors" href="#">Forgot Password?</a>
+</div>
+<div class="relative">
+<input class="w-full bg-[#0c0e15] border-0 rounded-lg py-3.5 px-4 text-on-surface placeholder:text-slate-700 focus:ring-2 focus:ring-primary/40 transition-all outline-none" id="password" name="password" placeholder="••••••••" type="password"/>
+<button class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-on-surface" type="button">
+<span class="material-symbols-outlined text-xl">visibility</span>
+</button>
+</div>
+</div>
+<button class="w-full bg-primary hover:bg-primary-container text-[#003731] font-bold py-4 px-6 rounded-lg transition-all duration-300 mint-glow-button active:scale-[0.98] mt-2 shadow-lg shadow-primary/10" type="submit">
+                        Log In
+                    </button>
+</form>
+<!-- Footer Link -->
+<div class="mt-8 text-center">
+<p class="text-on-surface-variant font-body">
+                        Don't have an account? 
+                        <a class="text-primary font-bold hover:underline underline-offset-4 ml-1 transition-all" href="#">Sign Up</a>
+</p>
+</div>
+</div>
+<!-- Footer Meta -->
+<div class="mt-12 flex justify-center gap-8 text-[11px] font-bold text-on-surface-variant/40 uppercase tracking-[0.15em]">
+<a class="hover:text-primary transition-colors" href="#">Privacy</a>
+<a class="hover:text-primary transition-colors" href="#">Terms</a>
+<a class="hover:text-primary transition-colors" href="#">Help</a>
+</div>
+</div>
+</main>
+<!-- Page Footer -->
+<footer class="w-full bg-surface-container-lowest border-t border-white/5">
+<div class="flex flex-col md:flex-row justify-between items-center py-10 px-8 w-full max-w-7xl mx-auto font-body text-sm">
+<div class="text-on-surface-variant/50 mb-6 md:mb-0">
+                © 2024 Checkmate Curator. All rights reserved.
+            </div>
+<div class="flex gap-8">
+<a class="text-on-surface-variant/50 hover:text-primary transition-colors" href="#">Terms</a>
+<a class="text-on-surface-variant/50 hover:text-primary transition-colors" href="#">Privacy</a>
+<a class="text-on-surface-variant/50 hover:text-primary transition-colors" href="#">Support</a>
+</div>
+</div>
+</footer>
+</body></html>

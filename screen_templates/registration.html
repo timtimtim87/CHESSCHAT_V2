@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sign Up | Checkmate</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "outline-variant": "#2c2e36",
+                        "tertiary": "#d5d7ff",
+                        "on-surface": "#e2e2ec",
+                        "on-error": "#690005",
+                        "tertiary-container": "#b3b9ff",
+                        "on-secondary-container": "#a9bad3",
+                        "on-primary-fixed": "#00201c",
+                        "surface-container": "#1d1f26",
+                        "primary-fixed-dim": "#3cddc7",
+                        "on-tertiary-container": "#3641a9",
+                        "on-primary": "#003731",
+                        "primary-fixed": "#62fae3",
+                        "inverse-on-surface": "#2e3038",
+                        "surface-dim": "#11131a",
+                        "primary-container": "#2dd4bf",
+                        "secondary": "#b7c8e1",
+                        "inverse-primary": "#006b5f",
+                        "on-secondary": "#213145",
+                        "tertiary-fixed": "#e0e0ff",
+                        "outline": "#4a4c54",
+                        "surface-variant": "#25272e",
+                        "secondary-fixed-dim": "#b7c8e1",
+                        "primary": "#2dd4bf",
+                        "tertiary-fixed-dim": "#bdc2ff",
+                        "surface-container-high": "#23252d",
+                        "secondary-container": "#3a4a5f",
+                        "surface-container-highest": "#2e3038",
+                        "secondary-fixed": "#d3e4fe",
+                        "on-tertiary-fixed": "#000767",
+                        "on-surface-variant": "#9ba1ad",
+                        "on-primary-fixed-variant": "#005047",
+                        "error-container": "#93000a",
+                        "background": "#0f1117",
+                        "error": "#ffb4ab",
+                        "inverse-surface": "#e2e2ec",
+                        "surface-container-lowest": "#0a0c12",
+                        "surface-container-low": "#16181e",
+                        "on-primary-container": "#00201c",
+                        "on-background": "#e2e2ec",
+                        "on-secondary-fixed": "#0b1c30",
+                        "on-tertiary-fixed-variant": "#2f3aa3",
+                        "surface-tint": "#2dd4bf",
+                        "surface": "#0f1117",
+                        "surface-bright": "#373941",
+                        "on-tertiary": "#131e8c",
+                        "on-secondary-fixed-variant": "#38485d",
+                        "on-error-container": "#ffdad6"
+                    },
+                    fontFamily: {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: { "DEFAULT": "0.5rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-panel {
+            background: rgba(22, 24, 30, 0.8);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+        }
+        .mint-glow-button {
+            box-shadow: 0 0 20px -5px rgba(45, 212, 191, 0.4);
+        }
+        .mint-glow-button:hover {
+            box-shadow: 0 0 25px -2px rgba(45, 212, 191, 0.6);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body selection:bg-primary/30 selection:text-primary min-h-screen flex flex-col">
+<!-- TopAppBar Fragment -->
+<header class="w-full top-0 left-0 bg-background/80 backdrop-blur-md z-50">
+<div class="flex items-center justify-center py-10 px-6 w-full max-w-7xl mx-auto">
+<h1 class="text-2xl font-extrabold tracking-tighter text-primary font-headline">Checkmate</h1>
+</div>
+</header>
+<main class="flex-grow flex items-center justify-center px-4 py-12 relative overflow-hidden">
+<!-- Atmospheric Background Elements -->
+<div class="absolute top-1/4 -left-20 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none"></div>
+<div class="absolute bottom-1/4 -right-20 w-[500px] h-[500px] bg-tertiary/5 rounded-full blur-[120px] pointer-events-none"></div>
+<!-- Registration Card -->
+<div class="w-full max-w-[480px] glass-panel border border-white/[0.03] rounded-xl p-8 md:p-12 relative z-10 shadow-2xl">
+<div class="mb-10 text-center">
+<h2 class="text-3xl font-extrabold font-headline tracking-tight text-on-surface mb-3">Create your account</h2>
+<p class="text-on-surface-variant font-label text-sm opacity-80">Join the elite community of digital curators.</p>
+</div>
+<!-- Social Login -->
+<button class="w-full flex items-center justify-center gap-3 bg-[#1d1f26] hover:bg-[#2e3038] text-on-surface py-3.5 px-4 rounded-lg transition-all duration-300 border border-white/[0.05] group mb-4 shadow-sm">
+<svg class="group-hover:scale-110 transition-transform" height="20" viewbox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 0L10.3 3.6L6.7 5.3L10.3 7L12 10.6L13.7 7L17.3 5.3L13.7 3.6L12 0Z" fill="#81b64c"></path>
+<path d="M12 24L13.7 20.4L17.3 18.7L13.7 17L12 13.4L10.3 17L6.7 18.7L10.3 20.4L12 24Z" fill="#81b64c"></path>
+<path d="M0 12L3.6 13.7L5.3 17.3L7 13.7L10.6 12L7 10.3L5.3 6.7L3.6 10.3L0 12Z" fill="#81b64c"></path>
+<path d="M24 12L20.4 10.3L18.7 6.7L17 10.3L13.4 12L17 13.7L18.7 17.3L20.4 13.7L24 12Z" fill="#81b64c"></path>
+</svg>
+<span class="font-semibold text-sm tracking-wide">Verify with Chess.com</span>
+</button><button class="w-full flex items-center justify-center gap-3 bg-surface-container-high hover:bg-surface-container-highest text-on-surface py-3.5 px-4 rounded-lg transition-all duration-300 border border-white/[0.05] group mb-10">
+<svg class="group-hover:scale-110 transition-transform" height="18" viewbox="0 0 24 24" width="18">
+<path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path>
+<path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-1 .67-2.28 1.07-3.71 1.07-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path>
+<path d="M5.84 14.09c-.22-.67-.35-1.39-.35-2.09s.13-1.42.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"></path>
+<path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 12-4.53z" fill="#EA4335"></path>
+</svg>
+<span class="font-semibold text-sm tracking-wide">Continue with Google</span>
+</button>
+<div class="relative mb-10">
+<div class="absolute inset-0 flex items-center">
+<div class="w-full border-t border-white/[0.05]"></div>
+</div>
+<div class="relative flex justify-center text-[10px] uppercase tracking-[0.2em] font-bold">
+<span class="bg-[#16181e] px-4 text-on-surface-variant">Or register with email</span>
+</div>
+</div>
+<!-- Form -->
+<form class="space-y-6">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+<div class="space-y-2">
+<label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.15em] ml-1" for="name">Full Name</label>
+<input class="w-full bg-surface-container-lowest border border-white/[0.03] focus:ring-1 focus:ring-primary focus:border-primary/50 rounded-lg py-3 px-4 text-on-surface placeholder:text-on-surface-variant/20 transition-all outline-none text-sm" id="name" placeholder="Magnus Carlsen" type="text"/>
+</div>
+<div class="space-y-2">
+<label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.15em] ml-1" for="username">Username</label>
+<input class="w-full bg-surface-container-lowest border border-white/[0.03] focus:ring-1 focus:ring-primary focus:border-primary/50 rounded-lg py-3 px-4 text-on-surface placeholder:text-on-surface-variant/20 transition-all outline-none text-sm" id="username" placeholder="grandmaster99" type="text"/>
+</div>
+</div>
+<div class="space-y-2">
+<label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.15em] ml-1" for="email">Email Address</label>
+<input class="w-full bg-surface-container-lowest border border-white/[0.03] focus:ring-1 focus:ring-primary focus:border-primary/50 rounded-lg py-3 px-4 text-on-surface placeholder:text-on-surface-variant/20 transition-all outline-none text-sm" id="email" placeholder="curator@checkmate.io" type="email"/>
+</div>
+<div class="space-y-2">
+<label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.15em] ml-1" for="password">Password</label>
+<div class="relative">
+<input class="w-full bg-surface-container-lowest border border-white/[0.03] focus:ring-1 focus:ring-primary focus:border-primary/50 rounded-lg py-3 px-4 text-on-surface placeholder:text-on-surface-variant/20 transition-all outline-none text-sm" id="password" placeholder="••••••••" type="password"/>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant/50 cursor-pointer hover:text-primary transition-colors text-xl">visibility</span>
+</div>
+</div>
+<div class="space-y-2">
+<label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.15em] ml-1" for="confirm-password">Confirm Password</label>
+<input class="w-full bg-surface-container-lowest border border-white/[0.03] focus:ring-1 focus:ring-primary focus:border-primary/50 rounded-lg py-3 px-4 text-on-surface placeholder:text-on-surface-variant/20 transition-all outline-none text-sm" id="confirm-password" placeholder="••••••••" type="password"/>
+</div>
+<div class="flex items-start gap-3 py-1">
+<div class="flex items-center h-5">
+<input class="w-4 h-4 rounded border-outline-variant bg-surface-container-lowest text-primary focus:ring-primary/40 focus:ring-offset-background" id="terms" type="checkbox"/>
+</div>
+<label class="text-xs text-on-surface-variant leading-tight" for="terms">
+                        I agree to the <a class="text-primary hover:text-primary-fixed-dim transition-colors" href="#">Terms and Conditions</a> and Privacy Policy.
+                    </label>
+</div>
+<button class="w-full bg-primary text-on-primary font-bold py-4 rounded-lg transition-all hover:brightness-110 active:scale-[0.99] mint-glow-button text-sm tracking-wide mt-4" type="submit">
+                    Sign Up
+                </button>
+</form>
+<div class="mt-8 text-center">
+<p class="text-sm text-on-surface-variant">
+                    Already have an account? 
+                    <a class="text-primary font-bold hover:text-primary-fixed-dim transition-colors ml-1" href="#">Log In</a>
+</p>
+</div>
+</div>
+</main>
+<!-- Footer Segment -->
+<footer class="w-full bg-surface-container-lowest border-t border-white/[0.03] py-12 px-8">
+<div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+<p class="font-body text-xs text-on-surface-variant/50">© 2024 Checkmate Curator. All rights reserved.</p>
+<nav class="flex gap-10">
+<a class="text-on-surface-variant/50 hover:text-primary transition-colors text-xs font-medium" href="#">Terms</a>
+<a class="text-on-surface-variant/50 hover:text-primary transition-colors text-xs font-medium" href="#">Privacy</a>
+<a class="text-on-surface-variant/50 hover:text-primary transition-colors text-xs font-medium" href="#">Support</a>
+</nav>
+</div>
+</footer>
+</body></html>

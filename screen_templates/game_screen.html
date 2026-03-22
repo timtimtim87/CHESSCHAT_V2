@@ -1,0 +1,234 @@
+<!DOCTYPE html><html class="dark" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>ChessChat - Active Game Room</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "secondary-fixed-dim": "#b7c8e1",
+                        "on-surface": "#e2e2ec",
+                        "on-error-container": "#ffdad6",
+                        "background": "#11131a",
+                        "on-surface-variant": "#bacac5",
+                        "surface-container-low": "#191b22",
+                        "on-secondary-fixed": "#0b1c30",
+                        "surface-bright": "#373941",
+                        "on-tertiary-container": "#3641a9",
+                        "primary-fixed": "#62fae3",
+                        "error-container": "#93000a",
+                        "primary-fixed-dim": "#3cddc7",
+                        "primary-container": "#2dd4bf",
+                        "surface-dim": "#11131a",
+                        "on-tertiary-fixed-variant": "#2f3aa3",
+                        "tertiary": "#d5d7ff",
+                        "surface-container-high": "#282a31",
+                        "surface-container": "#1d1f26",
+                        "outline": "#859490",
+                        "tertiary-container": "#b3b9ff",
+                        "surface-tint": "#3cddc7",
+                        "on-background": "#e2e2ec",
+                        "inverse-primary": "#006b5f",
+                        "tertiary-fixed-dim": "#bdc2ff",
+                        "inverse-on-surface": "#2e3038",
+                        "primary": "#57f1db",
+                        "on-tertiary-fixed": "#000767",
+                        "on-primary": "#003731",
+                        "on-primary-fixed-variant": "#005047",
+                        "secondary-fixed": "#d3e4fe",
+                        "inverse-surface": "#e2e2ec",
+                        "surface-container-lowest": "#0c0e15",
+                        "on-secondary-fixed-variant": "#38485d",
+                        "surface": "#11131a",
+                        "error": "#ffb4ab",
+                        "on-primary-fixed": "#00201c",
+                        "tertiary-fixed": "#e0e0ff",
+                        "on-tertiary": "#131e8c",
+                        "secondary-container": "#3a4a5f",
+                        "on-secondary-container": "#a9bad3",
+                        "secondary": "#b7c8e1",
+                        "on-secondary": "#213145",
+                        "surface-container-highest": "#33343c",
+                        "surface-variant": "#33343c",
+                        "outline-variant": "#3c4a46",
+                        "on-error": "#690005",
+                        "on-primary-container": "#00574d"
+                    },
+                    fontFamily: {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-panel {
+            background: rgba(29, 31, 38, 0.6);
+            backdrop-filter: blur(24px);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body selection:bg-primary/30 selection:text-primary min-h-screen flex flex-col">
+<!-- TopAppBar Shared Component -->
+<header class="fixed top-0 w-full z-50 bg-[#11131a] dark:bg-[#11131a]/60 backdrop-blur-3xl shadow-[0_40px_-10px_rgba(45,212,191,0.08)] flex justify-between items-center px-6 py-4">
+<div class="text-xl font-bold tracking-tighter text-[#2dd4bf] font-headline" style="">Chess-Chat</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-[#e2e2ec]/70 hover:bg-[#373941] p-2 rounded-full transition-colors cursor-pointer" data-icon="account_circle" style="">account_circle</span>
+<span class="material-symbols-outlined text-[#e2e2ec]/70 hover:bg-[#373941] p-2 rounded-full transition-colors cursor-pointer" data-icon="settings" style="">settings</span>
+<span class="material-symbols-outlined text-[#e2e2ec]/70 hover:bg-[#373941] p-2 rounded-full transition-colors cursor-pointer" data-icon="logout" style="">logout</span>
+</div>
+</header>
+<main class="flex-grow pt-24 pb-32 px-6 max-w-[1600px] mx-auto w-full flex flex-col gap-6">
+<!-- Status Strip & Win Probability -->
+<div class="grid grid-cols-12 gap-6 items-center">
+<div class="col-span-12 lg:col-span-9 flex items-center justify-between bg-surface-container rounded-xl px-6 py-3">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-primary animate-pulse"></span>
+<span class="font-headline font-bold text-primary tracking-tight" style="">White's Turn</span>
+</div>
+<div class="h-4 w-px bg-outline-variant/30"></div>
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-sm" data-icon="network_check" style="">network_check</span>
+<span class="text-xs font-medium" style="">Latency: 24ms</span>
+</div>
+</div>
+<div class="flex gap-4 text-xs font-bold tracking-widest uppercase text-on-surface-variant/60">
+<span class="" style="">Move 32</span>
+<span class="" style="">Classical 15|10</span>
+</div>
+</div>
+<div class="col-span-12 lg:col-span-3 bg-[#12201e] rounded-xl px-6 py-6 flex items-center justify-between border border-primary/10 shadow-lg">
+<div class="flex flex-col gap-1">
+<span class="text-[10px] font-black text-primary uppercase tracking-wider" style="">Win Probability</span>
+<span class="text-4xl font-headline font-black text-primary leading-none" style="">64%</span>
+</div>
+<div class="flex items-center">
+<span class="material-symbols-outlined text-primary text-4xl" style="font-variation-settings: &quot;wght&quot; 600;">trending_up</span>
+</div>
+</div>
+</div>
+<!-- Main 3-Panel Game Layout -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-6 flex-grow">
+<!-- Left Player (Opponent) -->
+<div class="md:col-span-3 flex flex-col gap-3">
+<div class="relative flex-grow bg-surface-container rounded-2xl overflow-hidden aspect-[3/4] md:aspect-auto">
+<img alt="Opponent live video stream" class="w-full h-full object-cover grayscale-[10%]" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBNAlEHbM22ORL01LkInqw7mzloJSMoXaeD0IQb4lUqSH9bub0RbjglhFYegghdsDPD9Q_zgMLnHAVRLQIt8OfZ3ermYZJayBWYt6OlA0vi4_yFkJkkXpJh1F5EMUg24UNs2ph9kY0PyLLqICXGBRnX_VbRRdVVwnK7HiI-HwMnV_5iBeBcvHwVjEOjCp7O5bnDmdJAU2ZlkNOxEftVNF_vgALrx9BJid_HpEQTZBeHPVTL4Z3mU1oI63brcvEfzH70Of5xMceJ-kkw" style="">
+<div class="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent"></div>
+<div class="absolute bottom-4 left-4 right-4">
+<div class="flex items-end justify-end">
+<div class="bg-background/40 backdrop-blur-md rounded-lg px-3 py-1 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-error" data-icon="mic_off" style="font-variation-settings: &quot;FILL&quot; 1;">mic_off</span>
+</div>
+</div>
+</div>
+</div>
+<div class="px-2 flex flex-col">
+<h3 class="font-headline font-extrabold text-lg text-on-surface leading-tight" style="">Magnus_C</h3>
+<p class="text-xs font-medium text-on-surface-variant" style="">Rating 2842</p>
+</div>
+<div class="bg-surface-container-high rounded-xl p-6 flex flex-col items-center justify-center shadow-[0_20px_40px_rgba(0,0,0,0.2)]">
+<span class="text-xs font-bold text-on-surface-variant uppercase tracking-[0.2em] mb-1" style="">Timer</span>
+<div class="text-5xl font-headline font-black tracking-tighter text-on-surface tabular-nums" style="">04:12</div>
+</div>
+</div>
+<!-- Center Chess Board -->
+<div class="md:col-span-6 flex flex-col gap-6">
+<div class="aspect-square bg-surface-container rounded-2xl p-4 shadow-2xl relative">
+<div class="w-full h-full grid grid-cols-8 grid-rows-8 rounded-lg overflow-hidden outline outline-offset-4 outline-primary/10">
+<!-- Chessboard Pattern -->
+<div class="col-span-8 row-span-8 grid grid-cols-8 grid-rows-8">
+<div class="bg-surface-container-highest"></div><div class="bg-surface-container"></div><div class="bg-surface-container-highest"></div><div class="bg-surface-container"></div><div class="bg-surface-container-highest"></div><div class="bg-surface-container"></div><div class="bg-surface-container-highest"></div><div class="bg-surface-container"></div>
+<div class="bg-surface-container"></div><div class="bg-surface-container-highest"></div><div class="bg-surface-container"></div><div class="bg-surface-container-highest"></div><div class="bg-surface-container"></div><div class="bg-surface-container-highest"></div><div class="bg-surface-container"></div><div class="bg-surface-container-highest"></div>
+<div class="bg-surface-container-highest"></div><div class="bg-surface-container"></div><div class="bg-surface-container-highest"></div><div class="bg-surface-container"></div><div class="bg-surface-container-highest"></div><div class="bg-surface-container"></div><div class="bg-surface-container-highest"></div><div class="bg-surface-container"></div>
+<div class="bg-surface-container"></div><div class="bg-surface-container-highest"></div><div class="bg-surface-container"></div><div class="bg-surface-container-highest"></div><div class="bg-surface-container"></div><div class="bg-surface-container-highest"></div><div class="bg-surface-container"></div><div class="bg-surface-container-highest"></div>
+<div class="bg-surface-container-highest"></div><div class="bg-surface-container"></div><div class="bg-surface-container-highest"></div><div class="bg-surface-container"></div><div class="bg-surface-container-highest"></div><div class="bg-surface-container"></div><div class="bg-surface-container-highest"></div><div class="bg-surface-container"></div>
+<div class="bg-surface-container"></div><div class="bg-surface-container-highest"></div><div class="bg-surface-container"></div><div class="bg-surface-container-highest"></div><div class="bg-surface-container"></div><div class="bg-surface-container-highest"></div><div class="bg-surface-container"></div><div class="bg-surface-container-highest"></div>
+<div class="bg-surface-container-highest"></div><div class="bg-surface-container"></div><div class="bg-surface-container-highest"></div><div class="bg-surface-container"></div><div class="bg-surface-container-highest"></div><div class="bg-surface-container"></div><div class="bg-surface-container-highest"></div><div class="bg-surface-container"></div>
+<div class="bg-surface-container"></div><div class="bg-surface-container-highest"></div><div class="bg-surface-container"></div><div class="bg-surface-container-highest"></div><div class="bg-surface-container"></div><div class="bg-surface-container-highest"></div><div class="bg-surface-container"></div><div class="bg-surface-container-highest"></div>
+</div>
+</div>
+<!-- Pieces Mock -->
+<div class="absolute inset-0 p-4 pointer-events-none grid grid-cols-8 grid-rows-8">
+<div class="col-start-4 row-start-4 flex items-center justify-center">
+<img alt="White knight" class="w-4/5 drop-shadow-xl" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB5jowmwru_f7E6BfmYj0oNJtaaM9cC0uChrnZnGdxNOOV4eAjItqCSp0ZUiG-hNoKLS7iF6fY-QYt14aim5zEqFaSyzyuNEw3k-RvzcFTPrSLkw-teixwLrXgOqHFNVwP34OO-C6w5SOtOxZ__ZLvSG4XlP_ydVLHY09l2df7sMKqxcjiGbHsto1AEWqbDGOtRy8RF6MaGl3W7zvRl7wjuQ9APJRvKAavpzAl_gzN2F5NW4Q2IEGxHFnKIzPz9g4KqxF-NQ2d59oa8" style="">
+</div>
+<div class="col-start-5 row-start-3 flex items-center justify-center bg-primary/20 rounded-sm">
+<img alt="Black pawn" class="w-4/5 drop-shadow-xl" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDUIcqfREu58OD6nLyLSgI2FhoRVq7z7ppbFOmLcaRPh4SRn6P8WMdJ1Z7K8yY734D2RJvqNZyuualnTgb8u6ZzAjdCOZgEMhPNn3nk-8G7w7vPPtJBFtyH-tGgQvh0ogqDT7QWXbUfJWP5ZMU5Vdy-lXTBC_tDKnaqt5XE8PQo9ykp8KX2F6h-SVFBtprR9eyCs58eA2VOIIxZGGsHmtu0MdEq-n0zI6XCusnp959jdTFq7euP9RCUNwoZjg4NSSPEmharFgA0Yrvt" style="">
+</div>
+</div>
+</div>
+<!-- Gameplay Controls -->
+<div class="grid grid-cols-3 gap-4">
+<button class="bg-surface-container-high hover:bg-surface-bright text-on-surface font-headline font-bold py-4 px-6 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 group border border-outline-variant/20 shadow-lg" style="">
+<span class="material-symbols-outlined text-primary group-hover:scale-110 transition-transform" data-icon="flag" style="">flag</span>
+                        Resign
+                    </button>
+<button class="bg-surface-container-high hover:bg-surface-bright text-on-surface font-headline font-bold py-4 px-6 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 group border border-outline-variant/20 shadow-lg" style="">
+<span class="material-symbols-outlined text-primary group-hover:scale-110 transition-transform" data-icon="handshake" style="">handshake</span>
+                        Offer Draw
+                    </button>
+<button class="bg-primary/10 border border-primary/20 hover:bg-primary/20 text-primary font-headline font-bold py-4 px-6 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 group shadow-lg" style="">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform" data-icon="replay" style="">replay</span>
+                        Takeback
+                    </button>
+</div>
+</div>
+<!-- Right Player (You) -->
+<div class="md:col-span-3 flex flex-col gap-3">
+<div class="relative flex-grow bg-surface-container rounded-2xl overflow-hidden aspect-[3/4] md:aspect-auto border-2 border-primary/30">
+<img alt="User live video stream" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuComXoMp3ogdLvrzr2NmtyybrkgP5032c-b_FDQgGEt3BR-qCjvZBnXpv04MPYskHj0znJ7-5j6sNj3WpIrBXm0_nQ-kwpfZMV5hWi_emNbRn45zi36ektrKTmsQstN-wFCXO9fHYMDkbAho1sQb_RMLhs8QNUIeeb1RtifyznzZmKDXyDOTljaIhc1JmUM9f2kW9HbxfsL7xUZ6OeHthkb5QOYrUv0dT398nNUjvqOIyKDd-tbJbV8RlE0PzN7LH6MtSD-tXUIcx2C" style="">
+<div class="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent"></div>
+<div class="absolute bottom-4 left-4 right-4">
+<div class="flex justify-center gap-3 w-full">
+<button class="w-10 h-10 rounded-full bg-background/60 backdrop-blur-xl border border-white/10 flex items-center justify-center text-primary hover:bg-primary hover:text-on-primary transition-all shadow-lg" style="">
+<span class="material-symbols-outlined text-xl" data-icon="mic" style="">mic</span>
+</button>
+<button class="w-10 h-10 rounded-full bg-background/60 backdrop-blur-xl border border-white/10 flex items-center justify-center text-primary hover:bg-primary hover:text-on-primary transition-all shadow-lg" style="">
+<span class="material-symbols-outlined text-xl" data-icon="videocam" style="">videocam</span>
+</button>
+</div>
+</div>
+</div>
+<div class="px-2 flex flex-col">
+<h3 class="font-headline font-extrabold text-lg text-on-surface leading-tight" style="">GrandmasterDev</h3>
+<p class="text-xs font-medium text-on-surface-variant" style="">Rating 2450</p>
+</div>
+<div class="bg-primary bg-gradient-to-br from-primary to-primary-container rounded-xl p-6 flex flex-col items-center justify-center shadow-[0_20px_40px_rgba(45,212,191,0.2)]">
+<span class="text-xs font-bold text-on-primary-container uppercase tracking-[0.2em] mb-1" style="">Your Time</span>
+<div class="text-5xl font-headline font-black tracking-tighter text-on-primary tabular-nums" style="">08:45</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar Shared Component -->
+<footer class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-[#11131a] dark:bg-[#11131a]/60 backdrop-blur-3xl shadow-[0_-10px_40px_rgba(45,212,191,0.08)] z-50 rounded-t-2xl">
+<div class="flex flex-col items-center justify-center text-[#e2e2ec]/50 hover:text-[#2dd4bf] transition-all active:scale-90 duration-150">
+<span class="material-symbols-outlined" data-icon="grid_view" style="">grid_view</span>
+<span class="font-['Inter'] text-[10px] font-medium" style="">Lobby</span>
+</div>
+<div class="flex flex-col items-center justify-center bg-[#282a31] text-[#2dd4bf] rounded-full px-4 py-1 transition-all active:scale-90 duration-150">
+<span class="material-symbols-outlined" data-icon="playing_cards" style="">playing_cards</span>
+<span class="font-['Inter'] text-[10px] font-medium" style="">Games</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#e2e2ec]/50 hover:text-[#2dd4bf] transition-all active:scale-90 duration-150">
+<span class="material-symbols-outlined" data-icon="forum" style="">forum</span>
+<span class="font-['Inter'] text-[10px] font-medium" style="">Chat</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#e2e2ec]/50 hover:text-[#2dd4bf] transition-all active:scale-90 duration-150">
+<span class="material-symbols-outlined" data-icon="person" style="">person</span>
+<span class="font-['Inter'] text-[10px] font-medium" style="">Profile</span>
+</div>
+</footer>
+</body></html>

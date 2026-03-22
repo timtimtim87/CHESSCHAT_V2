@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "secondary-container": "#1a1f26",
+              "surface-variant": "#232933",
+              "on-tertiary-fixed-variant": "#2f3aa3",
+              "on-primary-fixed-variant": "#005047",
+              "on-secondary-fixed-variant": "#38485d",
+              "error-container": "#3d0004",
+              "on-secondary-fixed": "#0b1c30",
+              "on-error": "#ffb4ab",
+              "tertiary-fixed-dim": "#bdc2ff",
+              "inverse-on-surface": "#0c0e12",
+              "on-surface-variant": "#94a3b8",
+              "on-primary": "#003731",
+              "surface": "#0c0e12",
+              "secondary-fixed": "#d3e4fe",
+              "tertiary-container": "#1e243d",
+              "surface-bright": "#161a21",
+              "on-primary-fixed": "#00201c",
+              "on-primary-container": "#9ef8eb",
+              "surface-container-low": "#11141a",
+              "error": "#ffb4ab",
+              "secondary-fixed-dim": "#b7c8e1",
+              "surface-container-highest": "#282d38",
+              "on-secondary-container": "#a9bad3",
+              "secondary": "#94a3b8",
+              "on-secondary": "#1a1f26",
+              "surface-container-lowest": "#080a0d",
+              "on-surface": "#f1f5f9",
+              "tertiary-fixed": "#e0e0ff",
+              "background": "#0c0e12",
+              "surface-tint": "#2dd4bf",
+              "on-error-container": "#ffdad6",
+              "primary-fixed-dim": "#2dd4bf",
+              "primary-fixed": "#62fae3",
+              "on-tertiary-fixed": "#000767",
+              "primary-container": "#134e48",
+              "outline-variant": "#1e293b",
+              "surface-container-high": "#1a1f26",
+              "surface-container": "#161a21",
+              "on-background": "#f1f5f9",
+              "on-tertiary-container": "#dbe1ff",
+              "inverse-primary": "#006b5f",
+              "tertiary": "#d5d7ff",
+              "on-tertiary": "#131e8c",
+              "primary": "#2dd4bf",
+              "outline": "#334155",
+              "inverse-surface": "#f1f5f9",
+              "surface-dim": "#0c0e12"
+            },
+            fontFamily: {
+              "headline": ["Plus Jakarta Sans"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "0.5rem", "xl": "0.5rem", "2xl": "0.5rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .bg-glass {
+            background: rgba(12, 14, 18, 0.7);
+            backdrop-filter: blur(16px);
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body selection:bg-primary/30">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl flex justify-between items-center px-6 h-16 border-b border-outline-variant/10">
+<div class="text-2xl font-bold tracking-tighter text-primary font-headline">ChessChat</div>
+<div class="flex items-center gap-4">
+<button class="w-10 h-10 flex items-center justify-center rounded-lg text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-all">
+<span class="material-symbols-outlined">person</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-all">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg text-on-surface-variant hover:text-error hover:bg-error/10 transition-all">
+<span class="material-symbols-outlined">logout</span>
+</button>
+</div>
+</nav>
+<!-- SideNavBar -->
+<aside class="h-screen w-20 fixed left-0 top-0 bg-surface border-r border-outline-variant/10 z-40 hidden md:flex flex-col pt-20">
+<nav class="flex flex-col items-center gap-4 px-3">
+<a class="w-12 h-12 flex items-center justify-center rounded-xl bg-primary/10 text-primary transition-all group relative" href="#">
+<span class="material-symbols-outlined">account_circle</span>
+<span class="absolute left-16 px-2 py-1 bg-surface-container-highest text-on-surface text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap border border-outline-variant/10 shadow-xl">Profile</span>
+</a>
+<a class="w-12 h-12 flex items-center justify-center rounded-xl text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all group relative" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="absolute left-16 px-2 py-1 bg-surface-container-highest text-on-surface text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap border border-outline-variant/10 shadow-xl">Friends Hub</span>
+</a>
+<a class="w-12 h-12 flex items-center justify-center rounded-xl text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all group relative" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="absolute left-16 px-2 py-1 bg-surface-container-highest text-on-surface text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap border border-outline-variant/10 shadow-xl">Game History</span>
+</a>
+</nav>
+<div class="mt-auto mb-6 flex flex-col items-center gap-4">
+<button class="w-12 h-12 flex items-center justify-center rounded-xl text-on-surface-variant hover:text-error hover:bg-error/10 transition-all group relative">
+<span class="material-symbols-outlined">logout</span>
+<span class="absolute left-16 px-2 py-1 bg-surface-container-highest text-on-surface text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap border border-outline-variant/10 shadow-xl">Logout</span>
+</button>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="pt-24 px-6 pb-12 min-h-screen md:ml-20">
+<div class="max-w-5xl mx-auto space-y-6">
+<!-- Hero Profile Header -->
+<header class="relative overflow-hidden rounded-lg bg-surface-container p-8 flex flex-col md:flex-row gap-8 items-center border border-outline-variant/10">
+<div class="relative">
+<div class="w-32 h-32 rounded-lg overflow-hidden ring-1 ring-outline-variant/20">
+<img alt="Profile" class="w-full h-full object-cover" data-alt="Portrait of a young chess grandmaster" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBLn3x2uN3HG7cJTCpVlvLpgJEybqOc_P7J3VrErG7ud0zqJrZWa5xBDSPT5O83jT1yBCldBELNr2aDNbhXLi2EKOy-4sY9grIMlE18pllZz1pvubJOueNFJO2tx7LOXOBSUgtSQApfA4urkSGr8szyuurRaIxV5aZPAymE3dV48xlP-xoa4wONSnBceF1ozq2bFmYYtFVRNdxAvQrdFsVewfUc_QPTCCv287R1kVH55xliCTG5F4DNt5uS2qv-v-5FZ6cNeg_mwWAL"/>
+</div>
+<button class="absolute -bottom-2 -right-2 w-8 h-8 flex items-center justify-center bg-primary text-on-primary rounded-lg shadow-lg hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-sm">edit</span>
+</button>
+</div>
+<div class="flex-1 text-center md:text-left">
+<div class="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-2">
+<h1 class="text-3xl font-bold tracking-tight font-headline">GrandmasterVikas</h1>
+<span class="px-2 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-widest border border-primary/20">Elite Rank</span>
+</div>
+<p class="text-on-surface-variant text-sm max-w-xl mb-4 leading-relaxed">Strategic player specialized in the Sicilian Defense. 10 years of professional play across the globe.</p>
+<div class="flex flex-wrap justify-center md:justify-start gap-6">
+<div class="flex items-center gap-2 text-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-primary text-lg">location_on</span>
+<span>Mumbai, India</span>
+</div>
+<div class="flex items-center gap-2 text-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-primary text-lg">calendar_today</span>
+<span>Joined April 2021</span>
+</div>
+</div>
+</div>
+<div class="bg-surface/40 p-5 rounded-lg border border-outline-variant/10 text-center min-w-[120px]">
+<p class="text-3xl font-bold text-primary">2,480</p>
+<p class="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold mt-1">Elo Rating</p>
+</div>
+</header>
+<!-- Stats Grid -->
+<section class="grid grid-cols-2 md:grid-cols-4 gap-4">
+<div class="bg-surface-container p-5 rounded-lg border border-outline-variant/10 shadow-sm">
+<p class="text-on-surface-variant text-[11px] font-bold uppercase tracking-wider mb-2">Total Games</p>
+<h3 class="text-2xl font-bold">1,248</h3>
+</div>
+<div class="bg-surface-container p-5 rounded-lg border border-outline-variant/10 border-l-2 border-l-primary shadow-sm">
+<p class="text-on-surface-variant text-[11px] font-bold uppercase tracking-wider mb-2">Wins</p>
+<h3 class="text-2xl font-bold text-primary">742</h3>
+</div>
+<div class="bg-surface-container p-5 rounded-lg border border-outline-variant/10 border-l-2 border-l-error shadow-sm">
+<p class="text-on-surface-variant text-[11px] font-bold uppercase tracking-wider mb-2">Losses</p>
+<h3 class="text-2xl font-bold text-error">312</h3>
+</div>
+<div class="bg-surface-container p-5 rounded-lg border border-outline-variant/10 border-l-2 border-l-secondary shadow-sm">
+<p class="text-on-surface-variant text-[11px] font-bold uppercase tracking-wider mb-2">Draws</p>
+<h3 class="text-2xl font-bold text-on-surface">194</h3>
+</div>
+</section>
+<!-- Bottom Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Account Settings -->
+<section class="lg:col-span-2 space-y-6">
+<div class="bg-surface-container rounded-lg p-8 border border-outline-variant/10 shadow-sm">
+<h2 class="text-lg font-bold font-headline mb-8 flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">manage_accounts</span>
+                            Account Settings
+                        </h2>
+<div class="space-y-8">
+<div class="space-y-3">
+<label class="text-xs font-bold uppercase tracking-wider text-on-surface-variant ml-1">Username</label>
+<div class="flex flex-col sm:flex-row gap-3">
+<input class="flex-1 bg-surface-container-low rounded-lg px-4 py-3 border border-outline-variant/20 focus:border-primary/50 focus:ring-1 focus:ring-primary/20 outline-none transition-all text-on-surface text-sm" type="text" value="GrandmasterVikas"/>
+<button class="px-8 py-3 bg-primary text-on-primary font-bold rounded-lg hover:opacity-90 transition-all text-sm">Update</button>
+</div>
+</div>
+<div class="space-y-3">
+<label class="text-xs font-bold uppercase tracking-wider text-on-surface-variant ml-1">Email Address</label>
+<div class="bg-surface-container-low rounded-lg flex items-center px-4 py-3 border border-outline-variant/10 text-on-surface-variant text-sm">
+<span class="material-symbols-outlined text-lg mr-3">mail</span>
+<span>vikas.chessmaster@grandmaster.com</span>
+</div>
+</div>
+<div class="pt-8 border-t border-outline-variant/10">
+<h3 class="text-md font-bold mb-5">Privacy &amp; Security</h3>
+<div class="grid gap-3">
+<div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/10">
+<div>
+<p class="text-sm font-bold">Two-Factor Authentication</p>
+<p class="text-[11px] text-on-surface-variant mt-0.5">Protect your account with extra security</p>
+</div>
+<div class="w-11 h-6 bg-primary/20 rounded-full relative cursor-pointer border border-primary/20">
+<div class="absolute right-1 top-1 w-4 h-4 bg-primary rounded-full shadow-sm"></div>
+</div>
+</div>
+<div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/10">
+<div>
+<p class="text-sm font-bold">Profile Visibility</p>
+<p class="text-[11px] text-on-surface-variant mt-0.5">Control who sees your game statistics</p>
+</div>
+<div class="px-3 py-1 bg-surface-container-highest rounded-md text-[10px] font-bold uppercase tracking-tighter">Public</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Danger Zone -->
+<div class="bg-error-container/20 rounded-lg p-8 border border-error/20">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+<div>
+<h2 class="text-lg font-bold text-error mb-1">Danger Zone</h2>
+<p class="text-on-surface-variant text-xs">Permanently delete your account and all associated data.</p>
+</div>
+<button class="px-6 py-3 border border-error/30 text-error hover:bg-error/10 transition-colors font-bold rounded-lg text-sm whitespace-nowrap">Delete Account</button>
+</div>
+</div>
+</section>
+<!-- Sidebar Content -->
+<aside class="space-y-6">
+<!-- Account Verification -->
+<div class="bg-surface-container rounded-lg p-6 border border-outline-variant/10 shadow-sm">
+<h2 class="text-sm font-bold uppercase tracking-wider mb-6 text-on-surface-variant">Account Verification</h2>
+<div class="space-y-4">
+<!-- Linked State -->
+<div class="p-4 bg-surface-container-low rounded-lg border border-outline-variant/10">
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-2">
+<span class="text-xs font-medium text-on-surface-variant">Chess.com</span>
+<span class="material-symbols-outlined text-primary text-[16px]" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<span class="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded">Linked</span>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-[#81b64c]/20 flex items-center justify-center">
+<svg class="w-5 h-5 fill-[#81b64c]" viewbox="0 0 24 24"><path d="M19.07 4.93C17.22 3.08 14.66 2 12 2s-5.22 1.08-7.07 2.93C3.08 6.78 2 9.34 2 12s1.08 5.22 2.93 7.07C6.78 20.92 9.34 22 12 22s5.22-1.08 7.07-2.93C20.92 17.22 22 14.66 22 12s-1.08-5.22-2.93-7.07zm-7.07 15.07c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9.5c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5-1.5.67-1.5 1.5.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.17 7.43 8.33 7.43s-1.5.67-1.5 1.5.67 1.5 1.5 1.5zm7 5c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5-1.5.67-1.5 1.5.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5-1.5.67-1.5 1.5.67 1.5 1.5 1.5z"></path></svg>
+</div>
+<span class="text-sm font-bold">VikasGM_Official</span>
+</div>
+</div>
+<!-- Unlinked Action -->
+<button class="w-full flex items-center justify-center gap-2 py-3 bg-surface-container-highest hover:bg-surface-container-highest/80 text-on-surface text-sm font-bold rounded-lg transition-all border border-outline-variant/10">
+<span class="material-symbols-outlined text-lg">link</span>
+                                Link Chess.com Account
+                            </button>
+</div>
+</div>
+<!-- Achievements -->
+<div class="bg-surface-container rounded-lg p-6 border border-outline-variant/10 shadow-sm">
+<h2 class="text-sm font-bold uppercase tracking-wider mb-6 text-on-surface-variant">Achievements</h2>
+<div class="space-y-5">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg bg-surface/50 border border-outline-variant/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">workspace_premium</span>
+</div>
+<div>
+<p class="text-sm font-bold">Sicilian Master</p>
+<p class="text-[11px] text-on-surface-variant">500 wins with Sicilian</p>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg bg-surface/50 border border-outline-variant/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">rocket_launch</span>
+</div>
+<div>
+<p class="text-sm font-bold">Speed Demon</p>
+<p class="text-[11px] text-on-surface-variant">Won in under 2 minutes</p>
+</div>
+</div>
+</div>
+<button class="w-full mt-6 py-2.5 text-primary text-xs font-bold hover:bg-primary/5 rounded-lg border border-primary/10 transition-colors">View All Badges</button>
+</div>
+<!-- Pro Subscription -->
+<div class="relative overflow-hidden bg-gradient-to-br from-surface-container-high to-surface-container rounded-lg p-6 border border-primary/20 shadow-lg">
+<div class="absolute -right-8 -top-8 w-24 h-24 bg-primary/10 rounded-full blur-2xl"></div>
+<h2 class="text-lg font-bold text-primary mb-2">Pro Plan</h2>
+<p class="text-xs text-on-surface-variant mb-6 leading-relaxed">Unlock advanced analytics and direct coaching.</p>
+<div class="flex items-center justify-between pt-4 border-t border-outline-variant/10">
+<div>
+<p class="text-[10px] text-on-surface-variant uppercase font-bold tracking-widest mb-0.5">Next Bill</p>
+<p class="text-sm font-bold text-on-surface">May 12, 2024</p>
+</div>
+<button class="w-9 h-9 flex items-center justify-center bg-surface-container-highest rounded-lg text-on-surface hover:text-primary transition-all border border-outline-variant/10">
+<span class="material-symbols-outlined text-lg">arrow_forward</span>
+</button>
+</div>
+</div>
+</aside>
+</div>
+</div>
+</main>
+<!-- Mobile Navigation -->
+<div class="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-surface/90 backdrop-blur-xl border-t border-outline-variant/10 flex items-center justify-around px-6 z-50">
+<a class="text-primary flex flex-col items-center gap-1" href="#">
+<span class="material-symbols-outlined">account_circle</span>
+<span class="text-[10px] font-bold">Profile</span>
+</a>
+<a class="text-on-surface-variant flex flex-col items-center gap-1" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="text-[10px] font-medium">Friends</span>
+</a>
+<a class="text-on-surface-variant flex flex-col items-center gap-1" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="text-[10px] font-medium">History</span>
+</a>
+</div>
+</body></html>
