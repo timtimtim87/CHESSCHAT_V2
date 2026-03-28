@@ -10,6 +10,10 @@ function seedEnv() {
   process.env.DYNAMODB_USERS_TABLE = process.env.DYNAMODB_USERS_TABLE || "users";
   process.env.DYNAMODB_GAMES_TABLE = process.env.DYNAMODB_GAMES_TABLE || "games";
   process.env.DYNAMODB_PAIR_ROOMS_TABLE = process.env.DYNAMODB_PAIR_ROOMS_TABLE || "pair-rooms";
+  process.env.DYNAMODB_FRIENDSHIPS_TABLE = process.env.DYNAMODB_FRIENDSHIPS_TABLE || "friendships";
+  process.env.DYNAMODB_FRIEND_REQUESTS_TABLE = process.env.DYNAMODB_FRIEND_REQUESTS_TABLE || "friend-requests";
+  process.env.DYNAMODB_CHALLENGES_TABLE = process.env.DYNAMODB_CHALLENGES_TABLE || "challenges";
+  process.env.DYNAMODB_NOTIFICATIONS_TABLE = process.env.DYNAMODB_NOTIFICATIONS_TABLE || "notifications";
   process.env.COGNITO_USER_POOL_ID = process.env.COGNITO_USER_POOL_ID || "us-east-1_123456789";
   process.env.COGNITO_CLIENT_ID = process.env.COGNITO_CLIENT_ID || "client";
   process.env.COGNITO_REGION = process.env.COGNITO_REGION || "us-east-1";
@@ -31,11 +35,11 @@ async function loadFinalizationApi() {
 function sampleJob() {
   return {
     gameId: "G-1",
-    roomCode: "ABCDE",
+    roomCode: "AB12CD34",
     gameRecord: {
       game_id: "G-1",
       ended_at: "2026-03-02T00:00:00.000Z",
-      room_code: "ABCDE"
+      room_code: "AB12CD34"
     },
     whitePlayerId: "white-1",
     blackPlayerId: "black-1",
@@ -49,7 +53,7 @@ test("queue push on game_ended finalization job", async () => {
   const enqueued = [];
 
   const job = buildFinalizationJob({
-    roomCode: "ABCDE",
+    roomCode: "AB12CD34",
     gameRecord: sampleJob().gameRecord,
     whitePlayerId: "white-1",
     blackPlayerId: "black-1",

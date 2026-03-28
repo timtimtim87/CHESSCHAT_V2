@@ -61,7 +61,7 @@ function normalizeRoomCode(value) {
 }
 
 function roomCodeValid(value) {
-  return /^[A-Z0-9]{5}$/.test(value);
+  return /^[A-Z0-9]{8}$/.test(value);
 }
 
 function savePendingRoom(roomCode) {
@@ -180,7 +180,7 @@ function renderLanding() {
     ${statusHtml()}
     <form id="join-form">
       <label for="room-code">Room code</label>
-      <input id="room-code" maxlength="5" placeholder="ABCDE" autocomplete="off" />
+      <input id="room-code" maxlength="8" placeholder="AB12CD34" autocomplete="off" />
       <div class="actions">
         <button class="primary" type="submit">Join Room</button>
       </div>
@@ -196,7 +196,7 @@ function renderLanding() {
     const input = document.getElementById("room-code");
     const roomCode = normalizeRoomCode(input?.value || "");
     if (!roomCodeValid(roomCode)) {
-      setError("Room code must be exactly 5 letters or numbers.");
+      setError("Room code must be exactly 8 letters or numbers.");
       return;
     }
 

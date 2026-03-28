@@ -1,6 +1,6 @@
 # CHESSCHAT API + WebSocket Contract
 
-Last updated: 2026-03-09  
+Last updated: 2026-03-28  
 Status: Active
 
 ## HTTP Contract
@@ -44,6 +44,54 @@ Status: Active
 { "games": [] }
 ```
 
+### `GET /api/friends` (Authenticated)
+- Returns accepted friendships for current user.
+
+### `GET /api/friends/requests` (Authenticated)
+- Returns pending received/sent friend requests.
+
+### `POST /api/friends/requests` (Authenticated)
+- Payload: `{ "username": "friend_name" }`
+
+### `POST /api/friends/requests/:requestId/respond` (Authenticated)
+- Payload: `{ "action": "accept" }` or `{ "action": "decline" }`
+
+### `GET /api/challenges` (Authenticated)
+- Returns pending/active challenge records for current user.
+
+### `POST /api/challenges` (Authenticated)
+- Payload:
+```json
+{
+  "username": "friend_name",
+  "settings": {
+    "timeWhiteSeconds": 300,
+    "timeBlackSeconds": 300,
+    "allowTakebacks": true,
+    "takebacksWhite": 2,
+    "takebacksBlack": 2
+  }
+}
+```
+
+### `POST /api/challenges/:challengeId/accept` (Authenticated)
+- Accepts incoming challenge and keeps pre-created room code.
+
+### `GET /api/notifications` (Authenticated)
+- Returns in-app notifications.
+
+### `POST /api/notifications/:notificationId/read` (Authenticated)
+- Marks one notification as read.
+
+### `GET /api/chesscom/link` (Authenticated)
+- Returns Chess.com linked status from user record.
+
+### `POST /api/chesscom/link` (Authenticated)
+- Payload: `{ "username": "your_chesscom_name", "access_token": "optional" }`
+
+### `DELETE /api/chesscom/link` (Authenticated)
+- Unlinks Chess.com metadata from user record.
+
 ## WebSocket Contract
 
 ## Connection
@@ -55,27 +103,52 @@ Status: Active
 
 ### `join_room`
 ```json
-{ "type": "join_room", "roomCode": "ABCDE" }
+{ "type": "join_room", "roomCode": "AB12CD34" }
 ```
 
 ### `leave_room`
 ```json
-{ "type": "leave_room", "roomCode": "ABCDE" }
+{ "type": "leave_room", "roomCode": "AB12CD34" }
 ```
 
 ### `start_game`
 ```json
-{ "type": "start_game", "roomCode": "ABCDE" }
+{
+  "type": "start_game",
+  "roomCode": "AB12CD34",
+  "settings": {
+    "timeWhiteSeconds": 300,
+    "timeBlackSeconds": 300,
+    "allowTakebacks": true,
+    "takebacksWhite": 2,
+    "takebacksBlack": 2
+  }
+}
 ```
 
 ### `make_move`
 ```json
-{ "type": "make_move", "roomCode": "ABCDE", "move": "e2e4" }
+{ "type": "make_move", "roomCode": "AB12CD34", "move": "e2e4" }
 ```
 
 ### `resign`
 ```json
-{ "type": "resign", "roomCode": "ABCDE" }
+{ "type": "resign", "roomCode": "AB12CD34" }
+```
+
+### `request_takeback`
+```json
+{ "type": "request_takeback", "roomCode": "AB12CD34" }
+```
+
+### `offer_draw`
+```json
+{ "type": "offer_draw", "roomCode": "AB12CD34" }
+```
+
+### `accept_draw`
+```json
+{ "type": "accept_draw", "roomCode": "AB12CD34" }
 ```
 
 ### `heartbeat`
@@ -89,7 +162,7 @@ Status: Active
 ```json
 {
   "type": "room_joined",
-  "roomCode": "ABCDE",
+  "roomCode": "AB12CD34",
   "participants": [{ "userId": "user-a", "connected": true }],
   "expiresAt": 1700003600000,
   "activeGame": null
@@ -100,7 +173,7 @@ Status: Active
 ```json
 {
   "type": "participant_left",
-  "roomCode": "ABCDE",
+  "roomCode": "AB12CD34",
   "userId": "user-b",
   "participants": [
     { "userId": "user-a", "connected": true },
@@ -113,7 +186,7 @@ Status: Active
 ```json
 {
   "type": "reconnect_state",
-  "roomCode": "ABCDE",
+  "roomCode": "AB12CD34",
   "status": "paused",
   "disconnectedUserId": "user-b",
   "graceEndsAt": 1700000012000,
@@ -123,6 +196,18 @@ Status: Active
 
 ### `game_started` / `move_made` / `game_ended`
 - Payloads include board state, move metadata, clocks, and winner/result fields.
+
+### `takeback_applied`
+- Broadcast after server-validated unilateral takeback.
+
+### `draw_offer_pending`
+- Broadcast when one player offers draw.
+
+### `draw_offer_state`
+- Current draw offer state for room/game sync.
+
+### `draw_accepted`
+- Broadcast before game ends as agreed draw.
 
 ### `video_ready`
 ```json
@@ -150,7 +235,8 @@ Status: Active
 ```
 
 ## Validation Rules
-- Room-bound events (`join_room`, `start_game`, `make_move`, `resign`) require 5-char alphanumeric room code.
+- Room-bound events (`join_room`, `start_game`, `make_move`, `resign`, `request_takeback`, `offer_draw`, `accept_draw`) require 8-char alphanumeric room code.
 - Reconnect is accepted only for the same authenticated user and only within active grace window.
-- Rematch protocol is removed.
+- Takeback is unilateral and immediate if legal (requester must be last mover and opponent has not moved yet).
+- Draw offer is single-pending; no re-offer while pending. Pending persists until accepted or game end.
 - Room codes are single-use after final teardown.

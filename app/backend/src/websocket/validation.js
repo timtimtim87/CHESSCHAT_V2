@@ -1,19 +1,15 @@
 import { InboundEvent } from "./events.js";
 import { buildWsError } from "../utils/errors.js";
-
-export function normalizeRoomCode(raw) {
-  return String(raw || "").toUpperCase().trim();
-}
-
-export function isValidRoomCode(code) {
-  return /^[A-Z0-9]{8}$/.test(code);
-}
+import { isValidRoomCode, normalizeRoomCode } from "../utils/roomCode.js";
 
 const ROOM_BOUND_EVENTS = new Set([
   InboundEvent.JOIN_ROOM,
   InboundEvent.START_GAME,
   InboundEvent.MAKE_MOVE,
-  InboundEvent.RESIGN
+  InboundEvent.RESIGN,
+  InboundEvent.REQUEST_TAKEBACK,
+  InboundEvent.OFFER_DRAW,
+  InboundEvent.ACCEPT_DRAW
 ]);
 
 export function requiresRoomCode(eventType) {
@@ -49,3 +45,5 @@ export function validateRoomCodeForEvent(message) {
 
   return { ok: true, roomCode };
 }
+
+export { isValidRoomCode, normalizeRoomCode };

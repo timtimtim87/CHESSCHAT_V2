@@ -33,9 +33,21 @@ describe("LobbyPage", () => {
   });
 
   it("renders username in nav and opponent username input after profile loads", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ user: { username: "tim", wins: 3, losses: 1, draws: 2 } })
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const url = String(input);
+      if (url === "/api/notifications") {
+        return {
+          ok: true,
+          json: async () => ({ notifications: [] })
+        };
+      }
+      if (url === "/api/me") {
+        return {
+          ok: true,
+          json: async () => ({ user: { username: "tim", wins: 3, losses: 1, draws: 2 } })
+        };
+      }
+      throw new Error(`Unexpected fetch URL in test: ${url}`);
     });
 
     render(
@@ -49,20 +61,33 @@ describe("LobbyPage", () => {
   });
 
   it("submits opponent username, calls pair API and navigates", async () => {
-    vi.spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          user: { user_id: "user-1", username: "tim", wins: 0, losses: 0, draws: 0 }
-        })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          room_code: "ABCD1234",
-          opponent: { user_id: "user-2", username: "tim_5ew", display_name: "tim_5ew" }
-        })
-      });
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const url = String(input);
+      if (url === "/api/notifications") {
+        return {
+          ok: true,
+          json: async () => ({ notifications: [] })
+        };
+      }
+      if (url === "/api/me") {
+        return {
+          ok: true,
+          json: async () => ({
+            user: { user_id: "user-1", username: "tim", wins: 0, losses: 0, draws: 0 }
+          })
+        };
+      }
+      if (url === "/api/rooms/pair?username=tim_5ew") {
+        return {
+          ok: true,
+          json: async () => ({
+            room_code: "ABCD1234",
+            opponent: { user_id: "user-2", username: "tim_5ew", display_name: "tim_5ew" }
+          })
+        };
+      }
+      throw new Error(`Unexpected fetch URL in test: ${url}`);
+    });
 
     render(
       <MemoryRouter>

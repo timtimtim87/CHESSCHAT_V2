@@ -29,6 +29,22 @@ Purpose: keep one practical, interview-ready plan for building CHESSCHAT as an A
   - Baseline: low steady traffic with bursts during demos/interviews
   - Concurrent active users: 50-300 (initial portfolio range)
   - Stateless app tier scales horizontally via ECS/Fargate
+  - Current realtime guardrail: websocket routing remains single-task until distributed session routing is implemented (see `DOCS/WEBSOCKET_SCALING_CONSTRAINTS.md`).
+
+## 2.1) Feature Gap Closure Update (2026-03-28)
+- Contract hardening:
+  - Room code standardized to 8-char alphanumeric across backend/frontend/static-auth/docs.
+- Realtime session:
+  - Frontend now maintains one persistent authenticated websocket session across app screens.
+  - ALB target-group stickiness now explicitly enabled (`lb_cookie`, 24h) as a scaling guardrail prerequisite.
+- Social capability baseline added:
+  - New DynamoDB domains and APIs for friendships, friend requests, challenges, and notifications.
+- Game protocol baseline added:
+  - Host-controlled game settings at game start.
+  - Unilateral validated takebacks (`request_takeback`).
+  - Single-pending draw offer flow (`offer_draw`, `accept_draw`).
+- History review baseline:
+  - Game persistence now stores move arrays/fen history for replay navigation.
 
 ## 3) Network/NAT Decision
 - Keep 3 AZ subnet layout (strong architecture signal).
@@ -235,7 +251,7 @@ Purpose: keep one practical, interview-ready plan for building CHESSCHAT as an A
   - Two-user live E2E (post-rollout):
     - Executed scripted two-user flow against production endpoint:
       - Cognito auth for two users
-      - Shared room join via 5-character code
+      - Shared room join via 8-character code
       - `start_game`, move broadcast (`e2e4`), and resign game end
       - `/api/history` verification for both users
     - Outcome: pass (game persisted and visible in both histories)
@@ -768,3 +784,29 @@ Before ending a substantial session:
 - Outcome:
   - Split-host staged program (`1 -> 2 -> 3 -> 4 + 5`) is complete from a repository decision/governance perspective.
   - No Terraform apply or runtime behavior changes were required in this stage.
+
+## UI Host Boundary + Template Rebuild Update (2026-03-22)
+- Product host boundary clarified and adopted in implementation:
+  - `chess-chat.com` serves static landing/marketing UX only.
+  - `app.chess-chat.com` serves containerized app routes for authenticated and gameplay surfaces.
+- Frontend delivery update:
+  - Implemented template-driven UI rebuild pass using local HTML + PNG references.
+  - Added app-shell navigation and stub product routes (`/friends`, `/history`) with clear API dependency tags.
+- Strategy impact:
+  - Keeps split-host architecture interview narrative clean: static edge plane separated from runtime app plane.
+  - Reduces auth/session ambiguity by keeping callback/logout and app routing on a single canonical app host.
+  - Enables phased feature roadmap execution: visual parity first, then API/event wiring for friends/history/profile extensions.
+- Validation:
+  - `npm --prefix app/frontend run build` passed.
+  - `npm --prefix app/frontend run test` suites pass by output; process exit remains unstable in local environment.
+
+## UI Iteration Operations Update (2026-03-22)
+- Added no-auth UI preview operating mode to accelerate design feedback loops:
+  - `/ui-preview/*` routes with mock data and click-through navigation.
+- Operational guardrails:
+  - Preview mode is scoped to UI/UX iteration and does not change runtime auth/security boundaries.
+  - Production and interview narrative remain split-host consistent:
+    - static edge landing (`chess-chat.com`)
+    - containerized app runtime (`app.chess-chat.com`).
+- Repository hygiene update:
+  - Local artifact convention established via `.local/` for non-committed UI assets/exports.

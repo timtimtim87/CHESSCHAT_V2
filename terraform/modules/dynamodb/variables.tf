@@ -26,6 +26,30 @@ variable "pair_rooms_table_name" {
   default     = null
 }
 
+variable "friendships_table_name" {
+  description = "DynamoDB table name for accepted friendship edges."
+  type        = string
+  default     = null
+}
+
+variable "friend_requests_table_name" {
+  description = "DynamoDB table name for friend request records."
+  type        = string
+  default     = null
+}
+
+variable "challenges_table_name" {
+  description = "DynamoDB table name for play challenge records."
+  type        = string
+  default     = null
+}
+
+variable "notifications_table_name" {
+  description = "DynamoDB table name for in-app notifications."
+  type        = string
+  default     = null
+}
+
 variable "billing_mode" {
   description = "Billing mode for DynamoDB tables."
   type        = string

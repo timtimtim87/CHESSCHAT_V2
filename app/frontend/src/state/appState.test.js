@@ -11,8 +11,8 @@ describe("appStateReducer", () => {
     expect(authed.auth_state.status).toBe("authenticated");
     expect(authed.auth_state.userId).toBe("user-1");
 
-    const joined = appStateReducer(authed, { type: "ROOM_INIT", roomCode: "ABCDE" });
-    expect(joined.room_state.code).toBe("ABCDE");
+    const joined = appStateReducer(authed, { type: "ROOM_INIT", roomCode: "AB12CD34" });
+    expect(joined.room_state.code).toBe("AB12CD34");
     expect(joined.room_state.status).toBe("joining");
   });
 

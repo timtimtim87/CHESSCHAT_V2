@@ -25,6 +25,26 @@ output "dynamodb_games_table_name" {
   description = "DynamoDB games table name."
 }
 
+output "dynamodb_friendships_table_name" {
+  value       = module.dynamodb.friendships_table_name
+  description = "DynamoDB friendships table name."
+}
+
+output "dynamodb_friend_requests_table_name" {
+  value       = module.dynamodb.friend_requests_table_name
+  description = "DynamoDB friend requests table name."
+}
+
+output "dynamodb_challenges_table_name" {
+  value       = module.dynamodb.challenges_table_name
+  description = "DynamoDB challenges table name."
+}
+
+output "dynamodb_notifications_table_name" {
+  value       = module.dynamodb.notifications_table_name
+  description = "DynamoDB notifications table name."
+}
+
 output "redis_replication_group_id" {
   value       = module.elasticache.redis_replication_group_id
   description = "ElastiCache replication group ID."

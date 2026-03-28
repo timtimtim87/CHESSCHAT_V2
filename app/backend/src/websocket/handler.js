@@ -105,9 +105,14 @@ function activeGameSnapshot(room) {
     fen: room.active_game.board_fen,
     moves: [...room.active_game.moves],
     moveSans: [...(room.active_game.move_sans || [])],
+    moveFens: [...(room.active_game.move_fens || ["start"])],
     turn: room.active_game.turn,
     timeWhite: room.active_game.time_white,
     timeBlack: room.active_game.time_black,
+    drawOffer: room.active_game.draw_offer || null,
+    settings: room.active_game.settings || null,
+    takebacksWhiteUsed: room.active_game.takebacks_white_used || 0,
+    takebacksBlackUsed: room.active_game.takebacks_black_used || 0,
     disconnectDeadlineMs: room.active_game.disconnect_deadline_ms || null,
     disconnectedUserId: room.active_game.disconnected_user_id || null,
     reconnectVersion: room.active_game.reconnect_version || 0,
@@ -119,6 +124,7 @@ function roomJoinedPayload(room, roomCode) {
   return {
     type: OutboundEvent.ROOM_JOINED,
     roomCode,
+    hostUserId: room.host_user_id || null,
     participants: participantPresence(room),
     expiresAt: room.expiresAt,
     activeGame: activeGameSnapshot(room)
@@ -135,6 +141,22 @@ function wait(ms) {
   });
 }
 
+function parseStartSettings(raw, defaultDurationSeconds) {
+  const settings = raw && typeof raw === "object" ? raw : {};
+  const timeWhiteSeconds = Number(settings.timeWhiteSeconds || defaultDurationSeconds);
+  const timeBlackSeconds = Number(settings.timeBlackSeconds || defaultDurationSeconds);
+  const allowTakebacks = Boolean(settings.allowTakebacks);
+  const takebacksWhite = Math.max(0, Number(settings.takebacksWhite ?? 0));
+  const takebacksBlack = Math.max(0, Number(settings.takebacksBlack ?? 0));
+  return {
+    timeWhiteSeconds: Number.isFinite(timeWhiteSeconds) ? timeWhiteSeconds : defaultDurationSeconds,
+    timeBlackSeconds: Number.isFinite(timeBlackSeconds) ? timeBlackSeconds : defaultDurationSeconds,
+    allowTakebacks,
+    takebacksWhite: Number.isFinite(takebacksWhite) ? takebacksWhite : 0,
+    takebacksBlack: Number.isFinite(takebacksBlack) ? takebacksBlack : 0
+  };
+}
+
 function buildGameRecord(roomCode, game, result, winnerPlayerId, now = Date.now()) {
   return {
     game_id: game.game_id,
@@ -148,6 +170,9 @@ function buildGameRecord(roomCode, game, result, winnerPlayerId, now = Date.now(
     duration_seconds: Math.floor((now - game.started_at) / 1000),
     time_white_remaining: Math.floor(game.time_white),
     time_black_remaining: Math.floor(game.time_black),
+    move_list_uci: [...(game.moves || [])],
+    move_list_san: [...(game.move_sans || [])],
+    fen_history: [...(game.move_fens || ["start"])],
     pgn_notation: result.pgn || "",
     started_at: new Date(game.started_at).toISOString()
   };
@@ -414,6 +439,7 @@ async function handleJoinRoom(ws, roomCode) {
     if (!room) {
       const initialRoom = {
         room_code: roomCode,
+        host_user_id: ws.userId,
         status: "waiting",
         participants: {
           [ws.userId]: {
@@ -548,6 +574,14 @@ async function handleJoinRoom(ws, roomCode) {
 
     broadcastToRoom(joinedRoom, roomJoinedPayload(joinedRoom, roomCode));
 
+    if (joinedRoom.active_game) {
+      sendToConnection(ws.connectionId, {
+        type: OutboundEvent.DRAW_OFFER_STATE,
+        roomCode,
+        drawOffer: joinedRoom.active_game.draw_offer || null
+      });
+    }
+
     if (joinMutation.meta?.reconnectEvent) {
       broadcastToRoom(joinedRoom, joinMutation.meta.reconnectEvent);
       log("info", "reconnect_state_transition", {
@@ -639,7 +673,8 @@ async function handleJoinRoom(ws, roomCode) {
   });
 }
 
-async function handleStartGame(ws, roomCode) {
+async function handleStartGame(ws, roomCode, rawSettings = null) {
+  const parsedSettings = parseStartSettings(rawSettings, config.app.gameDurationSeconds);
   const mutation = await mutateRoom(roomCode, (nextRoom) => {
     const players = Object.keys(nextRoom.participants);
     if (players.length !== 2) {
@@ -662,9 +697,19 @@ async function handleStartGame(ws, roomCode) {
       };
     }
 
+    if (nextRoom.host_user_id && nextRoom.host_user_id !== ws.userId) {
+      return {
+        error: {
+          type: OutboundEvent.ERROR,
+          code: "UNAUTHORIZED",
+          message: "Only the room host can start the game."
+        }
+      };
+    }
+
     const [whitePlayerId, blackPlayerId] =
       Math.random() < 0.5 ? [players[0], players[1]] : [players[1], players[0]];
-    nextRoom.active_game = startNewGame(roomCode, whitePlayerId, blackPlayerId, config.app.gameDurationSeconds);
+    nextRoom.active_game = startNewGame(roomCode, whitePlayerId, blackPlayerId, parsedSettings);
 
     return {
       room: nextRoom,
@@ -676,9 +721,14 @@ async function handleStartGame(ws, roomCode) {
         fen: nextRoom.active_game.board_fen,
         moves: [...nextRoom.active_game.moves],
         moveSans: [...(nextRoom.active_game.move_sans || [])],
+        moveFens: [...(nextRoom.active_game.move_fens || ["start"])],
         turn: nextRoom.active_game.turn,
         timeWhite: nextRoom.active_game.time_white,
         timeBlack: nextRoom.active_game.time_black,
+        drawOffer: null,
+        settings: nextRoom.active_game.settings,
+        takebacksWhiteUsed: 0,
+        takebacksBlackUsed: 0,
         serverTimestampMs: Date.now()
       }
     };
@@ -756,8 +806,16 @@ async function handleMakeMove(ws, roomCode, move) {
     game.moves.push(move);
     game.move_sans = game.move_sans || [];
     game.move_sans.push(applied.san);
+    game.move_fens = game.move_fens || ["start"];
+    game.move_fens.push(applied.newFen);
     game.turn = game.turn === "white" ? "black" : "white";
     game.last_move_at = Date.now();
+    game.clock_history = game.clock_history || [];
+    game.clock_history.push({
+      time_white: game.time_white,
+      time_black: game.time_black,
+      turn: game.turn
+    });
 
     const timeoutReached = game.time_white <= 0 || game.time_black <= 0;
     const gameEnded = applied.isCheckmate || applied.isStalemate || applied.isDraw || timeoutReached;
@@ -833,10 +891,14 @@ async function handleMakeMove(ws, roomCode, move) {
           moveSan: applied.san,
           moves: [...game.moves],
           moveSans: [...(game.move_sans || [])],
+          moveFens: [...(game.move_fens || ["start"])],
           fen: game.board_fen,
           turn: game.turn,
           timeWhite: game.time_white,
           timeBlack: game.time_black,
+          drawOffer: game.draw_offer || null,
+          takebacksWhiteUsed: game.takebacks_white_used || 0,
+          takebacksBlackUsed: game.takebacks_black_used || 0,
           serverTimestampMs: Date.now()
         }
       }
@@ -882,6 +944,183 @@ async function handleResign(ws, roomCode) {
   const game = room.active_game;
   const winner = ws.userId === game.white_player_id ? "black" : "white";
   await endGame(roomCode, { winner, reason: "resign", pgn: "" });
+}
+
+function playerColor(game, userId) {
+  if (game.white_player_id === userId) return "white";
+  if (game.black_player_id === userId) return "black";
+  return null;
+}
+
+async function handleRequestTakeback(ws, roomCode) {
+  const mutation = await mutateRoom(roomCode, (nextRoom) => {
+    if (!nextRoom.active_game) {
+      return {
+        error: { type: OutboundEvent.ERROR, code: "NO_ACTIVE_GAME", message: "No active game in this room." }
+      };
+    }
+    const game = nextRoom.active_game;
+    if (!game.settings?.allow_takebacks) {
+      return {
+        error: { type: OutboundEvent.ERROR, code: "TAKEBACK_NOT_ALLOWED", message: "Takebacks are disabled." }
+      };
+    }
+    if (!game.moves?.length) {
+      return {
+        error: { type: OutboundEvent.ERROR, code: "TAKEBACK_NOT_ALLOWED", message: "No moves to take back." }
+      };
+    }
+    const color = playerColor(game, ws.userId);
+    if (!color) {
+      return {
+        error: { type: OutboundEvent.ERROR, code: "UNAUTHORIZED", message: "Only players in this game can request takeback." }
+      };
+    }
+
+    const maxTakebacks = color === "white" ? game.settings.takebacks_white_max : game.settings.takebacks_black_max;
+    const usedTakebacks = color === "white" ? game.takebacks_white_used : game.takebacks_black_used;
+    if (usedTakebacks >= maxTakebacks) {
+      return {
+        error: { type: OutboundEvent.ERROR, code: "TAKEBACK_LIMIT_REACHED", message: "No takebacks remaining." }
+      };
+    }
+
+    const lastMoveWasWhite = (game.moves.length % 2) === 1;
+    const lastMover = lastMoveWasWhite ? game.white_player_id : game.black_player_id;
+    if (lastMover !== ws.userId) {
+      return {
+        error: {
+          type: OutboundEvent.ERROR,
+          code: "TAKEBACK_WINDOW_CLOSED",
+          message: "Takeback is only allowed before opponent responds."
+        }
+      };
+    }
+
+    const removedMove = game.moves.pop();
+    const removedSan = (game.move_sans || []).pop();
+    if (game.move_fens?.length > 1) {
+      game.move_fens.pop();
+    }
+    game.board_fen = game.move_fens?.[game.move_fens.length - 1] || "start";
+    if (game.clock_history?.length > 1) {
+      game.clock_history.pop();
+    }
+    const previousClock = game.clock_history?.[game.clock_history.length - 1];
+    if (previousClock) {
+      game.time_white = previousClock.time_white;
+      game.time_black = previousClock.time_black;
+      game.turn = previousClock.turn;
+    } else {
+      game.turn = color;
+    }
+    if (color === "white") {
+      game.takebacks_white_used = (game.takebacks_white_used || 0) + 1;
+    } else {
+      game.takebacks_black_used = (game.takebacks_black_used || 0) + 1;
+    }
+    game.last_move_at = Date.now();
+
+    return {
+      room: nextRoom,
+      meta: {
+        event: {
+          type: OutboundEvent.TAKEBACK_APPLIED,
+          roomCode,
+          byUserId: ws.userId,
+          removedMove: removedMove || null,
+          removedSan: removedSan || null,
+          fen: game.board_fen,
+          moves: [...(game.moves || [])],
+          moveSans: [...(game.move_sans || [])],
+          moveFens: [...(game.move_fens || ["start"])],
+          turn: game.turn,
+          timeWhite: game.time_white,
+          timeBlack: game.time_black,
+          drawOffer: game.draw_offer || null,
+          takebacksWhiteUsed: game.takebacks_white_used || 0,
+          takebacksBlackUsed: game.takebacks_black_used || 0,
+          serverTimestampMs: Date.now()
+        }
+      }
+    };
+  });
+
+  if (!mutation.ok) {
+    if (mutation.reason === "aborted" && mutation.error) {
+      send(ws, mutation.error);
+      return;
+    }
+    send(ws, buildWsError("ROOM_UPDATE_CONFLICT", { context: { roomCode } }));
+    return;
+  }
+
+  broadcastToRoom(mutation.room, mutation.meta.event);
+}
+
+async function handleOfferDraw(ws, roomCode) {
+  const mutation = await mutateRoom(roomCode, (nextRoom) => {
+    if (!nextRoom.active_game) {
+      return {
+        error: { type: OutboundEvent.ERROR, code: "NO_ACTIVE_GAME", message: "No active game in this room." }
+      };
+    }
+    const game = nextRoom.active_game;
+    if (game.draw_offer) {
+      return {
+        error: { type: OutboundEvent.ERROR, code: "DRAW_ALREADY_PENDING", message: "Draw offer already pending." }
+      };
+    }
+    game.draw_offer = {
+      offered_by_user_id: ws.userId,
+      created_at: Date.now()
+    };
+    return {
+      room: nextRoom,
+      meta: {
+        event: {
+          type: OutboundEvent.DRAW_OFFER_PENDING,
+          roomCode,
+          offeredByUserId: ws.userId
+        },
+        stateEvent: {
+          type: OutboundEvent.DRAW_OFFER_STATE,
+          roomCode,
+          drawOffer: game.draw_offer
+        }
+      }
+    };
+  });
+
+  if (!mutation.ok) {
+    if (mutation.reason === "aborted" && mutation.error) {
+      send(ws, mutation.error);
+      return;
+    }
+    send(ws, buildWsError("ROOM_UPDATE_CONFLICT", { context: { roomCode } }));
+    return;
+  }
+
+  broadcastToRoom(mutation.room, mutation.meta.event);
+  broadcastToRoom(mutation.room, mutation.meta.stateEvent);
+}
+
+async function handleAcceptDraw(ws, roomCode) {
+  const room = await getRoom(roomCode);
+  if (!room?.active_game?.draw_offer) {
+    send(ws, buildWsError("DRAW_NOT_PENDING", { message: "No draw offer pending." }));
+    return;
+  }
+  if (room.active_game.draw_offer.offered_by_user_id === ws.userId) {
+    send(ws, buildWsError("DRAW_NOT_PENDING", { message: "You cannot accept your own draw offer." }));
+    return;
+  }
+  broadcastToRoom(room, {
+    type: OutboundEvent.DRAW_ACCEPTED,
+    roomCode,
+    acceptedByUserId: ws.userId
+  });
+  await endGame(roomCode, { winner: "draw", reason: "draw_agreed", pgn: "" });
 }
 
 async function handleLeaveRoom(ws) {
@@ -1113,13 +1352,22 @@ export function installWebSocketServer(wss) {
             await handleLeaveRoom(ws);
             break;
           case InboundEvent.START_GAME:
-            await handleStartGame(ws, roomCode);
+            await handleStartGame(ws, roomCode, message.settings || null);
             break;
           case InboundEvent.MAKE_MOVE:
             await handleMakeMove(ws, roomCode, message.move);
             break;
           case InboundEvent.RESIGN:
             await handleResign(ws, roomCode);
+            break;
+          case InboundEvent.REQUEST_TAKEBACK:
+            await handleRequestTakeback(ws, roomCode);
+            break;
+          case InboundEvent.OFFER_DRAW:
+            await handleOfferDraw(ws, roomCode);
+            break;
+          case InboundEvent.ACCEPT_DRAW:
+            await handleAcceptDraw(ws, roomCode);
             break;
           case InboundEvent.HEARTBEAT:
             send(ws, { type: OutboundEvent.HEARTBEAT_ACK });

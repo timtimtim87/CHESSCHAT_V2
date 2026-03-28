@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { applyMove, startNewGame } from "../../src/services/chess.js";
 
 test("startNewGame initializes expected structure", () => {
-  const game = startNewGame("ABCDE", "white", "black", 300);
+  const game = startNewGame("AB12CD34", "white", "black", 300);
   assert.equal(game.board_fen, "start");
   assert.equal(game.turn, "white");
   assert.equal(game.time_white, 300);

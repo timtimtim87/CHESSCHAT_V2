@@ -4,7 +4,7 @@ import { forfeitWinnerFromDisconnect, reconnectPauseState, reconnectRestoredStat
 
 test("reconnect pause state includes grace deadline", () => {
   const paused = reconnectPauseState({
-    roomCode: "ABCDE",
+    roomCode: "AB12CD34",
     disconnectedUserId: "user-1",
     reconnectGraceSeconds: 60,
     now: 1700000000000
@@ -13,7 +13,7 @@ test("reconnect pause state includes grace deadline", () => {
   assert.equal(paused.reconnectDeadlineMs, 1700000060000);
   assert.deepEqual(paused.event, {
     type: "reconnect_state",
-    roomCode: "ABCDE",
+    roomCode: "AB12CD34",
     status: "paused",
     disconnectedUserId: "user-1",
     graceEndsAt: 1700000060000,
@@ -22,10 +22,10 @@ test("reconnect pause state includes grace deadline", () => {
 });
 
 test("reconnect restored event clears paused metadata", () => {
-  const restored = reconnectRestoredState({ roomCode: "ABCDE" });
+  const restored = reconnectRestoredState({ roomCode: "AB12CD34" });
   assert.deepEqual(restored, {
     type: "reconnect_state",
-    roomCode: "ABCDE",
+    roomCode: "AB12CD34",
     status: "restored",
     disconnectedUserId: null,
     graceEndsAt: null,

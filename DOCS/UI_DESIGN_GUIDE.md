@@ -258,6 +258,32 @@ Last updated: 2026-03-09
 ## 15) Identity + Feedback UX Update (2026-03-09)
 
 ### What changed
+
+## 16) Friends-First + Game Controls Update (2026-03-28)
+
+### What changed
+- Room/game contract hardened to 8-character room codes across frontend/backend/static-auth.
+- App-wide authenticated websocket session introduced (single persistent connection while authenticated).
+- Start-game flow now opens a host-controlled settings modal from inside the game room:
+  - per-player time controls
+  - allow/deny takebacks
+  - takebacks per player
+- Draw + takeback controls added to real game room:
+  - `Offer Draw`, `Accept Draw`, `Takeback`.
+- History page now supports replay navigation:
+  - `View Board + Moves`, `Back`, `Forward`.
+- Friends hub now uses live API-backed data for:
+  - friend list
+  - pending friend requests
+  - invite by username
+
+### Why
+- Align real app behavior with the validated preview UX direction.
+- Keep social/challenge flow consistent with "play your friends" as the primary product path.
+
+### Notes
+- Notification delivery is currently in-app/online-only.
+- Realtime remains single-task constrained pending distributed WS routing.
 - Lobby now enforces app-level username setup before room join when account username is missing or opaque.
 - Username entry is constrained to a clean gamer-tag format (`a-z`, `0-9`, `_`, 3-20 chars) and validated with backend uniqueness checks.
 - Room participant tiles and game-result winner text now prefer participant display names/usernames instead of raw Cognito subject IDs.
@@ -351,3 +377,62 @@ Last updated: 2026-03-09
   - frontend lobby username form validation
   - static-auth signup username validation
 - No UI layout/component behavior changes in this stage.
+
+## 20) Template-Driven UI Rebuild + Stub Routes (2026-03-22)
+
+### Decision
+- Rebuilt frontend visuals using `screen_templates` HTML + PNG screens as the north-star reference, while preserving existing backend/API/WS behavior.
+- Added UI-only stub routes for future features:
+  - `/friends`
+  - `/history`
+
+### What changed
+- Introduced a shared Obsidian-Slate-inspired design layer in frontend CSS:
+  - typography, color tokens, glass surfaces, status chips, button variants, app shell patterns.
+- Added shared authenticated app shell (`AppChrome`) with top bar + side nav for app routes.
+- Reworked existing app routes to align with template styling while retaining current logic:
+  - `/` landing/auth entry
+  - `/lobby` room challenge + username setup
+  - `/profile` profile stats + delete-account workflow
+  - `/room/:code` kept functional behavior, updated visual system via shared styles.
+- Added UI-to-feature backlog map tags in-app (`UI_READY`, `API_MISSING`) to mark elements awaiting implementation.
+
+### Split-host alignment
+- Confirmed host boundaries for UI delivery:
+  - `chess-chat.com` static edge landing only.
+  - `app.chess-chat.com` containerized app routes and authenticated product surfaces.
+- Auth callback/logout remain app-host aligned to avoid cross-origin session ambiguity.
+
+### Validation
+- `npm --prefix app/frontend run build` passed.
+- `npm --prefix app/frontend run test` reported all suites passing; process did not terminate cleanly in this environment after result output.
+
+### Notes
+- Friends/history controls are intentionally non-functional in this pass and are tagged as API-dependent in UI.
+
+## 21) No-Auth UI Preview Mode (2026-03-22)
+
+### Decision
+- Added dedicated UI preview routes for rapid UX iteration without requiring Cognito auth or live game backend services.
+
+### What changed
+- Introduced preview route set under `/ui-preview/*`:
+  - `/ui-preview/landing`
+  - `/ui-preview/lobby`
+  - `/ui-preview/profile`
+  - `/ui-preview/friends`
+  - `/ui-preview/history`
+  - `/ui-preview/room`
+- Preview routes render mock data and click-through navigation for design feedback.
+- Production routes and auth-protected behavior remain unchanged.
+
+### Why
+- Improves design iteration speed by removing auth/session/setup friction during UI reviews.
+- Enables focused visual/usability feedback before feature/API wiring is complete.
+
+### Validation
+- `npm --prefix app/frontend run build` (pass)
+- `npm --prefix app/frontend run test -- src/pages/LandingPage.test.jsx src/pages/LobbyPage.test.jsx` (pass)
+
+### Notes
+- Preview mode is not a substitute for end-to-end validation against real auth, WS, and game services.
