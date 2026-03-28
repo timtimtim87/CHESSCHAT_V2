@@ -29,6 +29,22 @@ Purpose: keep one practical, interview-ready plan for building CHESSCHAT as an A
   - Baseline: low steady traffic with bursts during demos/interviews
   - Concurrent active users: 50-300 (initial portfolio range)
   - Stateless app tier scales horizontally via ECS/Fargate
+  - Current realtime guardrail: websocket routing remains single-task until distributed session routing is implemented (see `DOCS/WEBSOCKET_SCALING_CONSTRAINTS.md`).
+
+## 2.1) Feature Gap Closure Update (2026-03-28)
+- Contract hardening:
+  - Room code standardized to 8-char alphanumeric across backend/frontend/static-auth/docs.
+- Realtime session:
+  - Frontend now maintains one persistent authenticated websocket session across app screens.
+  - ALB target-group stickiness now explicitly enabled (`lb_cookie`, 24h) as a scaling guardrail prerequisite.
+- Social capability baseline added:
+  - New DynamoDB domains and APIs for friendships, friend requests, challenges, and notifications.
+- Game protocol baseline added:
+  - Host-controlled game settings at game start.
+  - Unilateral validated takebacks (`request_takeback`).
+  - Single-pending draw offer flow (`offer_draw`, `accept_draw`).
+- History review baseline:
+  - Game persistence now stores move arrays/fen history for replay navigation.
 
 ## 3) Network/NAT Decision
 - Keep 3 AZ subnet layout (strong architecture signal).
@@ -235,7 +251,7 @@ Purpose: keep one practical, interview-ready plan for building CHESSCHAT as an A
   - Two-user live E2E (post-rollout):
     - Executed scripted two-user flow against production endpoint:
       - Cognito auth for two users
-      - Shared room join via 5-character code
+      - Shared room join via 8-character code
       - `start_game`, move broadcast (`e2e4`), and resign game end
       - `/api/history` verification for both users
     - Outcome: pass (game persisted and visible in both histories)

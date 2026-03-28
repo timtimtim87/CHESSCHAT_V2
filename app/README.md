@@ -8,7 +8,7 @@ This directory contains the application code that replaces the bootstrap ECS ima
 
 ## MVP routes
 - `/`: app-host entry (redirects unauthenticated users to apex auth host)
-- `/lobby`: start/join room using one 5-character code field
+- `/lobby`: challenge a friend by username to resolve/create an 8-character room code
 - `/room/:code`: video + chess room
 
 ## Runtime notes

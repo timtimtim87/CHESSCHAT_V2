@@ -3,9 +3,10 @@ import { useNavigate, useParams } from "react-router-dom";
 import ChessBoardPanel from "../components/ChessBoardPanel";
 import VideoPanel from "../components/VideoPanel";
 import { useAuth } from "../context/AuthContext";
+import { useAppSocket } from "../context/AppSocketContext";
 import { createMeetingSession, listDevices, startMedia, stopMedia } from "../services/chime";
-import { ChessChatSocket } from "../services/socket";
 import { appStateReducer, initialAppState } from "../state/appState";
+import { isValidRoomCode } from "../utils/roomCode";
 
 const LAST_ROOM_CODE_KEY = "chesschat_last_room_code";
 
@@ -64,7 +65,8 @@ function displayNameFromParticipant(participant, fallbackPlayerId, currentUserId
 export default function RoomPage() {
   const { code } = useParams();
   const roomCode = useMemo(() => (code || "").toUpperCase(), [code]);
-  const { accessToken, getValidToken, user } = useAuth();
+  const { accessToken, user } = useAuth();
+  const { socketState, send, subscribe } = useAppSocket();
   const navigate = useNavigate();
 
   const [state, dispatch] = useReducer(appStateReducer, {
@@ -75,7 +77,6 @@ export default function RoomPage() {
     }
   });
 
-  const socketRef = useRef(null);
   const meetingSessionRef = useRef(null);
   const observerRef = useRef(null);
   const audioElementRef = useRef(null);
@@ -88,13 +89,21 @@ export default function RoomPage() {
   const audioContextRef = useRef(null);
   const [clockNowMs, setClockNowMs] = useState(Date.now());
   const [confirmResignOpen, setConfirmResignOpen] = useState(false);
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
+  const [gameSettings, setGameSettings] = useState({
+    timeWhiteSeconds: 300,
+    timeBlackSeconds: 300,
+    allowTakebacks: true,
+    takebacksWhite: 2,
+    takebacksBlack: 2
+  });
   const [viewport, setViewport] = useState(() => ({
     width: window.innerWidth,
     height: window.innerHeight
   }));
 
   useEffect(() => {
-    if (/^[A-Z0-9]{5}$/.test(roomCode)) {
+    if (isValidRoomCode(roomCode)) {
       sessionStorage.setItem(LAST_ROOM_CODE_KEY, roomCode);
     }
   }, [roomCode]);
@@ -163,39 +172,10 @@ export default function RoomPage() {
     }
 
     dispatch({ type: "ROOM_INIT", roomCode });
+  }, [accessToken, navigate, roomCode, user?.sub]);
 
-    const socket = new ChessChatSocket({
-      getToken: getValidToken,
-      onStateChange: (socketState) => {
-        roomDebug("socket_state", socketState);
-        dispatch({
-          type: "SOCKET_STATE",
-          status: socketState.status,
-          reconnectAttempt: socketState.reconnectAttempt,
-          retryInMs: socketState.retryInMs
-        });
-      },
-      onOpen: () => {
-        roomDebug("socket_open", { roomCode });
-        dispatch({ type: "CLEAR_BLOCKING_ERROR" });
-        socket.send("join_room", { roomCode });
-      },
-      onClose: ({ willReconnect }) => {
-        roomDebug("socket_close", { roomCode, willReconnect });
-        if (!willReconnect) {
-          return;
-        }
-        dispatch({
-          type: "SET_TOAST_ERROR",
-          error: {
-            code: "SOCKET_RECONNECTING",
-            message: "Connection lost. Reconnecting...",
-            retryable: true,
-            context: { roomCode }
-          }
-        });
-      },
-      onMessage: (payload) => {
+  useEffect(() => {
+    const unsubscribe = subscribe((payload) => {
         switch (payload.type) {
           case "room_joined":
             roomDebug("event_room_joined", {
@@ -206,6 +186,7 @@ export default function RoomPage() {
             reconnectVersionRef.current = payload.activeGame?.reconnectVersion || reconnectVersionRef.current;
             dispatch({
               type: "ROOM_JOINED",
+              hostUserId: payload.hostUserId || null,
               participants: normalizeParticipants(payload.participants),
               activeGame: payload.activeGame || null
             });
@@ -291,9 +272,14 @@ export default function RoomPage() {
                 fen: payload.fen,
                 moves: payload.moves || [],
                 moveSans: payload.moveSans || [],
+                moveFens: payload.moveFens || ["start"],
                 turn: payload.turn,
                 timeWhite: payload.timeWhite,
                 timeBlack: payload.timeBlack,
+                drawOffer: payload.drawOffer || null,
+                settings: payload.settings || null,
+                takebacksWhiteUsed: payload.takebacksWhiteUsed || 0,
+                takebacksBlackUsed: payload.takebacksBlackUsed || 0,
                 serverTimestampMs: payload.serverTimestampMs || Date.now()
               }
             });
@@ -310,10 +296,48 @@ export default function RoomPage() {
               fen: payload.fen,
               moves: payload.moves,
               moveSans: payload.moveSans,
+              moveFens: payload.moveFens,
               turn: payload.turn,
               timeWhite: payload.timeWhite,
               timeBlack: payload.timeBlack,
+              drawOffer: payload.drawOffer,
+              takebacksWhiteUsed: payload.takebacksWhiteUsed,
+              takebacksBlackUsed: payload.takebacksBlackUsed,
               serverTimestampMs: payload.serverTimestampMs
+            });
+            break;
+          case "takeback_applied":
+            dispatch({
+              type: "TAKEBACK_APPLIED",
+              fen: payload.fen,
+              moves: payload.moves,
+              moveSans: payload.moveSans,
+              moveFens: payload.moveFens,
+              turn: payload.turn,
+              timeWhite: payload.timeWhite,
+              timeBlack: payload.timeBlack,
+              drawOffer: payload.drawOffer,
+              takebacksWhiteUsed: payload.takebacksWhiteUsed,
+              takebacksBlackUsed: payload.takebacksBlackUsed,
+              serverTimestampMs: payload.serverTimestampMs
+            });
+            break;
+          case "draw_offer_pending":
+            dispatch({
+              type: "DRAW_OFFER_STATE",
+              drawOffer: {
+                offeredByUserId: payload.offeredByUserId
+              }
+            });
+            break;
+          case "draw_offer_state":
+            dispatch({
+              type: "DRAW_OFFER_STATE",
+              drawOffer: payload.drawOffer
+                ? {
+                    offeredByUserId: payload.drawOffer.offered_by_user_id || payload.drawOffer.offeredByUserId
+                  }
+                : null
             });
             break;
           case "game_ended":
@@ -354,18 +378,49 @@ export default function RoomPage() {
           default:
             break;
         }
-      }
+    });
+    return unsubscribe;
+  }, [subscribe, roomCode]);
+
+  useEffect(() => {
+    roomDebug("socket_state", socketState);
+    dispatch({
+      type: "SOCKET_STATE",
+      status: socketState.status,
+      reconnectAttempt: socketState.reconnectAttempt,
+      retryInMs: socketState.retryInMs
     });
 
-    void socket.connect();
-    socketRef.current = socket;
+    if (socketState.status === "reconnecting") {
+      dispatch({
+        type: "SET_TOAST_ERROR",
+        error: {
+          code: "SOCKET_RECONNECTING",
+          message: "Connection lost. Reconnecting...",
+          retryable: true,
+          context: { roomCode }
+        }
+      });
+    }
+    if (socketState.status === "connected") {
+      dispatch({ type: "CLEAR_BLOCKING_ERROR" });
+    }
+  }, [socketState, roomCode]);
 
+  useEffect(() => {
+    if (!accessToken || socketState.status !== "connected") {
+      return;
+    }
+    roomDebug("socket_join_room", { roomCode, connectionSerial: socketState.connectionSerial });
+    send("join_room", { roomCode });
+  }, [accessToken, roomCode, send, socketState.connectionSerial, socketState.status]);
+
+  useEffect(() => {
     return () => {
-      socket.send("leave_room", { roomCode });
+      send("leave_room", { roomCode });
       stopMeetingSession();
-      socket.disconnect();
     };
-  }, [accessToken, getValidToken, navigate, roomCode, user?.sub]);
+  }, [roomCode, send]);
 
   const game = state.game_state.game;
   const myColor = game
@@ -380,10 +435,29 @@ export default function RoomPage() {
     : false;
 
   const connectedPlayers = state.room_state.participants.filter((participant) => participant.connected).length;
+  const isHost = !state.room_state.hostUserId || state.room_state.hostUserId === user?.sub;
+  const drawOfferBy = game?.drawOffer?.offeredByUserId || game?.drawOffer?.offered_by_user_id || null;
+  const drawOfferPending = Boolean(drawOfferBy);
+  const myUsedTakebacks = myColor === "white" ? game?.takebacksWhiteUsed || 0 : game?.takebacksBlackUsed || 0;
+  const myMaxTakebacks =
+    myColor === "white" ? game?.settings?.takebacks_white_max || 0 : game?.settings?.takebacks_black_max || 0;
+  const canRequestTakeback =
+    Boolean(game) &&
+    Boolean(game.settings?.allow_takebacks) &&
+    myUsedTakebacks < myMaxTakebacks &&
+    !isMyTurn;
+  const canOfferDraw = Boolean(game) && !drawOfferPending;
+  const canAcceptDraw = Boolean(game) && drawOfferPending && drawOfferBy !== user?.sub;
+  const canStartGame = !game && connectedPlayers >= 2 && state.media_state.started && isHost;
 
   function startGame() {
-    roomDebug("action_start_game", { roomCode });
-    socketRef.current?.send("start_game", { roomCode });
+    setSettingsModalOpen(true);
+  }
+
+  function confirmStartGame() {
+    roomDebug("action_start_game", { roomCode, settings: gameSettings });
+    send("start_game", { roomCode, settings: gameSettings });
+    setSettingsModalOpen(false);
   }
 
   function resign() {
@@ -392,7 +466,7 @@ export default function RoomPage() {
 
   function confirmResign() {
     setConfirmResignOpen(false);
-    socketRef.current?.send("resign", { roomCode });
+    send("resign", { roomCode });
   }
 
   function onMove(move) {
@@ -402,7 +476,19 @@ export default function RoomPage() {
       gameActive: Boolean(game),
       isMyTurn
     });
-    socketRef.current?.send("make_move", { roomCode, move });
+    send("make_move", { roomCode, move });
+  }
+
+  function requestTakeback() {
+    send("request_takeback", { roomCode });
+  }
+
+  function offerDraw() {
+    send("offer_draw", { roomCode });
+  }
+
+  function acceptDraw() {
+    send("accept_draw", { roomCode });
   }
 
   function playMoveSound() {
@@ -652,7 +738,7 @@ export default function RoomPage() {
         </div>
         <section className="mobile-fallback-card surface-glass">
           <h1>Desktop recommended</h1>
-          <p>ChessChat currently works best on desktop. Mobile app coming soon.</p>
+          <p>Chess-Chat currently works best on desktop. Mobile app coming soon.</p>
         </section>
       </main>
     );
@@ -740,8 +826,17 @@ export default function RoomPage() {
           </div>
 
           <div className="room-action-row">
-            <button className="button-primary" onClick={startGame} disabled={Boolean(game) || connectedPlayers < 2}>
+            <button className="button-primary" onClick={startGame} disabled={!canStartGame}>
               Start Game
+            </button>
+            <button className="button-secondary" onClick={offerDraw} disabled={!canOfferDraw}>
+              Offer Draw
+            </button>
+            <button className="button-secondary" onClick={acceptDraw} disabled={!canAcceptDraw}>
+              Accept Draw
+            </button>
+            <button className="button-secondary" onClick={requestTakeback} disabled={!canRequestTakeback}>
+              Takeback
             </button>
             <button className="button-danger" onClick={resign} disabled={!game}>
               Resign
@@ -784,6 +879,83 @@ export default function RoomPage() {
               </button>
               <button className="button-danger" onClick={confirmResign}>
                 Confirm Resign
+              </button>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {settingsModalOpen ? (
+        <section className="modal-backdrop" role="dialog" aria-modal="true">
+          <div className="modal-card surface-glass">
+            <h3>Game Settings</h3>
+            <p>Host controls final settings before game start.</p>
+            <div className="form-row" style={{ marginBottom: 10 }}>
+              <label>
+                White time (sec)
+                <input
+                  type="number"
+                  min={30}
+                  value={gameSettings.timeWhiteSeconds}
+                  onChange={(e) =>
+                    setGameSettings((prev) => ({ ...prev, timeWhiteSeconds: Number(e.target.value || 300) }))
+                  }
+                />
+              </label>
+              <label>
+                Black time (sec)
+                <input
+                  type="number"
+                  min={30}
+                  value={gameSettings.timeBlackSeconds}
+                  onChange={(e) =>
+                    setGameSettings((prev) => ({ ...prev, timeBlackSeconds: Number(e.target.value || 300) }))
+                  }
+                />
+              </label>
+            </div>
+            <label className="preview-toggle-row" style={{ marginBottom: 10 }}>
+              <input
+                type="checkbox"
+                checked={gameSettings.allowTakebacks}
+                onChange={(e) =>
+                  setGameSettings((prev) => ({ ...prev, allowTakebacks: e.target.checked }))
+                }
+              />
+              Allow takebacks
+            </label>
+            <div className="form-row">
+              <label>
+                White takebacks
+                <input
+                  type="number"
+                  min={0}
+                  value={gameSettings.takebacksWhite}
+                  onChange={(e) =>
+                    setGameSettings((prev) => ({ ...prev, takebacksWhite: Number(e.target.value || 0) }))
+                  }
+                  disabled={!gameSettings.allowTakebacks}
+                />
+              </label>
+              <label>
+                Black takebacks
+                <input
+                  type="number"
+                  min={0}
+                  value={gameSettings.takebacksBlack}
+                  onChange={(e) =>
+                    setGameSettings((prev) => ({ ...prev, takebacksBlack: Number(e.target.value || 0) }))
+                  }
+                  disabled={!gameSettings.allowTakebacks}
+                />
+              </label>
+            </div>
+            <div className="room-action-row" style={{ marginTop: 12 }}>
+              <button className="button-secondary" onClick={() => setSettingsModalOpen(false)}>
+                Cancel
+              </button>
+              <button className="button-primary" onClick={confirmStartGame}>
+                Confirm + Start
               </button>
             </div>
           </div>

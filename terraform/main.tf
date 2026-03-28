@@ -73,29 +73,39 @@ module "vpc" {
 }
 
 module "ecs_identity" {
-  source                = "./modules/ecs"
-  project               = var.project
-  environment           = var.environment
-  dynamodb_table_arns   = [module.dynamodb.users_table_arn, module.dynamodb.games_table_arn, module.dynamodb.pair_rooms_table_arn]
+  source      = "./modules/ecs"
+  project     = var.project
+  environment = var.environment
+  dynamodb_table_arns = [
+    module.dynamodb.users_table_arn,
+    module.dynamodb.games_table_arn,
+    module.dynamodb.pair_rooms_table_arn,
+    module.dynamodb.friendships_table_arn,
+    module.dynamodb.friend_requests_table_arn,
+    module.dynamodb.challenges_table_arn,
+    module.dynamodb.notifications_table_arn
+  ]
   ecr_repository_arns   = var.ecr_repository_arns
   cognito_user_pool_arn = module.cognito.user_pool_arn
   tags                  = local.common_tags
 }
 
 module "alb" {
-  source              = "./modules/alb"
-  project             = var.project
-  environment         = var.environment
-  enabled             = var.enable_edge
-  vpc_id              = module.vpc.vpc_id
-  public_subnet_ids   = module.vpc.public_subnet_ids
-  target_port         = var.ecs_container_port
-  certificate_domains = local.app_domain_name == null ? [] : [local.app_domain_name]
-  canonical_host      = local.app_domain_name
-  redirect_hosts      = []
-  route53_zone_id     = var.route53_zone_id
-  health_check_path   = var.alb_health_check_path
-  tags                = local.common_tags
+  source                                   = "./modules/alb"
+  project                                  = var.project
+  environment                              = var.environment
+  enabled                                  = var.enable_edge
+  vpc_id                                   = module.vpc.vpc_id
+  public_subnet_ids                        = module.vpc.public_subnet_ids
+  target_port                              = var.ecs_container_port
+  certificate_domains                      = local.app_domain_name == null ? [] : [local.app_domain_name]
+  canonical_host                           = local.app_domain_name
+  redirect_hosts                           = []
+  route53_zone_id                          = var.route53_zone_id
+  health_check_path                        = var.alb_health_check_path
+  enable_target_group_stickiness           = true
+  target_group_stickiness_duration_seconds = 86400
+  tags                                     = local.common_tags
 }
 
 module "static_edge" {
@@ -168,13 +178,17 @@ module "elasticache" {
 }
 
 module "dynamodb" {
-  source                = "./modules/dynamodb"
-  project               = var.project
-  environment           = var.environment
-  users_table_name      = var.dynamodb_users_table_name
-  games_table_name      = var.dynamodb_games_table_name
-  pair_rooms_table_name = var.dynamodb_pair_rooms_table_name
-  tags                  = local.common_tags
+  source                     = "./modules/dynamodb"
+  project                    = var.project
+  environment                = var.environment
+  users_table_name           = var.dynamodb_users_table_name
+  games_table_name           = var.dynamodb_games_table_name
+  pair_rooms_table_name      = var.dynamodb_pair_rooms_table_name
+  friendships_table_name     = var.dynamodb_friendships_table_name
+  friend_requests_table_name = var.dynamodb_friend_requests_table_name
+  challenges_table_name      = var.dynamodb_challenges_table_name
+  notifications_table_name   = var.dynamodb_notifications_table_name
+  tags                       = local.common_tags
 }
 
 module "cognito" {

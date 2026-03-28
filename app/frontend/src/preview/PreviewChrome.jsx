@@ -45,9 +45,8 @@ export default function PreviewChrome({ children }) {
   return (
     <>
       <aside className="side-nav" aria-label="Preview primary">
-        <div className="app-nav-logo">ChessChat</div>
         <nav className="side-nav-links">
-          <NavIcon to="/ui-preview/game" icon="stadia_controller" label="Game" />
+          <NavIcon to="/ui-preview/game" icon="chess_knight" label="Game" />
           <NavIcon to="/ui-preview/profile" icon="account_circle" label="Profile" />
           <NavIcon to="/ui-preview/friends" icon="group" label="Friends" />
           <NavIcon to="/ui-preview/history" icon="history" label="History" />
@@ -64,7 +63,7 @@ export default function PreviewChrome({ children }) {
 
       <header className="app-nav">
         <Link to="/ui-preview/game" className="app-nav-logo">
-          ChessChat
+          Chess-Chat
         </Link>
 
         <div className="app-nav-actions preview-top-actions">

@@ -6,13 +6,31 @@ export default function PreviewGamePage() {
   const { state, quickChallengeByUsername } = usePreview();
   const [inviteUsername, setInviteUsername] = useState("");
   const [inviteMessage, setInviteMessage] = useState("");
-  const [showSetupModal, setShowSetupModal] = useState(true);
+  const [showSetupModal, setShowSetupModal] = useState(false);
   const [allowTakebacks, setAllowTakebacks] = useState(true);
+  const [timePreset, setTimePreset] = useState("5");
+  const [colorChoice, setColorChoice] = useState("random");
   const [whiteMinutes, setWhiteMinutes] = useState(10);
   const [blackMinutes, setBlackMinutes] = useState(10);
   const [whiteTakebacks, setWhiteTakebacks] = useState(2);
   const [blackTakebacks, setBlackTakebacks] = useState(2);
+  const isVideoConnected = true;
   const opponent = state.activeGame?.opponent || "Waiting for challenge";
+  const timePresets = [
+    { id: "3", label: "3 min", type: "Blitz", white: 3, black: 3 },
+    { id: "5", label: "5 min", type: "Blitz", white: 5, black: 5 },
+    { id: "10", label: "10 min", type: "Rapid", white: 10, black: 10 },
+    { id: "30", label: "30 min", type: "Classical", white: 30, black: 30 },
+    { id: "custom", label: "Custom", type: "Manual" },
+  ];
+
+  function selectTimePreset(preset) {
+    setTimePreset(preset.id);
+    if (preset.id !== "custom") {
+      setWhiteMinutes(preset.white);
+      setBlackMinutes(preset.black);
+    }
+  }
 
   function submitQuickInvite(event) {
     event.preventDefault();
@@ -24,80 +42,139 @@ export default function PreviewGamePage() {
     <PreviewLayout>
       {showSetupModal ? (
         <section className="preview-modal-backdrop" role="dialog" aria-modal="true" aria-label="Game setup">
-          <div className="preview-modal-card surface-glass">
-            <h3>Game Setup (Preview)</h3>
-            <p>Future feature: friend game options before the first move.</p>
-            <div className="preview-settings-grid">
-              <label>
-                White Time (minutes)
-                <input
-                  type="number"
-                  min={1}
-                  max={60}
-                  value={whiteMinutes}
-                  onChange={(event) => setWhiteMinutes(Number(event.target.value))}
-                />
-              </label>
-              <label>
-                Black Time (minutes)
-                <input
-                  type="number"
-                  min={1}
-                  max={60}
-                  value={blackMinutes}
-                  onChange={(event) => setBlackMinutes(Number(event.target.value))}
-                />
-              </label>
+          <div className="preview-modal-card preview-modal-card-obsidian surface-glass">
+            <header className="preview-modal-header">
+              <h3>Game Settings</h3>
+              <button className="button-ghost" type="button" onClick={() => setShowSetupModal(false)}>
+                Close
+              </button>
+            </header>
+
+            <div className="preview-modal-body">
+              <section>
+                <div className="preview-section-label">
+                  <span>Time Control</span>
+                  <div />
+                </div>
+                <div className="preview-time-grid">
+                  {timePresets.map((preset) => (
+                    <button
+                      key={preset.id}
+                      className={`preview-time-btn ${timePreset === preset.id ? "is-active" : ""}`}
+                      type="button"
+                      onClick={() => selectTimePreset(preset)}
+                    >
+                      <strong>{preset.label}</strong>
+                      <span>{preset.type}</span>
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              <section>
+                <div className="preview-section-label">
+                  <span>Choose Color</span>
+                  <div />
+                </div>
+                <div className="preview-color-grid">
+                  {[
+                    { id: "white", label: "White", glyph: "W" },
+                    { id: "random", label: "Random", glyph: "?" },
+                    { id: "black", label: "Black", glyph: "B" },
+                  ].map((option) => (
+                    <button
+                      key={option.id}
+                      className={`preview-color-btn ${colorChoice === option.id ? "is-active" : ""}`}
+                      type="button"
+                      onClick={() => setColorChoice(option.id)}
+                    >
+                      <span>{option.glyph}</span>
+                      <strong>{option.label}</strong>
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              <section className="preview-player-grid">
+                <article className="preview-player-card is-you">
+                  <p className="preview-player-title">You</p>
+                  <label>
+                    Starting Time (min)
+                    <input
+                      type="number"
+                      min={1}
+                      max={60}
+                      value={whiteMinutes}
+                      onChange={(event) => setWhiteMinutes(Number(event.target.value))}
+                    />
+                  </label>
+                  <div className="preview-takeback-row">
+                    <p>Takebacks Allowed</p>
+                    <div className="preview-takeback-grid">
+                      {[0, 1, 2].map((count) => (
+                        <button
+                          key={`white-${count}`}
+                          type="button"
+                          className={whiteTakebacks === count ? "is-active" : ""}
+                          onClick={() => setWhiteTakebacks(count)}
+                          disabled={!allowTakebacks}
+                        >
+                          {count}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </article>
+
+                <article className="preview-player-card">
+                  <p className="preview-player-title">Opponent</p>
+                  <label>
+                    Starting Time (min)
+                    <input
+                      type="number"
+                      min={1}
+                      max={60}
+                      value={blackMinutes}
+                      onChange={(event) => setBlackMinutes(Number(event.target.value))}
+                    />
+                  </label>
+                  <div className="preview-takeback-row">
+                    <p>Takebacks Allowed</p>
+                    <div className="preview-takeback-grid">
+                      {[0, 1, 2].map((count) => (
+                        <button
+                          key={`black-${count}`}
+                          type="button"
+                          className={blackTakebacks === count ? "is-active" : ""}
+                          onClick={() => setBlackTakebacks(count)}
+                          disabled={!allowTakebacks}
+                        >
+                          {count}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </article>
+              </section>
+            </div>
+
+            <footer className="preview-modal-footer">
               <label className="preview-toggle-row">
                 <input
                   type="checkbox"
                   checked={allowTakebacks}
                   onChange={(event) => setAllowTakebacks(event.target.checked)}
                 />
-                Allow Takebacks
+                Allow takebacks before opponent replies
               </label>
-              <label>
-                White Takebacks
-                <input
-                  type="number"
-                  min={0}
-                  max={10}
-                  value={whiteTakebacks}
-                  onChange={(event) => setWhiteTakebacks(Number(event.target.value))}
-                  disabled={!allowTakebacks}
-                />
-              </label>
-              <label>
-                Black Takebacks
-                <input
-                  type="number"
-                  min={0}
-                  max={10}
-                  value={blackTakebacks}
-                  onChange={(event) => setBlackTakebacks(Number(event.target.value))}
-                  disabled={!allowTakebacks}
-                />
-              </label>
-            </div>
-            <div className="preview-row-actions">
-              <button className="button-primary" type="button" onClick={() => setShowSetupModal(false)}>
-                Start Mock Game
+              <button className="button-primary preview-start-btn" type="button" onClick={() => setShowSetupModal(false)}>
+                Start Game
               </button>
-              <button className="button-secondary" type="button" onClick={() => setShowSetupModal(false)}>
-                Keep Defaults
-              </button>
-            </div>
+              <p>Preview-only mock. Real matchmaking rules are not wired yet.</p>
+            </footer>
           </div>
         </section>
       ) : null}
-
-      <header className="page-header">
-        <div>
-          <h1 className="page-title">Game</h1>
-          <p className="page-subtitle">Mock game room UI for layout testing.</p>
-        </div>
-        <span className="page-chip">Room {state.activeGame?.roomCode || "PREV1"}</span>
-      </header>
 
       <main className="room-shell" style={{ padding: 0 }}>
         <section className="room-status-strip surface-glass">
@@ -107,6 +184,7 @@ export default function PreviewGamePage() {
           </div>
           <div className="room-status-meta">
             <p className="socket-status">Preview connection stable</p>
+            <p className="socket-status">Video chat connected (mock)</p>
             <p className="socket-status">Latency 24ms (mock)</p>
           </div>
         </section>
@@ -145,7 +223,7 @@ export default function PreviewGamePage() {
               ))}
             </div>
             <div className="room-action-row">
-              <button className="button-primary" disabled>
+              <button className="button-primary" type="button" disabled={!isVideoConnected} onClick={() => setShowSetupModal(true)}>
                 Start Game
               </button>
               <button className="button-secondary" disabled>

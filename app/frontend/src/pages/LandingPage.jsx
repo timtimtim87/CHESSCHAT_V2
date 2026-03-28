@@ -34,7 +34,7 @@ export default function LandingPage({ preview = false }) {
   return (
     <main className="auth-shell">
       <header className="landing-nav">
-        <div className="landing-brand">ChessChat</div>
+        <div className="landing-brand">Chess-Chat</div>
         <button className="button-ghost" onClick={onLogin} disabled={!isConfigReady}>
           Log In
         </button>
@@ -44,7 +44,7 @@ export default function LandingPage({ preview = false }) {
         <div>
           <span className="page-chip">Chess with a Smile</span>
           <h1 className="landing-headline">
-            Play, Chat, and <span className="gradient-text">Checkmate</span> with friends.
+            Play and chat on <span className="gradient-text">Chess-Chat</span> with friends.
           </h1>
           <p className="landing-copy">
             Experience real-time chess with face-to-face conversation. Fast room links, calm visuals, and a focused

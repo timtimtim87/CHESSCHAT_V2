@@ -77,6 +77,30 @@ variable "dynamodb_pair_rooms_table_name" {
   default     = null
 }
 
+variable "dynamodb_friendships_table_name" {
+  description = "Optional explicit DynamoDB friendships table name override."
+  type        = string
+  default     = null
+}
+
+variable "dynamodb_friend_requests_table_name" {
+  description = "Optional explicit DynamoDB friend requests table name override."
+  type        = string
+  default     = null
+}
+
+variable "dynamodb_challenges_table_name" {
+  description = "Optional explicit DynamoDB challenges table name override."
+  type        = string
+  default     = null
+}
+
+variable "dynamodb_notifications_table_name" {
+  description = "Optional explicit DynamoDB notifications table name override."
+  type        = string
+  default     = null
+}
+
 variable "redis_allowed_security_group_ids" {
   description = "Security groups allowed to access Redis on 6379 (for example, ECS service SGs)."
   type        = list(string)

@@ -26,13 +26,13 @@ test("buildWsError returns normalized websocket payload", () => {
 });
 
 test("normalizeWsPayload normalizes partial error payload", () => {
-  const payload = normalizeWsPayload({ type: "error", code: "ILLEGAL_MOVE", context: { roomCode: "ABCDE" } });
+  const payload = normalizeWsPayload({ type: "error", code: "ILLEGAL_MOVE", context: { roomCode: "AB12CD34" } });
   assert.deepEqual(payload, {
     type: "error",
     code: "ILLEGAL_MOVE",
     message: "Illegal move.",
     retryable: false,
-    context: { roomCode: "ABCDE" }
+    context: { roomCode: "AB12CD34" }
   });
 });
 

@@ -8,7 +8,7 @@ export default function PreviewLandingPage() {
   return (
     <main className="auth-shell">
       <header className="landing-nav">
-        <div className="landing-brand">ChessChat</div>
+        <div className="landing-brand">Chess-Chat</div>
         <button
           className="button-ghost"
           onClick={() => {
@@ -52,7 +52,7 @@ export default function PreviewLandingPage() {
         <aside className="landing-preview surface-glass" aria-hidden="true">
           <div className="preview-head">
             <div>
-              <p className="preview-title">ChessChat Preview</p>
+              <p className="preview-title">Chess-Chat Preview</p>
               <p className="preview-status">Local UI-only mode</p>
             </div>
             <span className="button-pill" style={{ padding: "6px 10px" }}>

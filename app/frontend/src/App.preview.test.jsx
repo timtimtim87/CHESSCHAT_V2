@@ -34,12 +34,12 @@ describe("App preview routes", () => {
     );
 
     await userEvent.click(screen.getByRole("button", { name: "Sign Up" }));
-    expect(await screen.findByText(/Create preview account/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Create your account/i)).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await userEvent.click(screen.getByRole("button", { name: "Sign Up" }));
     expect(await screen.findByText(/Registration Complete/i)).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "OK" }));
-    expect(await screen.findByRole("heading", { name: "Game" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Start Game" })).toBeInTheDocument();
   });
 });

@@ -92,6 +92,12 @@ resource "aws_lb_target_group" "app" {
     timeout             = 5
   }
 
+  stickiness {
+    enabled         = var.enable_target_group_stickiness
+    type            = "lb_cookie"
+    cookie_duration = var.target_group_stickiness_duration_seconds
+  }
+
   tags = merge(var.tags, {
     Name = local.target_group_name
   })

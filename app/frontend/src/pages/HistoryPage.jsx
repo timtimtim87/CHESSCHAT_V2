@@ -1,64 +1,66 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AppChrome from "../components/AppChrome";
+import ChessBoardPanel from "../components/ChessBoardPanel";
 import { useAuth } from "../context/AuthContext";
 
-const HISTORY_ROWS = [
-  { opponent: "Alex_The_Great", elo: 2415, result: "WIN", type: "Blitz (3+2)", date: "Today, 14:20" },
-  { opponent: "Checkmate_Queen", elo: 2530, result: "LOSS", type: "Rapid (10+5)", date: "Yesterday, 09:15" },
-  { opponent: "GrandMaster_P", elo: 2490, result: "DRAW", type: "Blitz (5+0)", date: "Aug 24, 21:05" }
-];
-
 function badgeClass(result) {
-  if (result === "WIN") return "result-badge win";
-  if (result === "LOSS") return "result-badge loss";
+  if (result === "win") return "result-badge win";
+  if (result === "loss") return "result-badge loss";
   return "result-badge draw";
 }
 
-export default function HistoryPage({ preview = false }) {
-  const { accessToken, logout } = useAuth();
+export default function HistoryPage() {
+  const { accessToken, logout, user } = useAuth();
   const [profileName, setProfileName] = useState("...");
+  const [games, setGames] = useState([]);
+  const [selectedGameId, setSelectedGameId] = useState(null);
+  const [moveIndex, setMoveIndex] = useState(0);
 
   useEffect(() => {
-    if (preview) {
-      setProfileName("GrandmasterDev");
-      return;
-    }
-    if (!accessToken) {
-      return;
-    }
+    if (!accessToken) return;
     const controller = new AbortController();
 
-    async function fetchProfile() {
-      try {
-        const response = await fetch("/api/me", {
-          headers: { Authorization: `Bearer ${accessToken}` },
-          signal: controller.signal
-        });
-        const payload = await response.json();
-        if (!response.ok) {
-          throw new Error(payload?.error?.message || "Unable to load profile.");
-        }
-        const next = payload.user?.display_name || payload.user?.username || "...";
-        setProfileName(next);
-      } catch (error) {
-        if (error.name !== "AbortError") {
-          console.error("Profile fetch failed:", error.message);
+    async function load() {
+      const [meRes, historyRes] = await Promise.all([
+        fetch("/api/me", { headers: { Authorization: `Bearer ${accessToken}` }, signal: controller.signal }),
+        fetch("/api/history", { headers: { Authorization: `Bearer ${accessToken}` }, signal: controller.signal })
+      ]);
+      const me = await meRes.json();
+      const history = await historyRes.json();
+      if (meRes.ok) {
+        setProfileName(me.user?.display_name || me.user?.username || "...");
+      }
+      if (historyRes.ok) {
+        const list = history.games || [];
+        setGames(list);
+        if (list[0]) {
+          setSelectedGameId(list[0].game_id);
+          setMoveIndex(0);
         }
       }
     }
 
-    fetchProfile();
+    void load();
     return () => controller.abort();
-  }, [accessToken, preview]);
+  }, [accessToken]);
+
+  const selected = useMemo(
+    () => games.find((game) => game.game_id === selectedGameId) || null,
+    [games, selectedGameId]
+  );
+  const fenHistory = selected?.fen_history || ["start"];
+  const sanMoves = selected?.move_list_san || [];
+  const currentFen = fenHistory[Math.min(moveIndex, fenHistory.length - 1)] || "start";
+  const maxIndex = Math.max(0, fenHistory.length - 1);
 
   return (
-    <AppChrome profileName={profileName} onLogout={preview ? () => null : logout} basePath={preview ? "/ui-preview" : ""}>
+    <AppChrome profileName={profileName} onLogout={logout}>
       <header className="page-header">
         <div>
           <h1 className="page-title">Game History</h1>
-          <p className="page-subtitle">Review prior matches and keep a clear record of outcomes and opponents.</p>
+          <p className="page-subtitle">Review completed games with board replay and move navigation.</p>
         </div>
-        <span className="page-chip">UI Stub Route</span>
+        <span className="page-chip">Live API</span>
       </header>
 
       <section className="history-layout">
@@ -66,60 +68,82 @@ export default function HistoryPage({ preview = false }) {
           <table className="history-table">
             <thead>
               <tr>
-                <th>Opponent</th>
+                <th>Game</th>
                 <th>Result</th>
-                <th>Type</th>
+                <th>Moves</th>
                 <th>Date</th>
-                <th>Analysis</th>
+                <th>Review</th>
               </tr>
             </thead>
             <tbody>
-              {HISTORY_ROWS.map((row) => (
-                <tr key={`${row.opponent}-${row.date}`}>
-                  <td>
-                    <strong>{row.opponent}</strong>
-                    <div className="friend-subtext">ELO {row.elo}</div>
-                  </td>
-                  <td>
-                    <span className={badgeClass(row.result)}>{row.result}</span>
-                  </td>
-                  <td>{row.type}</td>
-                  <td>{row.date}</td>
-                  <td>
-                    <button className="button-secondary" disabled>
-                      Review
-                    </button>
-                  </td>
+              {games.length === 0 ? (
+                <tr>
+                  <td colSpan={5}>No completed games yet.</td>
                 </tr>
-              ))}
+              ) : null}
+              {games.map((game) => {
+                const amWhite = game.white_player_id === user?.sub;
+                const won = game.winner === user?.sub;
+                const resultLabel = game.winner === "draw" ? "draw" : won ? "win" : "loss";
+                const opponent = amWhite ? game.black_player_id : game.white_player_id;
+                return (
+                  <tr key={`${game.game_id}-${game.ended_at}`}>
+                    <td>
+                      <strong>{opponent || "Unknown opponent"}</strong>
+                      <div className="friend-subtext">{game.game_id}</div>
+                    </td>
+                    <td>
+                      <span className={badgeClass(resultLabel)}>{resultLabel.toUpperCase()}</span>
+                    </td>
+                    <td>{game.total_moves || 0}</td>
+                    <td>{new Date(game.ended_at).toLocaleString()}</td>
+                    <td>
+                      <button
+                        className="button-secondary"
+                        onClick={() => {
+                          setSelectedGameId(game.game_id);
+                          setMoveIndex(0);
+                        }}
+                      >
+                        View Board + Moves
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </article>
 
-        <aside style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-          <section className="panel surface-glass">
-            <h3>History Controls</h3>
-            <ul className="stub-list">
-              <li className="stub-item">
-                <span>Search by opponent</span>
-                <span className="tag api-missing">API_MISSING</span>
-              </li>
-              <li className="stub-item">
-                <span>Time-control filters</span>
-                <span className="tag api-missing">API_MISSING</span>
-              </li>
-              <li className="stub-item">
-                <span>Export PGN/csv</span>
-                <span className="tag api-missing">API_MISSING</span>
-              </li>
-            </ul>
-          </section>
+        <aside className="panel surface-glass">
+          <h3>Replay</h3>
+          {selected ? (
+            <>
+              <div className="board-wrap">
+                <ChessBoardPanel fen={currentFen} myColor="white" isMyTurn={false} onMove={() => false} />
+              </div>
+              <div className="room-action-row" style={{ marginTop: 10 }}>
+                <button className="button-secondary" onClick={() => setMoveIndex((n) => Math.max(0, n - 1))} disabled={moveIndex <= 0}>
+                  Back
+                </button>
+                <button className="button-secondary" onClick={() => setMoveIndex((n) => Math.min(maxIndex, n + 1))} disabled={moveIndex >= maxIndex}>
+                  Forward
+                </button>
+              </div>
+              <p className="landing-note" style={{ marginTop: 10 }}>
+                Position {moveIndex} / {maxIndex}
+              </p>
+              <p className="landing-note">Moves: {sanMoves.slice(0, moveIndex).join(" ") || "-"}</p>
+              <div className="stat-card" style={{ marginTop: 12 }}>
+                <p className="label">Stockfish Eval (Future)</p>
+                <p className="value">Coming soon</p>
+              </div>
+            </>
+          ) : (
+            <p className="friend-subtext">Select a game to review.</p>
+          )}
         </aside>
       </section>
-
-      <button className="fab-button" type="button" aria-label="Quick start game" title="Quick start game" disabled>
-        <span className="material-symbols-outlined">add</span>
-      </button>
     </AppChrome>
   );
 }

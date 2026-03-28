@@ -258,6 +258,32 @@ Last updated: 2026-03-09
 ## 15) Identity + Feedback UX Update (2026-03-09)
 
 ### What changed
+
+## 16) Friends-First + Game Controls Update (2026-03-28)
+
+### What changed
+- Room/game contract hardened to 8-character room codes across frontend/backend/static-auth.
+- App-wide authenticated websocket session introduced (single persistent connection while authenticated).
+- Start-game flow now opens a host-controlled settings modal from inside the game room:
+  - per-player time controls
+  - allow/deny takebacks
+  - takebacks per player
+- Draw + takeback controls added to real game room:
+  - `Offer Draw`, `Accept Draw`, `Takeback`.
+- History page now supports replay navigation:
+  - `View Board + Moves`, `Back`, `Forward`.
+- Friends hub now uses live API-backed data for:
+  - friend list
+  - pending friend requests
+  - invite by username
+
+### Why
+- Align real app behavior with the validated preview UX direction.
+- Keep social/challenge flow consistent with "play your friends" as the primary product path.
+
+### Notes
+- Notification delivery is currently in-app/online-only.
+- Realtime remains single-task constrained pending distributed WS routing.
 - Lobby now enforces app-level username setup before room join when account username is missing or opaque.
 - Username entry is constrained to a clean gamer-tag format (`a-z`, `0-9`, `_`, 3-20 chars) and validated with backend uniqueness checks.
 - Room participant tiles and game-result winner text now prefer participant display names/usernames instead of raw Cognito subject IDs.

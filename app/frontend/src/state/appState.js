@@ -10,6 +10,7 @@ export const initialAppState = {
   },
   room_state: {
     code: "",
+    hostUserId: null,
     participants: [],
     status: "idle",
     reconnect: {
@@ -69,6 +70,7 @@ export function appStateReducer(state, action) {
         ...state,
         room_state: {
           ...state.room_state,
+          hostUserId: action.hostUserId || state.room_state.hostUserId || null,
           participants: action.participants || [],
           status: "joined",
           reconnect:
@@ -97,9 +99,14 @@ export function appStateReducer(state, action) {
                 fen: action.activeGame.fen,
                 moves: action.activeGame.moves || [],
                 moveSans: action.activeGame.moveSans || [],
+                moveFens: action.activeGame.moveFens || ["start"],
                 turn: action.activeGame.turn,
                 timeWhite: action.activeGame.timeWhite,
                 timeBlack: action.activeGame.timeBlack,
+                drawOffer: action.activeGame.drawOffer || null,
+                settings: action.activeGame.settings || null,
+                takebacksWhiteUsed: action.activeGame.takebacksWhiteUsed || 0,
+                takebacksBlackUsed: action.activeGame.takebacksBlackUsed || 0,
                 serverTimestampMs: action.activeGame.serverTimestampMs || Date.now()
               }
             }
@@ -229,10 +236,62 @@ export function appStateReducer(state, action) {
             fen: action.fen,
             moves: action.moves || state.game_state.game.moves,
             moveSans: action.moveSans || state.game_state.game.moveSans,
+            moveFens: action.moveFens || state.game_state.game.moveFens,
             turn: action.turn,
             timeWhite: action.timeWhite,
             timeBlack: action.timeBlack,
+            drawOffer:
+              Object.prototype.hasOwnProperty.call(action, "drawOffer")
+                ? action.drawOffer
+                : state.game_state.game.drawOffer,
+            takebacksWhiteUsed:
+              action.takebacksWhiteUsed ?? state.game_state.game.takebacksWhiteUsed ?? 0,
+            takebacksBlackUsed:
+              action.takebacksBlackUsed ?? state.game_state.game.takebacksBlackUsed ?? 0,
             serverTimestampMs: action.serverTimestampMs || Date.now()
+          }
+        }
+      };
+    case "TAKEBACK_APPLIED":
+      if (!state.game_state.game) {
+        return state;
+      }
+      return {
+        ...state,
+        game_state: {
+          ...state.game_state,
+          game: {
+            ...state.game_state.game,
+            fen: action.fen,
+            moves: action.moves || state.game_state.game.moves,
+            moveSans: action.moveSans || state.game_state.game.moveSans,
+            moveFens: action.moveFens || state.game_state.game.moveFens,
+            turn: action.turn,
+            timeWhite: action.timeWhite,
+            timeBlack: action.timeBlack,
+            drawOffer:
+              Object.prototype.hasOwnProperty.call(action, "drawOffer")
+                ? action.drawOffer
+                : state.game_state.game.drawOffer,
+            takebacksWhiteUsed:
+              action.takebacksWhiteUsed ?? state.game_state.game.takebacksWhiteUsed ?? 0,
+            takebacksBlackUsed:
+              action.takebacksBlackUsed ?? state.game_state.game.takebacksBlackUsed ?? 0,
+            serverTimestampMs: action.serverTimestampMs || Date.now()
+          }
+        }
+      };
+    case "DRAW_OFFER_STATE":
+      if (!state.game_state.game) {
+        return state;
+      }
+      return {
+        ...state,
+        game_state: {
+          ...state.game_state,
+          game: {
+            ...state.game_state.game,
+            drawOffer: action.drawOffer || null
           }
         }
       };

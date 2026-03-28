@@ -9,6 +9,10 @@ const required = [
   "DYNAMODB_USERS_TABLE",
   "DYNAMODB_GAMES_TABLE",
   "DYNAMODB_PAIR_ROOMS_TABLE",
+  "DYNAMODB_FRIENDSHIPS_TABLE",
+  "DYNAMODB_FRIEND_REQUESTS_TABLE",
+  "DYNAMODB_CHALLENGES_TABLE",
+  "DYNAMODB_NOTIFICATIONS_TABLE",
   "COGNITO_USER_POOL_ID",
   "COGNITO_CLIENT_ID",
   "COGNITO_REGION",
@@ -34,7 +38,11 @@ export const config = {
   dynamodb: {
     usersTable: process.env.DYNAMODB_USERS_TABLE,
     gamesTable: process.env.DYNAMODB_GAMES_TABLE,
-    pairRoomsTable: process.env.DYNAMODB_PAIR_ROOMS_TABLE
+    pairRoomsTable: process.env.DYNAMODB_PAIR_ROOMS_TABLE,
+    friendshipsTable: process.env.DYNAMODB_FRIENDSHIPS_TABLE,
+    friendRequestsTable: process.env.DYNAMODB_FRIEND_REQUESTS_TABLE,
+    challengesTable: process.env.DYNAMODB_CHALLENGES_TABLE,
+    notificationsTable: process.env.DYNAMODB_NOTIFICATIONS_TABLE
   },
   cognito: {
     userPoolId: process.env.COGNITO_USER_POOL_ID,
@@ -44,6 +52,9 @@ export const config = {
   },
   chime: {
     region: process.env.CHIME_REGION
+  },
+  chessCom: {
+    oauthClientSecretName: process.env.CHESSCOM_OAUTH_CLIENT_SECRET_NAME || null
   },
   app: {
     domain: process.env.APP_DOMAIN,

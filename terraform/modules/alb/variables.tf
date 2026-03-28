@@ -60,6 +60,18 @@ variable "health_check_path" {
   default     = "/healthz"
 }
 
+variable "enable_target_group_stickiness" {
+  description = "Enable ALB target group stickiness to keep websocket upgrades on one target."
+  type        = bool
+  default     = true
+}
+
+variable "target_group_stickiness_duration_seconds" {
+  description = "AWSALB cookie stickiness duration in seconds."
+  type        = number
+  default     = 86400
+}
+
 variable "tags" {
   description = "Map of common tags applied to all resources in this module."
   type        = map(string)

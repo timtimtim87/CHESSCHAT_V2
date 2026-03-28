@@ -8,8 +8,10 @@ import FriendsPage from "./pages/FriendsPage";
 import HistoryPage from "./pages/HistoryPage";
 import AuthCallbackPage from "./pages/AuthCallbackPage";
 import { useAuth } from "./context/AuthContext";
+import { AppSocketProvider } from "./context/AppSocketContext";
 import { config } from "./config";
 import { deleteCookie, getCookie } from "./utils/cookies";
+import { isValidRoomCode } from "./utils/roomCode";
 import { PreviewProvider, usePreview } from "./preview/PreviewContext";
 import PreviewLandingPage from "./preview/pages/PreviewLandingPage";
 import PreviewRegisterPage from "./preview/pages/PreviewRegisterPage";
@@ -183,7 +185,7 @@ export default function App() {
     }
 
     const pendingRoom = getCookie(config.pendingRoomCookieName);
-    if (!/^[A-Z0-9]{5}$/.test(pendingRoom || "")) {
+    if (!isValidRoomCode(pendingRoom || "")) {
       return;
     }
 
@@ -191,5 +193,9 @@ export default function App() {
     window.location.replace(`/room/${pendingRoom}`);
   }, [isAuthenticated, isPreviewPath]);
 
-  return <AppRoutes />;
+  return (
+    <AppSocketProvider disabled={isPreviewPath}>
+      <AppRoutes />
+    </AppSocketProvider>
+  );
 }

@@ -24,6 +24,23 @@ const MATCHES = [
 
 export default function PreviewHistoryPage() {
   const [selectedMatch, setSelectedMatch] = useState(MATCHES[0]);
+  const [currentMoveIndex, setCurrentMoveIndex] = useState(0);
+
+  const totalMoves = selectedMatch.moves.length;
+  const currentMove = selectedMatch.moves[currentMoveIndex] || "-";
+
+  function selectMatch(match) {
+    setSelectedMatch(match);
+    setCurrentMoveIndex(0);
+  }
+
+  function stepBackward() {
+    setCurrentMoveIndex((current) => Math.max(0, current - 1));
+  }
+
+  function stepForward() {
+    setCurrentMoveIndex((current) => Math.min(totalMoves - 1, current + 1));
+  }
 
   return (
     <PreviewLayout>
@@ -53,7 +70,7 @@ export default function PreviewHistoryPage() {
                   <td>{match.opponent}</td>
                   <td>{match.result}</td>
                   <td>
-                    <button className="button-secondary" type="button" onClick={() => setSelectedMatch(match)}>
+                    <button className="button-secondary" type="button" onClick={() => selectMatch(match)}>
                       View Board + Moves
                     </button>
                   </td>
@@ -70,8 +87,24 @@ export default function PreviewHistoryPage() {
               <div key={index} />
             ))}
           </div>
+          <div className="preview-row-actions history-review-controls">
+            <button className="button-secondary" type="button" onClick={stepBackward} disabled={currentMoveIndex === 0}>
+              Back
+            </button>
+            <button
+              className="button-secondary"
+              type="button"
+              onClick={stepForward}
+              disabled={currentMoveIndex >= totalMoves - 1}
+            >
+              Forward
+            </button>
+          </div>
           <p className="landing-note" style={{ marginTop: 10 }}>
-            Move Sequence: {selectedMatch.moves.join(" ")}
+            Move {currentMoveIndex + 1} / {totalMoves}: {currentMove}
+          </p>
+          <p className="landing-note">
+            Sequence so far: {selectedMatch.moves.slice(0, currentMoveIndex + 1).join(" ")}
           </p>
           <div className="stat-card" style={{ marginTop: 12 }}>
             <p className="label">Stockfish Eval (Future)</p>

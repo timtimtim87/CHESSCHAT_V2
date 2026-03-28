@@ -16,6 +16,9 @@ export default function ProfilePage({ preview = false }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [deleteAccountError, setDeleteAccountError] = useState("");
+  const [chessComUsername, setChessComUsername] = useState("");
+  const [isChessComLinked, setIsChessComLinked] = useState(false);
+  const [profileMessage, setProfileMessage] = useState("");
   const { accessToken, logout } = useAuth();
 
   useEffect(() => {
@@ -29,13 +32,24 @@ export default function ProfilePage({ preview = false }) {
 
     async function fetchProfile() {
       try {
-        const response = await fetch("/api/me", {
-          headers: { Authorization: `Bearer ${accessToken}` },
-          signal: controller.signal
-        });
-        const payload = await response.json();
-        if (!response.ok) throw new Error(payload?.error?.message || "Unable to load profile.");
+        const [profileRes, chessRes] = await Promise.all([
+          fetch("/api/me", {
+            headers: { Authorization: `Bearer ${accessToken}` },
+            signal: controller.signal
+          }),
+          fetch("/api/chesscom/link", {
+            headers: { Authorization: `Bearer ${accessToken}` },
+            signal: controller.signal
+          })
+        ]);
+        const payload = await profileRes.json();
+        if (!profileRes.ok) throw new Error(payload?.error?.message || "Unable to load profile.");
         setProfile(payload.user || null);
+        if (chessRes.ok) {
+          const chessPayload = await chessRes.json();
+          setIsChessComLinked(Boolean(chessPayload.linked));
+          setChessComUsername(chessPayload.username || "");
+        }
       } catch (error) {
         if (error.name !== "AbortError") {
           console.error("Profile fetch failed:", error.message);
@@ -73,6 +87,44 @@ export default function ProfilePage({ preview = false }) {
     }
   }
 
+  async function linkChessCom() {
+    if (!chessComUsername.trim()) {
+      setProfileMessage("Enter your Chess.com username.");
+      return;
+    }
+    setProfileMessage("");
+    const response = await fetch("/api/chesscom/link", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ username: chessComUsername.trim() })
+    });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      setProfileMessage(payload?.error?.message || "Unable to link Chess.com account.");
+      return;
+    }
+    setIsChessComLinked(true);
+    setProfileMessage("Chess.com account linked.");
+  }
+
+  async function unlinkChessCom() {
+    setProfileMessage("");
+    const response = await fetch("/api/chesscom/link", {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) {
+      setProfileMessage("Unable to unlink Chess.com account.");
+      return;
+    }
+    setIsChessComLinked(false);
+    setChessComUsername("");
+    setProfileMessage("Chess.com account unlinked.");
+  }
+
   const profileName = profile?.display_name || profile?.username || "-";
   const joinedDate = profile?.created_at
     ? new Date(profile.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })
@@ -84,7 +136,7 @@ export default function ProfilePage({ preview = false }) {
       <header className="page-header">
         <div>
           <h1 className="page-title">Profile Overview</h1>
-          <p className="page-subtitle">Track account stats and manage your ChessChat profile settings.</p>
+          <p className="page-subtitle">Track account stats and manage your Chess-Chat profile settings.</p>
         </div>
         <span className="page-chip">Account</span>
       </header>
@@ -138,35 +190,35 @@ export default function ProfilePage({ preview = false }) {
 
             <aside className="profile-side">
               <section className="panel surface-glass">
-                <h3>Verification</h3>
-                <ul className="stub-list">
-                  <li className="stub-item">
-                    <span>Chess.com account linking</span>
-                    <span className="tag api-missing">API_MISSING</span>
-                  </li>
-                  <li className="stub-item">
-                    <span>Two-factor toggle</span>
-                    <span className="tag api-missing">API_MISSING</span>
-                  </li>
-                  <li className="stub-item">
-                    <span>Visibility controls</span>
-                    <span className="tag ui-ready">UI_READY</span>
-                  </li>
-                </ul>
+                <h3>Account & Chess.com Verification</h3>
+                <div className="form-row">
+                  <input
+                    value={chessComUsername}
+                    onChange={(e) => setChessComUsername(e.target.value)}
+                    placeholder="chess.com username"
+                    aria-label="Chess.com username"
+                  />
+                </div>
+                <div className="room-action-row" style={{ marginTop: 8 }}>
+                  <button className="button-primary" onClick={linkChessCom} type="button">
+                    Link Chess.com
+                  </button>
+                  <button className="button-secondary" onClick={unlinkChessCom} type="button" disabled={!isChessComLinked}>
+                    Unlink
+                  </button>
+                </div>
+                <p className="landing-note" style={{ marginTop: 8 }}>
+                  {isChessComLinked ? "Linked" : "Not linked"}
+                </p>
+                {profileMessage ? <p className="landing-note">{profileMessage}</p> : null}
               </section>
 
               <section className="panel surface-glass">
-                <h3>Achievements</h3>
-                <ul className="stub-list">
-                  <li className="stub-item">
-                    <span>Sicilian Master</span>
-                    <span className="tag ui-ready">UI_READY</span>
-                  </li>
-                  <li className="stub-item">
-                    <span>Speed Demon</span>
-                    <span className="tag ui-ready">UI_READY</span>
-                  </li>
-                </ul>
+                <h3>Pro Plan</h3>
+                <p>Advanced analytics and coaching tools are planned.</p>
+                <button className="button-secondary" type="button">
+                  Coming Soon
+                </button>
               </section>
             </aside>
           </>

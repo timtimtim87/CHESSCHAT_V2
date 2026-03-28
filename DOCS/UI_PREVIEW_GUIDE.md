@@ -57,16 +57,34 @@ Compatibility aliases:
 - Game room visuals, quick invite field, and mock room state.
 - Game actions include `Takeback` button placeholder.
 - Game setup modal mock includes:
-  - per-player time controls
-  - allow/deny takebacks
-  - takebacks-per-player counts
+  - Obsidian-style popup layout (dark layered panel)
+  - time preset chips (`3/5/10/30` + custom)
+  - color choice cards (`white/random/black`)
+  - per-player controls (starting time + takebacks-per-player)
+  - global takeback policy toggle
+  - trigger behavior: opens only after `Start Game` is pressed (not on initial page load)
 - Friends hub includes `Pending Friend Requests` and `Invite Friends` tiles.
 - History includes `View Board + Moves` review actions and a Stockfish evaluation placeholder.
 
 ## Future Feature Notes (Captured in Preview)
 - Pre-game setup should appear when a friend connection starts, before first move.
+- Current preview behavior models this by requiring a connected-video state and a `Start Game` click before showing setup.
 - Takebacks are intended to be allowed only before opponent replies (policy to enforce in real app logic).
 - History review should evolve from placeholder to full board replay + engine timeline.
+- Game settings should support clearer host/guest authority rules when both players edit values.
+- Add presets for asymmetric clocks (for friendly handicap games) as an optional mode.
+
+## Mockup Artifact Location (Local Only)
+Latest game settings popup design source used for preview implementation:
+- `/Users/tim/CODE_PROJECTS/CHESSCHAT_V2/.local/ui-preview/stitch_chess_chat_game_settings/screen.png`
+- `/Users/tim/CODE_PROJECTS/CHESSCHAT_V2/.local/ui-preview/stitch_chess_chat_game_settings/code.html`
+- `/Users/tim/CODE_PROJECTS/CHESSCHAT_V2/.local/ui-preview/stitch_chess_chat_game_settings/DESIGN.md`
+
+Original registration mockup baseline source:
+- `/Users/tim/CODE_PROJECTS/CHESSCHAT_V2/screen_templates/registration.html`
+- `/Users/tim/CODE_PROJECTS/CHESSCHAT_V2/screen_templates/screen_png/registration_screen.png`
+
+These are local artifacts for design translation and are not production UI source files.
 
 ## File Map (Preview Layer)
 - Routing: `app/frontend/src/App.jsx` (`/ui-preview/*` routes + guards)
@@ -81,7 +99,7 @@ Compatibility aliases:
   - `app/frontend/src/preview/pages/PreviewFriendsPage.jsx`
   - `app/frontend/src/preview/pages/PreviewProfilePage.jsx`
   - `app/frontend/src/preview/pages/PreviewHistoryPage.jsx`
-- Styling additions: `app/frontend/src/styles.css` (preview dropdowns/board sizing)
+- Styling: `app/frontend/src/styles.css` (preview dropdowns, board sizing, and game settings modal system)
 - Tests: `app/frontend/src/App.preview.test.jsx`
 
 ## Real App Safety Boundary

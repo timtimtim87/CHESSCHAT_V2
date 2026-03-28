@@ -11,6 +11,10 @@ import healthRouter from "./routes/health.js";
 import meRouter from "./routes/me.js";
 import historyRouter from "./routes/history.js";
 import roomsRouter from "./routes/rooms.js";
+import friendsRouter from "./routes/friends.js";
+import challengesRouter from "./routes/challenges.js";
+import notificationsRouter from "./routes/notifications.js";
+import chessComRouter from "./routes/chesscom.js";
 import { installWebSocketServer } from "./websocket/handler.js";
 import { log } from "./utils/logger.js";
 
@@ -23,7 +27,17 @@ app.use(express.json());
 app.use(attachCorrelationId);
 app.use(logHttpAccess);
 app.use(healthRouter);
-app.use("/api", requireHttpAuth, meRouter, historyRouter, roomsRouter);
+app.use(
+  "/api",
+  requireHttpAuth,
+  meRouter,
+  historyRouter,
+  roomsRouter,
+  friendsRouter,
+  challengesRouter,
+  notificationsRouter,
+  chessComRouter
+);
 app.use(express.static(publicDir));
 app.get("*", (_req, res) => {
   res.sendFile(path.join(publicDir, "index.html"));
