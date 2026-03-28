@@ -91,6 +91,7 @@ data "aws_iam_policy_document" "deploy_permissions" {
       "ecs:DescribeClusters",
       "ecs:DescribeServices",
       "ecs:DescribeTaskDefinition",
+      "ecs:ListTaskDefinitions",
       "ecs:RegisterTaskDefinition",
       "ecs:UpdateService"
     ]
